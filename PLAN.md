@@ -76,10 +76,11 @@ Current local Pi skill scan only found:
 
 No local Nuxt, Nuxt UI, or Effect TS skill is currently installed in the scanned Pi skill locations. Before implementation starts:
 
+- Search for skills for every tool used, not only Nuxt/UI and Effect. Trust skills maintained by the tool's own maintainers; consider third-party exceptions only with evidence of substantial popularity/maintenance and explicit human approval. Record sources, version compatibility, and searches with no suitable result.
 - Fetch/install a Nuxt UI skill if available.
 - Check again for a Nuxt-specific skill and install/use it if available.
 - Fetch/install an Effect TS skill and use it before Effect-heavy architecture work.
-- If no suitable public skill exists, create small project-local skills under `.pi/skills/` for Nuxt UI and Effect v4 conventions before coding substantial features.
+- Store reviewed project-local skills under the harness-neutral `.agents/skills/` directory and link them from `AGENTS.md`; do not rely on harness-specific auto-discovery. If no suitable public skill exists, create small project-local skills there for Nuxt UI and Effect v4 conventions before coding substantial features.
 
 ### Proposed stack
 
@@ -104,9 +105,8 @@ Follow the existing `../tt` GitHub workflow shape unless a later implementation 
 - Push/PR checks for lint, format, typecheck, tests, and build.
 - CI should use Node 24+ or the latest supported runtime chosen at bootstrap.
 - Add Vitest to CI from M0, not later.
-- Keep release-please for release automation.
-- Keep GHCR Docker image publishing.
-- Keep Coolify deployment triggered from release workflow.
+- M0 automation scope is quality checks and Dependabot only.
+- Keep release-please for release automation, GHCR Docker image publishing, and Coolify deployment triggered from the release workflow as the intended direction, but defer their implementation to a separately approved follow-up after M0.
 - Potential improvement to consider later: combine repeated install/setup steps with reusable workflows or a matrix, but keep clarity over cleverness.
 
 Relevant `tt` references:
@@ -182,8 +182,8 @@ Goal: create the smallest possible app shell with the chosen technical foundatio
 - Use Effect v4 RC deliberately for domain/server logic, not sprinkled everywhere.
 - VoidZero/OXC toolchain where practical: `oxlint`, `oxfmt`, and related tooling for fast lint/format checks.
 - Vitest installed from bootstrap with minimal smoke/unit tests.
-- Formatting, linting, typecheck, tests, and basic CI scripts wired before feature work.
-- Minimal layout with an authenticated/unauthenticated split, even if auth is still mocked.
+- Formatting, linting, typecheck, tests, basic CI scripts, and Dependabot wired before feature work. Release-please, GHCR publishing, and Coolify deployment are deferred to a separately approved follow-up after M0.
+- Minimal layout with an authenticated/unauthenticated split using development/test-only mock login. Production protected routes remain inaccessible until real authentication in M1.
 
 Acceptance:
 
