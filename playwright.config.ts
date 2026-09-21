@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
+process.env.DATABASE_URL ??= 'postgres://postgres:postgres@localhost:5432/nxmr'
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,

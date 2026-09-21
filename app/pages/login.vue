@@ -1,11 +1,37 @@
 <script setup lang="ts">
-const { isAuthenticated, isDevelopment, signOut } = useMockSession()
-const route = useRoute()
+import { authClient } from '~/lib/auth-client'
 
-if (route.query.logout === '1') {
-  signOut()
-} else if (isAuthenticated.value) {
-  await navigateTo('/dashboard')
+const route = useRoute()
+const pending = ref(false)
+const errorMessage = ref('')
+const redirectPath = safeRedirect(route.query.redirect)
+const { data: session } = await authClient.useSession(useFetch)
+
+if (session.value) {
+  await navigateTo(redirectPath)
+}
+
+async function signInWithGitHub() {
+  pending.value = true
+  errorMessage.value = ''
+
+  const result = await authClient.signIn.social({
+    provider: 'github',
+    callbackURL: redirectPath,
+  })
+
+  if (result.error) {
+    pending.value = false
+    errorMessage.value = result.error.message ?? 'Unable to start GitHub sign-in.'
+  }
+}
+
+function safeRedirect(value: unknown) {
+  if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) {
+    return value
+  }
+
+  return '/today'
 }
 </script>
 
@@ -17,17 +43,16 @@ if (route.query.logout === '1') {
         <h1 class="mt-2 text-2xl font-semibold text-highlighted">Welcome back</h1>
       </div>
     </template>
-    <p class="text-muted">Authentication is being prepared for M1.</p>
-    <UAlert v-if="isDevelopment" class="mt-6" color="warning" title="Development demo access">
-      This temporary sign-in is not real authentication and protects no data.
+    <p class="text-muted">Sign in to continue to your workday.</p>
+    <UAlert v-if="errorMessage" class="mt-6" color="error" title="Sign-in failed">
+      {{ errorMessage }}
     </UAlert>
-    <a
-      v-if="isDevelopment"
-      class="mt-6 block w-full rounded-md bg-primary px-4 py-2 text-center font-medium text-inverted"
-      href="/dashboard?demo=1"
-      role="button"
-    >
-      Continue to demo dashboard
-    </a>
+    <UButton
+      class="mt-6 w-full justify-center"
+      :loading="pending"
+      :disabled="pending"
+      label="Continue with GitHub"
+      @click="signInWithGitHub"
+    />
   </UCard>
 </template>

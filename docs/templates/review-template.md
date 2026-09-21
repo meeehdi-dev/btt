@@ -7,9 +7,9 @@
 
 ## Findings
 
-| Severity | File/area | Finding | Recommendation |
-| --- | --- | --- | --- |
-| Blocking/Major/Minor | ... | ... | ... |
+| Severity             | File/area | Finding | Recommendation |
+| -------------------- | --------- | ------- | -------------- |
+| Blocking/Major/Minor | ...       | ...     | ...            |
 
 ## Verification reviewed
 

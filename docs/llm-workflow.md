@@ -163,6 +163,8 @@ Every product milestone follows the lifecycle in `docs/milestones/README.md`:
 6. Review.
 7. Close.
 
+A milestone is **completed** only when its approved implementation checklist is complete or explicitly deferred, verification evidence is recorded, required ADRs/docs are updated, human code review is accepted, and a human completion declaration is recorded in the milestone file. The human may declare completion directly in chat (for example, “I hereby declare M1 complete”); the agent must transcribe that decision, update review/closeout status, and preserve any follow-ups. The declaration is an acceptance gate, not a replacement for tests or review evidence.
+
 The milestone file is the running log for that work. It must be human-readable enough for a reviewer to understand what changed without reconstructing the entire agent session.
 
 ## Decision records and journals
@@ -186,4 +188,3 @@ node scripts/check-workflow-docs.mjs
 These checks intentionally verify structure only. They do not decide whether a plan is good, whether an ADR is wise, or whether verification evidence is sufficient. Those remain human review responsibilities.
 
 Before opening a milestone for implementation or submitting a workflow/doc change for review, agents should run the check above when Node is available and record the outcome in the relevant plan or milestone file.
-

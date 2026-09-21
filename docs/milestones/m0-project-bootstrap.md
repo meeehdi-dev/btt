@@ -143,8 +143,14 @@ Execute only after approval:
 ## Review status
 
 - Plan review: Approved.
-- Code review: Pending human review.
-- Implementation verification: Local gates pass; remote CI and human visual/manual review are pending.
+- Code review: Accepted by the human; M0 is declared complete.
+- Implementation verification: Local gates pass; remote CI and human visual/manual review remain documented follow-ups.
+- Milestone completion declaration: Recorded from the human’s M1 planning instruction confirming M0 completion.
+
+## Closeout
+
+- Human completion declaration: The human confirmed M0 is considered completed while beginning M1 planning.
+- Closeout note: the workflow now requires an explicit human completion declaration in addition to implementation evidence and code review.
 
 ## Follow-ups
 

@@ -58,7 +58,15 @@ Append entries during implementation.
 
 - Plan review: Pending
 - Code review: Pending
+- Milestone completion declaration: Pending
 
 ## Follow-ups
 
 - ...
+
+## Closeout checklist
+
+- [ ] Approved checklist complete or explicitly deferred.
+- [ ] Verification evidence recorded.
+- [ ] Human code review accepted.
+- [ ] Human completion declaration recorded in the journal and review status.

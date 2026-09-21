@@ -10,7 +10,7 @@ Each milestone must be small, human-readable, and independently reviewable. Use 
 4. **Implement** — work in small slices under the approved plan. Record deviations as they happen.
 5. **Verify** — run relevant automated checks and manual checks. Record commands and outcomes.
 6. **Review** — submit the diff for human code review. Address feedback in focused changes.
-7. **Close** — update the milestone file with final summary, decisions, verification evidence, known follow-ups, and links to ADRs.
+7. **Close** — update the milestone file with final summary, decisions, verification evidence, known follow-ups, and links to ADRs. A milestone is complete only after the approved checklist is done or explicitly deferred, evidence is recorded, human code review is accepted, and the human’s completion declaration is recorded in the milestone journal/review status. A direct chat statement such as “I hereby declare M1 complete” is sufficient; the agent must transcribe it and update the artifact.
 
 ## Required sections in each milestone file
 
@@ -35,3 +35,4 @@ Each milestone must be small, human-readable, and independently reviewable. Use 
 - [ ] User-visible behavior is described clearly enough for review.
 - [ ] ADRs are added or updated for durable decisions.
 - [ ] Follow-ups are captured and linked.
+- [ ] Human completion declaration is recorded in the journal and review status is updated to `Complete`.

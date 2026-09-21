@@ -29,11 +29,7 @@ const requiredHeadings = {
     '## Verification',
     '## Review status',
   ],
-  'docs/templates/adr-template.md': [
-    '## Context',
-    '## Decision',
-    '## Consequences',
-  ],
+  'docs/templates/adr-template.md': ['## Context', '## Decision', '## Consequences'],
 }
 
 const failures = []

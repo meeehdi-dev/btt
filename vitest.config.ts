@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     exclude: ['tests/e2e/**'],
+    setupFiles: ['./tests/setup-env.ts'],
     environment: 'happy-dom',
     coverage: { enabled: false },
   },
