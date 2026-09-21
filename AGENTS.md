@@ -1,0 +1,22 @@
+# Agent Instructions
+
+Before planning or implementation, every agent must read:
+
+1. `docs/llm-workflow.md` — canonical collaboration workflow.
+2. `PLAN.md` — product scope, technical direction, and milestone roadmap.
+3. Relevant files in `docs/decisions/` and `docs/milestones/`.
+4. The approved plan for the current task, if one exists.
+
+## Non-negotiable rules
+
+- Human approval is required before implementing every milestone plan.
+- Human code review is required before accepting completed work.
+- Keep milestone plans and logs human-readable.
+- Record durable decisions as ADRs in `docs/decisions/`.
+- Record implementation evidence in the active milestone file: commands, outcomes, manual checks, deviations, and follow-ups.
+- Distinguish facts, decisions, hypotheses, and open questions.
+- Stay within the approved scope. Ask before making high-impact changes to architecture, auth/security, schema, dependencies, deployment, or workflow.
+
+## Current workflow state
+
+The LLM-assisted workflow is defined by ADR `docs/decisions/0001-llm-assisted-development-workflow.md` and `docs/llm-workflow.md`. M0 must not start until its milestone plan is created from the template and approved.
