@@ -1,6 +1,6 @@
 ---
 name: oxc
- description: Oxc linting and formatting guidance from the Oxc maintainers.
+description: Oxc linting and formatting guidance from the Oxc maintainers.
 source: https://github.com/oxc-project/oxc/tree/9a6dc258dcba9b57dad9f3cce3cf46c953d57922/.agents/skills
 ---
 
