@@ -15,7 +15,7 @@ definePageMeta({ layout: 'dashboard', middleware: 'auth' })
           <h2 class="font-medium text-highlighted">No tracked work yet</h2>
           <p class="mt-2 text-muted">Time entries and the day agenda arrive in later milestones.</p>
         </div>
-        <UIcon name="i-lucide-calendar-days" class="size-10 text-muted" aria-hidden="true" />
+        <UIcon name="lucide:calendar-days" class="size-10 text-muted" aria-hidden="true" />
       </div>
     </UCard>
   </div>

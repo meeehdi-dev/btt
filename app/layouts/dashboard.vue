@@ -3,6 +3,7 @@ import { authClient } from '~/lib/auth-client'
 
 const navigation = [
   { label: 'Today', to: '/today' },
+  { label: 'Clients', to: '/clients' },
   { label: 'Projects', to: '/projects' },
   { label: 'Tickets', to: '/tickets' },
   { label: 'Settings', to: '/settings' },

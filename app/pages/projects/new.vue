@@ -1,0 +1,87 @@
+<script setup lang="ts">
+definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+
+const route = useRoute()
+const {
+  data: clientData,
+  pending: clientsPending,
+  error: clientsError,
+} = await useFetch('/api/clients')
+const clients = computed(() => clientData.value?.clients ?? [])
+const clientId = ref(typeof route.query.client === 'string' ? route.query.client : '')
+const name = ref('')
+const color = ref('#3b82f6')
+const pending = ref(false)
+const errorMessage = ref('')
+
+watch(
+  clients,
+  (available) => {
+    if (!available.some((client) => client.id === clientId.value)) clientId.value = ''
+  },
+  { immediate: true },
+)
+
+const canSubmit = computed(() => clients.value.some((client) => client.id === clientId.value))
+
+async function submit() {
+  pending.value = true
+  errorMessage.value = ''
+  try {
+    const project = await $fetch<{ id: string }>('/api/projects', {
+      method: 'POST',
+      body: { clientId: clientId.value, name: name.value, color: color.value },
+    })
+    await navigateTo(`/projects/${project.id}`)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Unable to create project.'
+  } finally {
+    pending.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="mx-auto max-w-2xl space-y-6">
+    <div>
+      <NuxtLink to="/projects" class="text-sm text-primary">← Projects</NuxtLink>
+      <h1 class="mt-3 text-3xl font-semibold text-highlighted">New project</h1>
+    </div>
+    <UAlert v-if="clientsError" color="error" title="Could not load clients">
+      Try again or return to the clients page before creating a project.
+    </UAlert>
+    <UCard v-else-if="clientsPending">
+      <p class="text-muted">Loading available clients…</p>
+    </UCard>
+    <UCard v-else-if="!clients.length">
+      <h2 class="font-medium text-highlighted">Create a client first</h2>
+      <p class="mt-2 text-muted">Projects must belong to an active client.</p>
+      <UButton class="mt-4" to="/clients/new" label="Create client" />
+    </UCard>
+    <UCard v-else>
+      <form class="space-y-5" @submit.prevent="submit">
+        <UFormField label="Client" required>
+          <USelect
+            v-model="clientId"
+            :items="clients.map((client) => ({ label: client.name, value: client.id }))"
+            class="w-full"
+            placeholder="Choose a client"
+          />
+        </UFormField>
+        <UFormField label="Name" required>
+          <UInput v-model="name" class="w-full" placeholder="Website redesign" />
+        </UFormField>
+        <UFormField label="Color" required>
+          <ColorSelector v-model="color" />
+        </UFormField>
+        <UAlert v-if="errorMessage" color="error" title="Could not create project">{{
+          errorMessage
+        }}</UAlert>
+        <div class="flex justify-end gap-3">
+          <UButton to="/projects" color="neutral" variant="ghost" label="Cancel" />
+          <UButton type="submit" :disabled="!canSubmit" :loading="pending" label="Create project" />
+        </div>
+      </form>
+    </UCard>
+  </div>
+</template>

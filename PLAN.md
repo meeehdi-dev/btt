@@ -223,9 +223,28 @@ Acceptance:
 - A user can create a client, add projects, and add releases.
 - Detail pages clearly show the hierarchy.
 
+### M2.5 — UUIDv7 identifier migration
+
+Goal: establish one time-ordered identifier strategy before adding more product tables.
+
+- Decide whether application and Better Auth identifiers use UUIDv7.
+- Inventory all existing auth/domain IDs and foreign keys.
+- Design and approve a safe backfill/cutover migration for existing records.
+- Configure Better Auth ID generation or an adapter/database boundary where supported.
+- Replace domain ID creation with the approved UUIDv7 generator.
+
+Acceptance:
+
+- Existing auth and domain records remain addressable after migration.
+- New records use the approved UUIDv7 strategy across all ID-producing paths.
+- Session fixtures, ownership checks, and foreign keys pass against the migrated schema.
+- Rollback and deployment procedures are documented and reviewed.
+
+Status: Planning placeholder; requires a separate approved milestone plan before implementation.
+
 ### M3 — Tickets MVP
 
-Goal: add the lightweight Linear-style layer.
+Goal: add the lightweight Linear-style layer after the identifier strategy is settled.
 
 - Ticket CRUD.
 - Required release association.

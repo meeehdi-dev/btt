@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, date, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -50,7 +50,60 @@ export const verification = pgTable('verification', {
   updatedAt: timestamp('updated_at'),
 })
 
+export const client = pgTable(
+  'client',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    color: text('color').notNull().default('#64748b'),
+    archivedAt: timestamp('archived_at'),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+  },
+  (table) => [index('client_user_id_idx').on(table.userId)],
+)
+
+export const project = pgTable(
+  'project',
+  {
+    id: text('id').primaryKey(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => client.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    color: text('color').notNull(),
+    archivedAt: timestamp('archived_at'),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+  },
+  (table) => [index('project_client_id_idx').on(table.clientId)],
+)
+
+export const release = pgTable(
+  'release',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => project.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    targetDate: date('target_date'),
+    archivedAt: timestamp('archived_at'),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+  },
+  (table) => [index('release_project_id_idx').on(table.projectId)],
+)
+
 export const authSchema = { user, session, account, verification }
+export const appSchema = { client, project, release }
+export const schema = { ...authSchema, ...appSchema }
 
 export type User = typeof user.$inferSelect
 export type Session = typeof session.$inferSelect
+export type Client = typeof client.$inferSelect
+export type Project = typeof project.$inferSelect
+export type Release = typeof release.$inferSelect

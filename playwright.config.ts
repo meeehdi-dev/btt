@@ -1,6 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
+import { loadEnv } from 'vite'
 
-process.env.DATABASE_URL ??= 'postgres://postgres:postgres@localhost:5432/nxmr'
+Object.assign(process.env, loadEnv('development', process.cwd(), ''))
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be set before running Playwright tests')
+}
 
 export default defineConfig({
   testDir: './tests/e2e',

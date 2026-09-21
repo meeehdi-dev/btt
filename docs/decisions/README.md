@@ -33,8 +33,10 @@ NNNN-short-descriptive-slug.md
 
 ## Index
 
-| ADR                                               | Status   | Title                                               |
-| ------------------------------------------------- | -------- | --------------------------------------------------- |
-| [0001](0001-llm-assisted-development-workflow.md) | Accepted | LLM-assisted development workflow                   |
-| [0002](0002-m0-bootstrap-baseline.md)             | Accepted | M0 bootstrap baseline                               |
-| [0003](0003-m1-authentication-and-database.md)    | Accepted | M1 authentication and Better Auth database baseline |
+| ADR                                                | Status   | Title                                               |
+| -------------------------------------------------- | -------- | --------------------------------------------------- |
+| [0001](0001-llm-assisted-development-workflow.md)  | Accepted | LLM-assisted development workflow                   |
+| [0002](0002-m0-bootstrap-baseline.md)              | Accepted | M0 bootstrap baseline                               |
+| [0003](0003-m1-authentication-and-database.md)     | Accepted | M1 authentication and Better Auth database baseline |
+| [0004](0004-m2-core-data-model.md)                 | Accepted | M2 work hierarchy and archive lifecycle             |
+| [0005](0005-m2-domain-validation-and-ui-polish.md) | Accepted | M2 domain validation and hierarchy UI polish        |

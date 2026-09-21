@@ -1,0 +1,1 @@
+ALTER TABLE "client" ADD COLUMN "color" text DEFAULT '#64748b' NOT NULL;

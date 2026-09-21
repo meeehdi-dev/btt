@@ -8,6 +8,20 @@
       "when": 1789996529354,
       "tag": "0000_better-auth",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790001619758,
+      "tag": "0001_cloudy_marten_broadcloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790004566186,
+      "tag": "0002_sweet_matthew_murdock",
+      "breakpoints": true
     }
   ]
 }
