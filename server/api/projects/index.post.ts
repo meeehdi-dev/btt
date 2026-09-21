@@ -4,6 +4,7 @@ import { client, project } from '../../db/schema'
 import { ProjectCreate } from '../../domain/schemas'
 import { decodeBody } from '../../domain/decode'
 import { now, notFound, requireUserId } from '../../utils/domain'
+import { generateId } from '../../utils/id'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const [created] = await db
     .insert(project)
     .values({
-      id: crypto.randomUUID(),
+      id: generateId(),
       clientId: body.clientId,
       name: body.name,
       color: body.color,

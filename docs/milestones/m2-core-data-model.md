@@ -118,7 +118,7 @@ Use Drizzle PostgreSQL tables with restrictive child foreign keys and nullable a
 
 - Plan review: Approved via Plannotator.
 - Code review: Accepted by the human; no changes requested for the M2 follow-up changes.
-- Milestone completion declaration: Pending explicit human declaration.
+- Milestone completion declaration: Declared complete by the human on 2026-09-21.
 
 ## Follow-ups
 
@@ -131,4 +131,4 @@ Use Drizzle PostgreSQL tables with restrictive child foreign keys and nullable a
 - [x] Approved checklist complete.
 - [x] Verification evidence recorded.
 - [x] Human code review accepted; no changes requested.
-- [ ] Human completion declaration recorded in the journal and review status.
+- [x] Human completion declaration recorded in the journal and review status.

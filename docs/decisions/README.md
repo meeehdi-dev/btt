@@ -40,3 +40,4 @@ NNNN-short-descriptive-slug.md
 | [0003](0003-m1-authentication-and-database.md)     | Accepted | M1 authentication and Better Auth database baseline |
 | [0004](0004-m2-core-data-model.md)                 | Accepted | M2 work hierarchy and archive lifecycle             |
 | [0005](0005-m2-domain-validation-and-ui-polish.md) | Accepted | M2 domain validation and hierarchy UI polish        |
+| [0006](0006-uuidv7-identifiers.md)                 | Accepted | UUIDv7 identifiers across auth and domain data     |

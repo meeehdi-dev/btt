@@ -2,6 +2,7 @@ import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import { betterAuth } from 'better-auth'
 import { db } from '../db'
 import { authSchema } from '../db/schema'
+import { generateId } from './id'
 
 const isProduction = process.env.NODE_ENV === 'production'
 const secret = process.env.BETTER_AUTH_SECRET
@@ -23,6 +24,11 @@ export const auth = betterAuth({
     schema: authSchema,
   }),
   secret: secret ?? 'nxmr-local-development-secret-change-me-32',
+  advanced: {
+    database: {
+      generateId,
+    },
+  },
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
   socialProviders: {
     github: {

@@ -3,6 +3,7 @@ import { client } from '../../db/schema'
 import { ClientCreate } from '../../domain/schemas'
 import { decodeBody } from '../../domain/decode'
 import { now, requireUserId } from '../../utils/domain'
+import { generateId } from '../../utils/id'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const [created] = await db
     .insert(client)
     .values({
-      id: crypto.randomUUID(),
+      id: generateId(),
       userId,
       name: body.name,
       color: body.color ?? '#64748b',

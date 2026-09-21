@@ -8,6 +8,8 @@ import {
 } from '../../server/db/schema'
 import { eq, inArray } from 'drizzle-orm'
 
+const uuidv7Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 test('redirects unauthenticated users and supports an authenticated shell session', async ({
   page,
   context,
@@ -66,16 +68,22 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     })
     expect(clientResponse.ok()).toBeTruthy()
     const client = await clientResponse.json()
+    expect(client.id).toMatch(uuidv7Pattern)
+    expect(client.userId).toBe(user.id)
     const projectResponse = await page.request.post('/api/projects', {
       data: { clientId: client.id, name: 'M2 Project', color: '#ABC123' },
     })
     expect(projectResponse.ok()).toBeTruthy()
     const project = await projectResponse.json()
+    expect(project.id).toMatch(uuidv7Pattern)
+    expect(project.clientId).toBe(client.id)
     const releaseResponse = await page.request.post('/api/releases', {
       data: { projectId: project.id, name: 'M2 Release', targetDate: '2030-02-01' },
     })
     expect(releaseResponse.ok()).toBeTruthy()
     const release = await releaseResponse.json()
+    expect(release.id).toMatch(uuidv7Pattern)
+    expect(release.projectId).toBe(project.id)
 
     await page.goto('/clients')
     await expect(page.getByRole('button', { name: 'Show archived' })).toBeVisible()
