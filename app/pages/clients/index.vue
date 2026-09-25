@@ -13,7 +13,9 @@ const clients = computed(() => data.value?.clients ?? [])
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p class="text-sm font-medium text-primary">Workspace</p>
-        <h1 class="mt-2 text-3xl font-semibold text-highlighted">Clients</h1>
+        <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+          <EntityIcon kind="clients" />Clients
+        </h1>
         <p class="mt-3 max-w-2xl text-muted">Organize projects and releases by client.</p>
       </div>
       <div class="flex items-center gap-2">
@@ -42,7 +44,9 @@ const clients = computed(() => data.value?.clients ?? [])
               class="size-3 rounded-full border border-default"
               :style="{ backgroundColor: client.color }"
             />
-            <h2 class="font-medium text-highlighted">{{ client.name }}</h2>
+            <h2 class="inline-flex items-center gap-1 font-medium text-highlighted">
+              <EntityIcon kind="clients" />{{ client.name }}
+            </h2>
           </div>
           <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
         </div>

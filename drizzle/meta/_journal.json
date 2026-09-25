@@ -29,6 +29,20 @@
       "when": 1790012846596,
       "tag": "0003_solid_chameleon",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790356779864,
+      "tag": "0004_awesome_dormammu",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790358195826,
+      "tag": "0005_lovely_beast",
+      "breakpoints": true
     }
   ]
 }

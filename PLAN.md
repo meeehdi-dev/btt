@@ -20,7 +20,7 @@ Create a concise product plan for a work-only tool that combines:
 
 1. **Modern `tt` replacement**
    - Manual time entries.
-   - Drag-and-drop calendar blocks.
+   - Desktop drag-and-drop calendar blocks; non-drag controls for mobile.
    - Client → project → release/milestone → ticket organization.
    - Customizable agenda hours, e.g. 8am–8pm by default.
    - Mobile-friendly today agenda as the primary MVP UI.
@@ -295,9 +295,9 @@ Acceptance:
 
 Goal: reintroduce the core `tt` interaction carefully.
 
-- Create blocks by click/touch-dragging on the agenda.
-- Support both start-to-finish and finish-to-start creation.
-- Edit, resize, and move blocks.
+- Create blocks by desktop click-dragging on the agenda.
+- Support both start-to-finish and finish-to-start desktop drag creation.
+- Edit, resize, and move blocks; provide non-drag creation/editing controls on mobile.
 - Overlap prevention or clear overlap warning.
 - Persist blocks as mandatory-ticket time entries.
 
@@ -351,8 +351,8 @@ Acceptance:
 - [ ] Bottom-of-day progress bar showing worked time against configured work day duration.
 - [ ] Manual time entries with date, start time, duration, mandatory ticket, and description.
 - [ ] Easy start time and duration pickers.
-- [ ] Calendar blocks with create/edit/resize/move interactions.
-- [ ] Click-and-drag block creation in both directions: start-to-finish and finish-to-start.
+- [ ] Calendar blocks with create/edit/resize/move interactions (desktop drag; mobile non-drag controls).
+- [ ] Desktop click-and-drag block creation in both directions: start-to-finish and finish-to-start.
 - [ ] Overlap prevention or warning for scheduled blocks.
 - [ ] Agenda filters by client, project, release, ticket, and status.
 - [ ] Enable quick actions from badges such as release/client/project/status badges: open a popover to filter by that item or navigate to its detail page.
@@ -424,9 +424,9 @@ Specific findings already folded into this plan:
 - [x] Confirm estimate usage colors instead of warning notifications.
 - [x] Confirm today-dashboard-first, mobile-friendly MVP direction.
 - [x] Confirm agenda-style day view, no active timer for MVP.
-- [x] Confirm time tracking through manual entries and drag-and-drop calendar blocks.
+- [x] Confirm time tracking through manual entries and desktop drag-and-drop calendar blocks; mobile uses non-drag controls.
 - [x] Confirm customizable agenda hours.
-- [x] Confirm start time + duration manual entries and bidirectional drag creation.
+- [x] Confirm start time + duration manual entries and desktop bidirectional drag creation.
 - [x] Convert this product plan into an implementation plan when ready.
 - [x] Define the LLM-assisted workflow before M0.
 - [ ] Create and approve the M0 milestone file from `docs/templates/milestone-template.md` before bootstrap implementation.

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { authClient } from '~/lib/auth-client'
+import { entityIcons } from '~/utils/entity-icons'
 
 const navigation = [
-  { label: 'Today', to: '/today' },
-  { label: 'Clients', to: '/clients' },
-  { label: 'Projects', to: '/projects' },
-  { label: 'Tickets', to: '/tickets' },
-  { label: 'Settings', to: '/settings' },
+  { label: 'Today', to: '/today', icon: entityIcons.today },
+  { label: 'Clients', to: '/clients', icon: entityIcons.clients },
+  { label: 'Projects', to: '/projects', icon: entityIcons.projects },
+  { label: 'Tickets', to: '/tickets', icon: entityIcons.tickets },
+  { label: 'Settings', to: '/settings', icon: entityIcons.settings },
 ]
 const { data: session } = await authClient.useSession(useFetch)
 </script>
@@ -15,7 +16,7 @@ const { data: session } = await authClient.useSession(useFetch)
   <div class="min-h-screen bg-default">
     <header class="border-b border-muted bg-elevated">
       <div
-        class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between"
+        class="flex w-full flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between"
       >
         <div class="flex items-center justify-between gap-4">
           <NuxtLink class="text-lg font-semibold text-highlighted" to="/today">nxmr</NuxtLink>
@@ -25,10 +26,10 @@ const { data: session } = await authClient.useSession(useFetch)
             v-for="item in navigation"
             :key="item.to"
             :to="item.to"
-            class="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-muted transition hover:bg-accented hover:text-highlighted"
+            class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-muted transition hover:bg-accented hover:text-highlighted"
             active-class="bg-primary/10 text-primary"
           >
-            {{ item.label }}
+            <UIcon :name="item.icon" class="size-4" aria-hidden="true" />{{ item.label }}
           </NuxtLink>
         </nav>
         <div class="flex items-center gap-3">
@@ -44,7 +45,7 @@ const { data: session } = await authClient.useSession(useFetch)
         </div>
       </div>
     </header>
-    <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+    <main class="w-full px-4 py-6 sm:px-6 sm:py-10">
       <slot />
     </main>
   </div>

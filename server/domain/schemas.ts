@@ -1,4 +1,5 @@
 import { Schema } from 'effect'
+import { ticketStatuses } from '../../shared/ticket-status'
 
 const HexColor = Schema.String.check(Schema.isPattern(/^#[0-9a-f]{6}$/i))
 const Name = Schema.String.check(Schema.isTrimmed(), Schema.isPattern(/^\S(?:.{0,198}\S)?$/))
@@ -30,6 +31,32 @@ export const ReleaseUpdate = Schema.Struct({
   archived: Schema.optional(Schema.Boolean),
 })
 
+const TicketTitle = Schema.String.check(Schema.isTrimmed(), Schema.isPattern(/^\S(?:.{0,198}\S)?$/))
+const TicketStatus = Schema.Literals(ticketStatuses)
+const Estimate = Schema.NullOr(Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)))
+const Description = Schema.String.check(Schema.isMaxLength(10000))
+const LinkLabel = Schema.String.check(Schema.isTrimmed(), Schema.isPattern(/^\S(?:.{0,198}\S)?$/))
+
+export const TicketLinkCreate = Schema.Struct({ label: LinkLabel, url: Schema.String })
+export const TicketRelationCreate = Schema.Struct({ ticketId: Id })
+
+export const TicketCreate = Schema.Struct({
+  releaseId: Id,
+  title: TicketTitle,
+  description: Schema.optional(Description),
+  status: Schema.optional(TicketStatus),
+  estimateMinutes: Schema.optional(Estimate),
+  links: Schema.optional(Schema.Array(TicketLinkCreate)),
+  relatedTicketIds: Schema.optional(Schema.Array(Id)),
+})
+export const TicketUpdate = Schema.Struct({
+  releaseId: Schema.optional(Id),
+  title: Schema.optional(TicketTitle),
+  description: Schema.optional(Description),
+  status: Schema.optional(TicketStatus),
+  estimateMinutes: Schema.optional(Estimate),
+  archived: Schema.optional(Schema.Boolean),
+})
 export type ClientCreateInput = Schema.Schema.Type<typeof ClientCreate>
 export type ClientUpdateInput = Schema.Schema.Type<typeof ClientUpdate>
 export type ProjectCreateInput = Schema.Schema.Type<typeof ProjectCreate>

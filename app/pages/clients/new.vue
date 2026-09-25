@@ -24,10 +24,14 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl space-y-6">
+  <div class="w-full space-y-6">
     <div>
-      <NuxtLink to="/clients" class="text-sm text-primary">← Clients</NuxtLink>
-      <h1 class="mt-3 text-3xl font-semibold text-highlighted">New client</h1>
+      <NuxtLink to="/clients" class="inline-flex items-center gap-1 text-sm text-primary"
+        >← <EntityIcon kind="clients" />Clients</NuxtLink
+      >
+      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+        <EntityIcon kind="clients" />New client
+      </h1>
     </div>
     <UCard>
       <form class="space-y-5" @submit.prevent="submit">

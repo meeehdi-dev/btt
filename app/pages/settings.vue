@@ -6,7 +6,9 @@ definePageMeta({ layout: 'dashboard', middleware: 'auth' })
   <div class="space-y-6">
     <div>
       <p class="text-sm font-medium text-primary">Settings</p>
-      <h1 class="mt-2 text-3xl font-semibold text-highlighted">Workspace settings</h1>
+      <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+        <EntityIcon kind="settings" />Workspace settings
+      </h1>
       <p class="mt-3 max-w-2xl text-muted">Personalize your workday when settings arrive.</p>
     </div>
     <UCard>

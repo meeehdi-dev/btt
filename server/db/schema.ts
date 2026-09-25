@@ -1,4 +1,18 @@
-import { boolean, date, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  check,
+  date,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
+import { ticketStatuses } from '../../shared/ticket-status'
 
 export const user = pgTable('user', {
   id: uuid('id').primaryKey(),
@@ -98,8 +112,65 @@ export const release = pgTable(
   (table) => [index('release_project_id_idx').on(table.projectId)],
 )
 
+export const ticketStatus = pgEnum('ticket_status', ticketStatuses)
+
+export const ticket = pgTable(
+  'ticket',
+  {
+    id: uuid('id').primaryKey(),
+    releaseId: uuid('release_id')
+      .notNull()
+      .references(() => release.id, { onDelete: 'restrict' }),
+    title: text('title').notNull(),
+    description: text('description').notNull().default(''),
+    status: ticketStatus('status').notNull().default('Idea'),
+    estimateMinutes: integer('estimate_minutes'),
+    archivedAt: timestamp('archived_at'),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+  },
+  (table) => [
+    index('ticket_release_id_idx').on(table.releaseId),
+    check(
+      'ticket_estimate_positive_check',
+      sql`${table.estimateMinutes} is null or ${table.estimateMinutes} > 0`,
+    ),
+  ],
+)
+
+export const ticketLink = pgTable(
+  'ticket_link',
+  {
+    id: uuid('id').primaryKey(),
+    ticketId: uuid('ticket_id')
+      .notNull()
+      .references(() => ticket.id, { onDelete: 'restrict' }),
+    label: text('label').notNull(),
+    url: text('url').notNull(),
+  },
+  (table) => [index('ticket_link_ticket_id_idx').on(table.ticketId)],
+)
+
+export const ticketRelation = pgTable(
+  'ticket_relation',
+  {
+    id: uuid('id').primaryKey(),
+    fromTicketId: uuid('from_ticket_id')
+      .notNull()
+      .references(() => ticket.id, { onDelete: 'restrict' }),
+    toTicketId: uuid('to_ticket_id')
+      .notNull()
+      .references(() => ticket.id, { onDelete: 'restrict' }),
+  },
+  (table) => [
+    uniqueIndex('ticket_relation_pair_idx').on(table.fromTicketId, table.toTicketId),
+    index('ticket_relation_to_idx').on(table.toTicketId),
+    check('ticket_relation_order_check', sql`${table.fromTicketId} < ${table.toTicketId}`),
+  ],
+)
+
 export const authSchema = { user, session, account, verification }
-export const appSchema = { client, project, release }
+export const appSchema = { client, project, release, ticket, ticketLink, ticketRelation }
 export const schema = { ...authSchema, ...appSchema }
 
 export type User = typeof user.$inferSelect
@@ -107,3 +178,4 @@ export type Session = typeof session.$inferSelect
 export type Client = typeof client.$inferSelect
 export type Project = typeof project.$inferSelect
 export type Release = typeof release.$inferSelect
+export type Ticket = typeof ticket.$inferSelect

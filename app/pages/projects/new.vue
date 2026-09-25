@@ -42,10 +42,14 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl space-y-6">
+  <div class="w-full space-y-6">
     <div>
-      <NuxtLink to="/projects" class="text-sm text-primary">← Projects</NuxtLink>
-      <h1 class="mt-3 text-3xl font-semibold text-highlighted">New project</h1>
+      <NuxtLink to="/projects" class="inline-flex items-center gap-1 text-sm text-primary"
+        >← <EntityIcon kind="projects" />Projects</NuxtLink
+      >
+      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+        <EntityIcon kind="projects" />New project
+      </h1>
     </div>
     <UAlert v-if="clientsError" color="error" title="Could not load clients">
       Try again or return to the clients page before creating a project.

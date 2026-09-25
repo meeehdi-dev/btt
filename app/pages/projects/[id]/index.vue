@@ -49,17 +49,28 @@ async function markDone(releaseId: string) {
   <div class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <NuxtLink :to="`/clients/${project.project.clientId}`" class="text-sm text-primary"
-          >← {{ project.clientName }}</NuxtLink
+        <NuxtLink
+          :to="`/clients/${project.project.clientId}`"
+          class="inline-flex items-center gap-1 text-sm text-primary"
+          >← <EntityIcon kind="clients" />{{ project.clientName }}</NuxtLink
         >
         <div class="mt-3 flex items-center gap-3">
           <span class="size-4 rounded-full" :style="{ backgroundColor: project.project.color }" />
-          <h1 class="text-3xl font-semibold text-highlighted">{{ project.project.name }}</h1>
+          <h1 class="flex items-center gap-2 text-3xl font-semibold text-highlighted">
+            <EntityIcon kind="projects" />{{ project.project.name }}
+          </h1>
           <UBadge v-if="project.project.archivedAt" color="neutral" variant="subtle"
             >Archived</UBadge
           >
         </div>
-        <p class="mt-2 text-muted">{{ project.clientName }} · Releases and milestones.</p>
+        <p class="mt-2 text-muted">
+          <NuxtLink
+            :to="`/clients/${project.project.clientId}`"
+            class="inline-flex items-center gap-1 hover:text-primary"
+            ><EntityIcon kind="clients" />{{ project.clientName }}</NuxtLink
+          >
+          · Releases and milestones.
+        </p>
       </div>
       <div class="flex gap-2">
         <ArchiveFilterButton v-model="showArchived" />
@@ -95,7 +106,9 @@ async function markDone(releaseId: string) {
           class="block transition hover:text-primary"
         >
           <div class="flex items-start justify-between gap-3">
-            <h2 class="font-medium text-highlighted">{{ item.release.name }}</h2>
+            <h2 class="inline-flex items-center gap-1 font-medium text-highlighted">
+              <EntityIcon kind="releases" />{{ item.release.name }}
+            </h2>
             <UBadge v-if="item.release.archivedAt" color="neutral" variant="subtle"
               >Archived</UBadge
             >

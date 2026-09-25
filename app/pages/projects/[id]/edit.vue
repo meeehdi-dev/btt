@@ -35,14 +35,16 @@ async function remove() {
 }
 </script>
 <template>
-  <div class="mx-auto max-w-2xl space-y-6">
+  <div class="w-full space-y-6">
     <div>
       <NuxtLink
         :to="`/projects/${id}${archived ? '?archived=true' : ''}`"
-        class="text-sm text-primary"
-        >← Project</NuxtLink
+        class="inline-flex items-center gap-1 text-sm text-primary"
+        >← <EntityIcon kind="projects" />Project</NuxtLink
       >
-      <h1 class="mt-3 text-3xl font-semibold text-highlighted">Edit project</h1>
+      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+        <EntityIcon kind="projects" />Edit project
+      </h1>
     </div>
     <UCard
       ><form class="space-y-5" @submit.prevent="save">

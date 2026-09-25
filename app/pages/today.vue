@@ -6,7 +6,9 @@ definePageMeta({ layout: 'dashboard', middleware: 'auth' })
   <div class="space-y-6">
     <div>
       <p class="text-sm font-medium text-primary">Today</p>
-      <h1 class="mt-2 text-3xl font-semibold text-highlighted">Your workday starts here</h1>
+      <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+        <EntityIcon kind="today" />Your workday starts here
+      </h1>
       <p class="mt-3 max-w-2xl text-muted">Your agenda will appear here once you add work.</p>
     </div>
     <UCard>
