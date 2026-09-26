@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
       and(
         eq(project.id, id),
         eq(client.userId, userId),
-        isNull(client.archivedAt),
+        archived ? undefined : isNull(client.archivedAt),
         archived ? undefined : isNull(project.archivedAt),
       ),
     )

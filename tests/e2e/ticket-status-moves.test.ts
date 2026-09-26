@@ -81,7 +81,12 @@ test('board status moves work across lanes, without reordering or changing card 
     ).json()
     const idea = await (
       await page.request.post('/api/tickets', {
-        data: { releaseId: r.id, title: 'Idea source', relatedTicketIds: [done.id] },
+        data: {
+          releaseId: r.id,
+          title: 'Idea source',
+          description: 'Board comment',
+          relatedTicketIds: [done.id],
+        },
       })
     ).json()
     const other = await (
@@ -141,6 +146,18 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(board.getByText('Other ticket')).toHaveCount(0)
     await expect(lane('Estimate').getByText('No tickets in Estimate.')).toBeVisible()
     await expect(card(idea.id)).toHaveAttribute('draggable', 'true')
+    await expect(card(idea.id).locator('p[title="Board comment"]')).toBeVisible()
+    expect(
+      await card(idea.id).evaluate((node) => {
+        const comment = node.querySelector('p[title="Board comment"]')
+        const parents = node.querySelector('[aria-label="Ticket parent relations"]')
+        return (
+          !!comment?.querySelector('.size-4') &&
+          !!parents &&
+          comment.getBoundingClientRect().bottom <= parents.getBoundingClientRect().top
+        )
+      }),
+    ).toBe(true)
     await expect(board.getByText('No estimate')).toHaveCount(0)
     await expect(board.getByText('Change status')).toHaveCount(0)
 
@@ -154,9 +171,6 @@ test('board status moves work across lanes, without reordering or changing card 
     await card(idea.id).getByRole('link', { name: 'Idea source' }).dragTo(lane('Done'))
     await card(idea.id)
       .getByRole('link', { name: 'Related ticket: Done source' })
-      .dragTo(lane('Done'))
-    await card(idea.id)
-      .getByRole('button', { name: 'Move Idea source to Estimate' })
       .dragTo(lane('Done'))
     await expect(page).toHaveURL(new RegExp(`/tickets\\?release=${r.id}$`))
     expect(patchCount).toBe(0)
@@ -233,18 +247,10 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(lane('Test').getByText('Done source')).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
 
-    // Quick action remains icon-only and does not interfere with card navigation.
-    const advance = card(idea.id).getByRole('button', { name: 'Move Idea source to Test' })
-    await expect(advance).toHaveAttribute('title', 'Move Idea source to Test')
-    await advance.focus()
-    await advance.press('Enter')
+    // Status changes on the board use desktop drag; the edit form remains the non-drag route.
+    await expect(card(idea.id).getByRole('button', { name: /Move Idea source/ })).toHaveCount(0)
+    await dragBetweenLanes(page, board, card(idea.id), lane('Test'))
     await expect(lane('Test').getByText('Idea source')).toBeVisible()
-    await expect(
-      card(idea.id).getByRole('button', { name: 'Move Idea source to Deploy' }),
-    ).toBeFocused()
-    await expect(
-      card(idea.id).getByRole('button', { name: 'Move Idea source to Deploy' }),
-    ).toBeVisible()
     await card(idea.id).getByRole('link', { name: 'Idea source' }).click()
     await expect(page).toHaveURL(`/tickets/${idea.id}`)
     await expect(page.getByText('No estimate')).toHaveCount(0)
@@ -284,19 +290,15 @@ test('board status moves work across lanes, without reordering or changing card 
         sourcePosition: { x: 8, y: 8 },
       })
       await expect(testLane.getByText('Idea source')).toBeVisible()
-      await mobileCard.getByRole('button', { name: 'Move Idea source to Deploy' }).click()
-      await expect(mobile.getByRole('status')).toContainText('Moved Idea source to Deploy.')
-      const deploy = mobile.getByRole('region', { name: 'Deploy tickets' })
-      await expect(deploy.getByText('Idea source')).toBeVisible()
-      await expect(
-        mobileCard.getByRole('button', { name: 'Move Idea source to Done' }),
-      ).toBeFocused()
-      await mobileCard.getByRole('button', { name: 'Move Idea source to Done' }).click()
-      const doneLane = mobile.getByRole('region', { name: 'Done tickets' })
-      await expect(doneLane.getByText('Idea source')).toBeVisible()
-      await expect(mobileCard.getByRole('link', { name: 'Idea source' })).toBeFocused()
       await expect(mobileCard.getByRole('button', { name: /Move Idea source/ })).toHaveCount(0)
+      await mobileCard.getByRole('link', { name: 'Idea source' }).click()
+      await expect(mobile).toHaveURL(`/tickets/${idea.id}`)
+      await mobile.getByRole('link', { name: 'Edit' }).click()
+      await expect(mobile.getByRole('combobox', { name: 'Status' })).toBeVisible()
+      await mobile.goto(`/tickets?release=${r.id}`)
+      await mobile.waitForLoadState('networkidle')
       await mobile.getByRole('button', { name: 'Show archived' }).click()
+      const deploy = mobile.getByRole('region', { name: 'Deploy tickets' })
       await deploy.getByRole('button', { name: 'Deploy: 1 tickets' }).click()
       await expect(deploy.locator(`[data-board-ticket-id="${archived.id}"]`)).toBeVisible()
       await expect(deploy.locator(`[data-board-ticket-id="${archived.id}"]`)).toHaveAttribute(

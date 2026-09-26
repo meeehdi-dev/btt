@@ -50,7 +50,7 @@ async function markDone(releaseId: string) {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <NuxtLink
-          :to="`/clients/${project.project.clientId}`"
+          :to="`/clients/${project.project.clientId}${project.clientArchivedAt ? '?archived=true' : ''}`"
           class="inline-flex items-center gap-1 text-sm text-primary"
           >← <EntityIcon kind="clients" />{{ project.clientName }}</NuxtLink
         >
@@ -65,7 +65,7 @@ async function markDone(releaseId: string) {
         </div>
         <p class="mt-2 text-muted">
           <NuxtLink
-            :to="`/clients/${project.project.clientId}`"
+            :to="`/clients/${project.project.clientId}${project.clientArchivedAt ? '?archived=true' : ''}`"
             class="inline-flex items-center gap-1 hover:text-primary"
             ><EntityIcon kind="clients" />{{ project.clientName }}</NuxtLink
           >
@@ -75,12 +75,18 @@ async function markDone(releaseId: string) {
       <div class="flex gap-2">
         <ArchiveFilterButton v-model="showArchived" />
         <UButton
+          v-if="!project.clientArchivedAt"
           :to="`/projects/${id}/edit${project.project.archivedAt ? '?archived=true' : ''}`"
           color="neutral"
           variant="outline"
           label="Edit"
         />
-        <UButton :to="`/releases/new?project=${id}`" icon="lucide:plus" label="New release" />
+        <UButton
+          v-if="!project.clientArchivedAt && !project.project.archivedAt"
+          :to="`/releases/new?project=${id}`"
+          icon="lucide:plus"
+          label="New release"
+        />
       </div>
     </div>
     <UAlert v-if="releaseError" color="error" title="Could not load releases">

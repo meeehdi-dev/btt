@@ -20,7 +20,7 @@ if (error.value || !releaseData.value)
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <NuxtLink
-          :to="`/projects/${release.projectId}`"
+          :to="`/projects/${release.projectId}${releaseData?.clientArchivedAt || releaseData?.projectArchivedAt ? '?archived=true' : ''}`"
           class="inline-flex items-center gap-1 text-sm text-primary"
           >← <EntityIcon kind="projects" />{{ projectName }}</NuxtLink
         >
@@ -36,11 +36,14 @@ if (error.value || !releaseData.value)
       </div>
       <div class="flex gap-2">
         <UButton
-          v-if="!release.archivedAt"
+          v-if="
+            !release.archivedAt && !releaseData?.projectArchivedAt && !releaseData?.clientArchivedAt
+          "
           :to="`/tickets/new?release=${id}`"
           icon="lucide:plus"
           label="New ticket"
         /><UButton
+          v-if="!releaseData?.projectArchivedAt && !releaseData?.clientArchivedAt"
           :to="`/releases/${id}/edit${release.archivedAt ? '?archived=true' : ''}`"
           color="neutral"
           variant="outline"

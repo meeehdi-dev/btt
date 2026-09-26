@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ticketStatuses, nextStatus } from '#shared/ticket-status'
+import { ticketStatuses } from '#shared/ticket-status'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
@@ -250,16 +250,8 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
     )
     if (mobile && card) await waitForCardAnimation(card)
-    const focusTarget =
-      card?.querySelector<HTMLElement>('[data-next-status-control]') ??
-      card?.querySelector<HTMLElement>('[data-ticket-title-link]')
-    focusTarget?.focus()
+    card?.querySelector<HTMLElement>('[data-ticket-title-link]')?.focus()
   }
-}
-
-function advance(id: string, status: string) {
-  const next = nextStatus(status)
-  if (next) void moveStatus(id, next)
 }
 </script>
 
@@ -348,7 +340,6 @@ function advance(id: string, status: string) {
               :busy="!!changing"
               :can-drag="desktopDragEnabled"
               :highlighted="highlightedId === item.ticket.id"
-              @advance="advance(item.ticket.id, item.ticket.status)"
               @drag-start="startDrag($event, item.ticket.id)"
               @drag-end="clearDrag"
               @related-hover="hoveredTargetId = $event"
@@ -399,7 +390,6 @@ function advance(id: string, status: string) {
                   :busy="!!changing"
                   :can-drag="desktopDragEnabled"
                   :highlighted="highlightedId === item.ticket.id"
-                  @advance="advance(item.ticket.id, item.ticket.status)"
                   @drag-start="startDrag($event, item.ticket.id)"
                   @drag-end="clearDrag"
                   @related-hover="hoveredTargetId = $event"

@@ -58,6 +58,11 @@ export const TicketUpdate = Schema.Struct({
   archived: Schema.optional(Schema.Boolean),
 })
 const EntryMinute = Schema.Number.check(Schema.isInt())
+export const AgendaSettingsUpdate = Schema.Struct({
+  visibleStartMinute: EntryMinute,
+  visibleEndMinute: EntryMinute,
+  workDayDurationMinutes: EntryMinute,
+})
 export const TimeEntryCreate = Schema.Struct({
   ticketId: Id,
   date: TargetDate,

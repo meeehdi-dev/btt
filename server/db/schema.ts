@@ -169,6 +169,28 @@ export const ticketRelation = pgTable(
   ],
 )
 
+export const userSettings = pgTable(
+  'user_settings',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    visibleStartMinute: integer('visible_start_minute').notNull().default(480),
+    visibleEndMinute: integer('visible_end_minute').notNull().default(1200),
+    workDayDurationMinutes: integer('work_day_duration_minutes').notNull().default(480),
+  },
+  (table) => [
+    check(
+      'user_settings_window_check',
+      sql`${table.visibleStartMinute} >= 0 and ${table.visibleStartMinute} < ${table.visibleEndMinute} and ${table.visibleEndMinute} <= 1440 and ${table.visibleStartMinute} % 30 = 0 and ${table.visibleEndMinute} % 30 = 0`,
+    ),
+    check(
+      'user_settings_duration_check',
+      sql`${table.workDayDurationMinutes} >= 30 and ${table.workDayDurationMinutes} <= 1440 and ${table.workDayDurationMinutes} % 30 = 0`,
+    ),
+  ],
+)
+
 export const timeEntry = pgTable(
   'time_entry',
   {
@@ -198,7 +220,16 @@ export const timeEntry = pgTable(
 )
 
 export const authSchema = { user, session, account, verification }
-export const appSchema = { client, project, release, ticket, ticketLink, ticketRelation, timeEntry }
+export const appSchema = {
+  client,
+  project,
+  release,
+  ticket,
+  ticketLink,
+  ticketRelation,
+  timeEntry,
+  userSettings,
+}
 export const schema = { ...authSchema, ...appSchema }
 
 export type User = typeof user.$inferSelect
@@ -208,3 +239,4 @@ export type Project = typeof project.$inferSelect
 export type Release = typeof release.$inferSelect
 export type Ticket = typeof ticket.$inferSelect
 export type TimeEntry = typeof timeEntry.$inferSelect
+export type UserSettings = typeof userSettings.$inferSelect

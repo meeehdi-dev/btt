@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { Ticket } from '../../server/db/schema'
-import { nextStatus } from '#shared/ticket-status'
 
-type BoardTicket = Pick<Ticket, 'id' | 'title' | 'status' | 'estimateMinutes' | 'releaseId'> & {
+type BoardTicket = Pick<
+  Ticket,
+  'id' | 'title' | 'description' | 'status' | 'estimateMinutes' | 'releaseId'
+> & {
   archivedAt: string | null
 }
 
@@ -22,7 +24,6 @@ defineProps<{
   highlighted: boolean
 }>()
 const emit = defineEmits<{
-  advance: []
   'drag-start': [event: DragEvent]
   'drag-end': []
   'related-hover': [id: string | null]
@@ -63,18 +64,27 @@ function dragEnd() {
     @dragstart="dragStart"
     @dragend="dragEnd"
   >
-    <div class="flex items-start justify-between gap-2">
+    <div
+      class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
+      aria-label="Ticket main information"
+    >
       <NuxtLink
         :to="`/tickets/${item.ticket.id}${item.ticket.archivedAt ? '?archived=true' : ''}`"
         data-ticket-title-link
-        class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
-        ><EntityIcon kind="tickets" /><span class="min-w-0 break-words">{{
+        class="inline-flex shrink-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
+        ><EntityIcon kind="tickets" /><span class="max-w-36 truncate" :title="item.ticket.title">{{
           item.ticket.title
         }}</span></NuxtLink
       >
+      <UBadge color="neutral" variant="subtle" :aria-label="`Status: ${item.ticket.status}`"
+        ><UIcon name="lucide:circle-dot" class="mr-1 size-3" aria-hidden="true" />{{
+          item.ticket.status
+        }}</UBadge
+      >
+      <TicketEstimate v-if="item.ticket.estimateMinutes" :minutes="item.ticket.estimateMinutes" />
       <div
         v-if="item.relatedTickets.length"
-        class="flex max-w-[50%] shrink-0 flex-wrap justify-end gap-1"
+        class="flex shrink-0 gap-1"
         aria-label="Related tickets"
       >
         <a
@@ -92,8 +102,23 @@ function dragEnd() {
           ><EntityIcon kind="related"
         /></a>
       </div>
+      <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
+      <UBadge v-else-if="changing" color="primary" variant="subtle">Moving…</UBadge>
     </div>
-    <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+    <p
+      v-if="item.ticket.description"
+      class="mt-2 flex min-w-0 items-center gap-1 text-sm text-muted"
+      :title="item.ticket.description"
+    >
+      <UIcon name="lucide:align-left" class="size-4 shrink-0" aria-hidden="true" /><span
+        class="truncate"
+        >{{ item.ticket.description }}</span
+      >
+    </p>
+    <div
+      class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted"
+      aria-label="Ticket parent relations"
+    >
       <NuxtLink
         :to="`/clients/${item.clientId}`"
         class="inline-flex items-center gap-1 hover:text-primary"
@@ -109,34 +134,6 @@ function dragEnd() {
         class="inline-flex items-center gap-1 hover:text-primary"
         ><EntityIcon kind="releases" />{{ item.releaseName }}</NuxtLink
       >
-    </div>
-    <div
-      v-if="
-        item.ticket.estimateMinutes ||
-        item.ticket.archivedAt ||
-        changing ||
-        nextStatus(item.ticket.status)
-      "
-      class="mt-3 flex flex-wrap items-center justify-between gap-2"
-    >
-      <TicketEstimate v-if="item.ticket.estimateMinutes" :minutes="item.ticket.estimateMinutes" />
-      <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
-      <template v-else>
-        <UBadge v-if="changing" color="primary" variant="subtle">Moving…</UBadge>
-        <UButton
-          v-if="nextStatus(item.ticket.status)"
-          data-next-status-control
-          size="xs"
-          color="neutral"
-          variant="outline"
-          icon="lucide:arrow-right"
-          :loading="changing"
-          :disabled="busy"
-          :aria-label="`Move ${item.ticket.title} to ${nextStatus(item.ticket.status)}`"
-          :title="`Move ${item.ticket.title} to ${nextStatus(item.ticket.status)}`"
-          @click="$emit('advance')"
-        />
-      </template>
     </div>
   </div>
 </template>

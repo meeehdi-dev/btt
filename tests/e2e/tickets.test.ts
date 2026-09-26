@@ -179,11 +179,10 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await expect(
       page.getByRole('region', { name: 'Idea tickets' }).getByText('First ticket'),
     ).toBeVisible()
-    await page
-      .getByRole('region', { name: 'Ticket board' })
-      .locator(`[data-board-ticket-id="${a.id}"]`)
-      .getByRole('button', { name: 'Move First ticket to Estimate' })
-      .click()
+    expect(
+      (await page.request.patch(`/api/tickets/${a.id}`, { data: { status: 'Estimate' } })).ok(),
+    ).toBe(true)
+    await page.reload()
     await expect(
       page.getByRole('region', { name: 'Estimate tickets' }).getByText('First ticket'),
     ).toBeVisible()

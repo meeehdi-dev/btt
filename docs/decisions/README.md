@@ -44,5 +44,7 @@ NNNN-short-descriptive-slug.md
 | [0007](0007-m3-ticket-model-and-relations.md)          | Accepted   | M3 ticket model and relations                        |
 | [0008](0008-ticket-estimates-and-board-layout.md)      | Accepted   | Human-readable estimates and responsive ticket board |
 | [0009](0009-desktop-only-drag-and-drop.md)             | Superseded | Desktop-only drag-and-drop interactions              |
-| [0010](0010-board-drag-and-compact-ticket-metadata.md) | Accepted   | Full-card board drag and compact ticket metadata     |
+| [0010](0010-board-drag-and-compact-ticket-metadata.md) | Superseded | Full-card board drag and compact ticket metadata     |
 | [0011](0011-manual-time-entry-history-and-slots.md)    | Accepted   | Manual time entry history and slots                  |
+| [0012](0012-today-agenda-settings-and-history.md)      | Accepted   | Today agenda settings and historical work            |
+| [0013](0013-board-status-control-removal.md)           | Accepted   | Remove next-status control from ticket board         |

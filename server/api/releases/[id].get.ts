@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
       projectName: project.name,
       projectColor: project.color,
       projectArchivedAt: project.archivedAt,
+      clientArchivedAt: client.archivedAt,
     })
     .from(release)
     .innerJoin(project, eq(release.projectId, project.id))
@@ -21,8 +22,8 @@ export default defineEventHandler(async (event) => {
       and(
         eq(release.id, id),
         eq(client.userId, userId),
-        isNull(client.archivedAt),
-        isNull(project.archivedAt),
+        archived ? undefined : isNull(client.archivedAt),
+        archived ? undefined : isNull(project.archivedAt),
         archived ? undefined : isNull(release.archivedAt),
       ),
     )
