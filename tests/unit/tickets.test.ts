@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 import {
   TicketCreate,
@@ -10,8 +10,8 @@ import { nextStatus, ticketStatuses } from '../../shared/ticket-status'
 import { ticketStatus } from '../../server/db/schema'
 import { externalUrl } from '../../app/utils/ticket-url'
 
-const decode = <S extends Schema.Top>(schema: S, input: unknown) =>
-  Effect.runPromise(Schema.decodeUnknownEffect(schema)(input))
+const decode = <S extends Schema.ConstraintDecoder<unknown>>(schema: S, input: unknown) =>
+  Schema.decodeUnknownPromise(schema)(input)
 
 describe('ticket workflow', () => {
   it('advances through seven fixed statuses and stops at Done', () => {
