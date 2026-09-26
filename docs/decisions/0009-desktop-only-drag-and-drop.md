@@ -1,9 +1,9 @@
 # ADR 0009: Desktop-only drag-and-drop interactions
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-25
 - Supersedes: None
-- Superseded by: None
+- Superseded by: 0010-board-drag-and-compact-ticket-metadata.md
 
 ## Context
 

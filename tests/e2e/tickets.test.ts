@@ -182,7 +182,7 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page
       .getByRole('region', { name: 'Ticket board' })
       .locator(`[data-board-ticket-id="${a.id}"]`)
-      .getByRole('button', { name: 'Move to Estimate' })
+      .getByRole('button', { name: 'Move First ticket to Estimate' })
       .click()
     await expect(
       page.getByRole('region', { name: 'Estimate tickets' }).getByText('First ticket'),

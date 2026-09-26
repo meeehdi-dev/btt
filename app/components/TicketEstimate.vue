@@ -13,5 +13,4 @@ defineProps<{ minutes: number | null }>()
     <UIcon name="lucide:clock" class="size-4" aria-hidden="true" />
     <span>{{ formatTicketEstimate(minutes) }}</span>
   </span>
-  <span v-else class="text-sm text-muted">No estimate</span>
 </template>

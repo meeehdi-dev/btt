@@ -84,7 +84,10 @@ async function addRelation() {
               ><EntityIcon kind="releases" />{{ data?.hierarchy.releaseName }}</NuxtLink
             >
           </span>
-          · {{ record.status }} · <TicketEstimate :minutes="record.estimateMinutes" />
+          · {{ record.status
+          }}<template v-if="record.estimateMinutes">
+            · <TicketEstimate :minutes="record.estimateMinutes" />
+          </template>
         </p>
       </div>
       <div class="flex gap-2">

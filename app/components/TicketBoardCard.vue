@@ -17,24 +17,56 @@ defineProps<{
     relatedTickets: { id: string; title: string }[]
   }
   changing: boolean
+  busy: boolean
+  canDrag: boolean
   highlighted: boolean
 }>()
-defineEmits<{
+const emit = defineEmits<{
   advance: []
+  'drag-start': [event: DragEvent]
+  'drag-end': []
   'related-hover': [id: string | null]
   'related-click': [event: MouseEvent, id: string]
 }>()
+
+let startedOnControl = false
+const interactive = 'a, button, input, select, textarea, [role="button"], [role="combobox"]'
+function pointerDown(event: PointerEvent) {
+  startedOnControl = event.target instanceof Element && !!event.target.closest(interactive)
+}
+function dragStart(event: DragEvent) {
+  if (startedOnControl || (event.target instanceof Element && event.target.closest(interactive))) {
+    event.preventDefault()
+    return
+  }
+  emit('drag-start', event)
+}
+function dragEnd() {
+  startedOnControl = false
+  emit('drag-end')
+}
 </script>
 
 <template>
   <div
     :data-board-ticket-id="item.ticket.id"
+    :aria-busy="changing"
+    :draggable="canDrag && !item.ticket.archivedAt && !busy"
     class="rounded-lg border bg-elevated p-4 transition-colors"
-    :class="highlighted ? 'border-primary' : 'border-default'"
+    :class="[
+      highlighted ? 'border-primary' : 'border-default',
+      canDrag && !item.ticket.archivedAt && !busy ? 'cursor-grab active:cursor-grabbing' : '',
+    ]"
+    @pointerdown="pointerDown"
+    @pointerup="startedOnControl = false"
+    @pointercancel="startedOnControl = false"
+    @dragstart="dragStart"
+    @dragend="dragEnd"
   >
     <div class="flex items-start justify-between gap-2">
       <NuxtLink
         :to="`/tickets/${item.ticket.id}${item.ticket.archivedAt ? '?archived=true' : ''}`"
+        data-ticket-title-link
         class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
         ><EntityIcon kind="tickets" /><span class="min-w-0 break-words">{{
           item.ticket.title
@@ -78,18 +110,33 @@ defineEmits<{
         ><EntityIcon kind="releases" />{{ item.releaseName }}</NuxtLink
       >
     </div>
-    <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-      <TicketEstimate :minutes="item.ticket.estimateMinutes" />
+    <div
+      v-if="
+        item.ticket.estimateMinutes ||
+        item.ticket.archivedAt ||
+        changing ||
+        nextStatus(item.ticket.status)
+      "
+      class="mt-3 flex flex-wrap items-center justify-between gap-2"
+    >
+      <TicketEstimate v-if="item.ticket.estimateMinutes" :minutes="item.ticket.estimateMinutes" />
       <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
-      <UButton
-        v-else-if="nextStatus(item.ticket.status)"
-        size="xs"
-        color="neutral"
-        variant="outline"
-        :loading="changing"
-        :label="`Move to ${nextStatus(item.ticket.status)}`"
-        @click="$emit('advance')"
-      />
+      <template v-else>
+        <UBadge v-if="changing" color="primary" variant="subtle">Moving…</UBadge>
+        <UButton
+          v-if="nextStatus(item.ticket.status)"
+          data-next-status-control
+          size="xs"
+          color="neutral"
+          variant="outline"
+          icon="lucide:arrow-right"
+          :loading="changing"
+          :disabled="busy"
+          :aria-label="`Move ${item.ticket.title} to ${nextStatus(item.ticket.status)}`"
+          :title="`Move ${item.ticket.title} to ${nextStatus(item.ticket.status)}`"
+          @click="$emit('advance')"
+        />
+      </template>
     </div>
   </div>
 </template>

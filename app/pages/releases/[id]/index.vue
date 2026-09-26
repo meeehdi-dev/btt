@@ -71,7 +71,10 @@ if (error.value || !releaseData.value)
           <EntityIcon kind="tickets" />{{ item.ticket.title }}
         </h2>
         <p class="mt-2 text-sm text-muted">
-          {{ item.ticket.status }} · <TicketEstimate :minutes="item.ticket.estimateMinutes" /></p
+          {{ item.ticket.status
+          }}<template v-if="item.ticket.estimateMinutes">
+            · <TicketEstimate :minutes="item.ticket.estimateMinutes"
+          /></template></p
       ></NuxtLink>
     </div>
     <UButton

@@ -20,8 +20,149 @@ const groups = computed(() =>
     items: tickets.value.filter((item) => item.ticket.status === status),
   })),
 )
+type TicketStatus = (typeof ticketStatuses)[number]
 const changing = ref<string | null>(null)
 const actionError = ref('')
+const statusMessage = ref('')
+const failedMove = ref<{ id: string; status: TicketStatus } | null>(null)
+const board = ref<HTMLElement | null>(null)
+const desktopDragEnabled = ref(false)
+let dragBreakpoint: MediaQueryList | undefined
+const draggingId = ref<string | null>(null)
+const overStatus = ref<TicketStatus | null>(null)
+const scrollDirection = ref(0)
+let scrollFrame = 0
+const dragType = 'application/x-nxmr-ticket-status'
+
+function clearDrag() {
+  draggingId.value = null
+  overStatus.value = null
+  scrollDirection.value = 0
+  if (scrollFrame) cancelAnimationFrame(scrollFrame)
+  scrollFrame = 0
+}
+
+function syncDragBreakpoint(event: MediaQueryListEvent) {
+  desktopDragEnabled.value = event.matches
+  if (!event.matches) clearDrag()
+}
+onMounted(() => {
+  dragBreakpoint = window.matchMedia('(min-width: 768px)')
+  desktopDragEnabled.value = dragBreakpoint.matches
+  dragBreakpoint.addEventListener('change', syncDragBreakpoint)
+})
+
+watch([releaseId, showArchived], clearDrag)
+watch(tickets, () => {
+  if (
+    draggingId.value &&
+    !tickets.value.some(({ ticket }) => ticket.id === draggingId.value && !ticket.archivedAt)
+  )
+    clearDrag()
+})
+onBeforeUnmount(() => {
+  dragBreakpoint?.removeEventListener('change', syncDragBreakpoint)
+  clearDrag()
+})
+
+function scrollBoard() {
+  if (!board.value || !draggingId.value || !scrollDirection.value) {
+    scrollFrame = 0
+    return
+  }
+  board.value.scrollLeft += scrollDirection.value * 18
+  scrollFrame = requestAnimationFrame(scrollBoard)
+}
+
+function updateEdgeScroll(event: DragEvent) {
+  if (!board.value || !draggingId.value) return
+  const bounds = board.value.getBoundingClientRect()
+  scrollDirection.value =
+    event.clientY < bounds.top ||
+    event.clientY > bounds.bottom ||
+    event.clientX < bounds.left ||
+    event.clientX > bounds.right
+      ? 0
+      : event.clientX < bounds.left + 80
+        ? -1
+        : event.clientX > bounds.right - 80
+          ? 1
+          : 0
+  if (scrollDirection.value && !scrollFrame) scrollFrame = requestAnimationFrame(scrollBoard)
+}
+
+function startDrag(event: DragEvent, id: string) {
+  const source = tickets.value.find(({ ticket }) => ticket.id === id)
+  if (
+    !desktopDragEnabled.value ||
+    changing.value ||
+    !source ||
+    source.ticket.archivedAt ||
+    !event.dataTransfer
+  ) {
+    event.preventDefault()
+    return
+  }
+  draggingId.value = id
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData(dragType, id)
+  const card = event.currentTarget
+  if (card instanceof HTMLElement) {
+    const bounds = card.getBoundingClientRect()
+    event.dataTransfer.setDragImage(card, event.clientX - bounds.left, event.clientY - bounds.top)
+  }
+}
+
+function validDrag(event: DragEvent) {
+  return (
+    !!draggingId.value &&
+    !changing.value &&
+    !!event.dataTransfer?.types.includes(dragType) &&
+    tickets.value.some(({ ticket }) => ticket.id === draggingId.value && !ticket.archivedAt)
+  )
+}
+
+function overLane(event: DragEvent, status: TicketStatus) {
+  if (!validDrag(event)) return
+  event.preventDefault()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+  overStatus.value = status
+}
+
+function leaveLane(event: DragEvent, status: TicketStatus) {
+  const lane = event.currentTarget
+  if (
+    lane instanceof HTMLElement &&
+    event.relatedTarget instanceof Node &&
+    lane.contains(event.relatedTarget)
+  )
+    return
+  if (overStatus.value === status) overStatus.value = null
+}
+
+function leaveBoard(event: DragEvent) {
+  if (
+    board.value &&
+    event.relatedTarget instanceof Node &&
+    board.value.contains(event.relatedTarget)
+  )
+    return
+  overStatus.value = null
+  scrollDirection.value = 0
+}
+
+function dropOnLane(event: DragEvent, status: TicketStatus) {
+  if (!validDrag(event) || event.dataTransfer?.getData(dragType) !== draggingId.value) return
+  event.preventDefault()
+  const id = draggingId.value
+  clearDrag()
+  if (id) void moveStatus(id, status, false)
+}
+
+async function retryMove() {
+  if (failedMove.value) await moveStatus(failedMove.value.id, failedMove.value.status, false)
+}
+
 const hoveredTargetId = ref<string | null>(null)
 const pinnedTargetId = ref<string | null>(null)
 const highlightedId = computed(() => hoveredTargetId.value ?? pinnedTargetId.value)
@@ -31,6 +172,18 @@ const openStatuses = reactive(
     boolean
   >,
 )
+
+async function waitForCardAnimation(card: HTMLElement) {
+  const animations: Animation[] = []
+  for (let node = card.parentElement; node && node !== document.body; node = node.parentElement) {
+    animations.push(
+      ...node
+        .getAnimations({ subtree: false })
+        .filter((animation) => animation.playState === 'running'),
+    )
+  }
+  await Promise.allSettled(animations.map((animation) => animation.finished))
+}
 
 async function locateRelated(event: MouseEvent, id: string) {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
@@ -50,34 +203,63 @@ async function locateRelated(event: MouseEvent, id: string) {
   const card = [...document.querySelectorAll<HTMLElement>('[data-board-ticket-id]')].find(
     (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
   )
-  if (mobile && card) {
-    // The expanded collapsible changes height during its opening animation.
-    const animations: Animation[] = []
-    for (let node = card.parentElement; node && node !== document.body; node = node.parentElement) {
-      animations.push(
-        ...node
-          .getAnimations({ subtree: false })
-          .filter((animation) => animation.playState === 'running'),
-      )
-    }
-    await Promise.allSettled(animations.map((animation) => animation.finished))
-  }
+  // The expanded collapsible changes height during its opening animation.
+  if (mobile && card) await waitForCardAnimation(card)
   card?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
 }
 
-async function advance(id: string, status: string) {
-  const next = nextStatus(status)
-  if (!next) return
+async function moveStatus(id: string, destination: TicketStatus, restoreFocus = true) {
+  const source = tickets.value.find(({ ticket }) => ticket.id === id)
+  if (
+    !source ||
+    source.ticket.archivedAt ||
+    changing.value ||
+    !ticketStatuses.includes(destination) ||
+    source.ticket.status === destination
+  )
+    return
   changing.value = id
   actionError.value = ''
+  statusMessage.value = ''
+  failedMove.value = null
+  let saved = false
+  let refreshed = false
   try {
-    await $fetch(`/api/tickets/${id}`, { method: 'PATCH', body: { status: next } })
+    await $fetch(`/api/tickets/${id}`, { method: 'PATCH', body: { status: destination } })
+    saved = true
     await refresh()
+    if (error.value)
+      throw new Error('Ticket saved, but the board could not refresh. Retry loading the tickets.')
+    statusMessage.value = `Moved ${source.ticket.title} to ${destination}.`
+    refreshed = true
   } catch (cause) {
-    actionError.value = cause instanceof Error ? cause.message : 'Unable to advance ticket.'
+    actionError.value = cause instanceof Error ? cause.message : 'Unable to change ticket status.'
+    if (!saved) failedMove.value = { id, status: destination }
   } finally {
     changing.value = null
   }
+  if (refreshed && restoreFocus) {
+    const mobile = window.matchMedia('(max-width: 767px)').matches
+    if (mobile) openStatuses[destination] = true
+    await nextTick()
+    // Wait for the destination collapsible before restoring focus to its arrow or title.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    )
+    const card = [...document.querySelectorAll<HTMLElement>('[data-board-ticket-id]')].find(
+      (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
+    )
+    if (mobile && card) await waitForCardAnimation(card)
+    const focusTarget =
+      card?.querySelector<HTMLElement>('[data-next-status-control]') ??
+      card?.querySelector<HTMLElement>('[data-ticket-title-link]')
+    focusTarget?.focus()
+  }
+}
+
+function advance(id: string, status: string) {
+  const next = nextStatus(status)
+  if (next) void moveStatus(id, next)
 }
 </script>
 
@@ -101,12 +283,30 @@ async function advance(id: string, status: string) {
         />
       </div>
     </div>
-    <UAlert v-if="error || actionError" color="error" title="Could not load or update tickets">{{
-      actionError || 'Retry loading the tickets.'
-    }}</UAlert>
-    <UButton v-if="error" color="neutral" variant="outline" label="Retry" @click="refresh()" />
-    <UCard v-if="pending"><p class="text-muted">Loading tickets…</p></UCard>
-    <template v-else-if="!error">
+    <UAlert
+      v-if="error || actionError"
+      role="alert"
+      color="error"
+      title="Could not load or update tickets"
+      :description="actionError || 'Retry loading the tickets.'"
+    />
+    <UButton
+      v-if="error"
+      color="neutral"
+      variant="outline"
+      label="Retry loading"
+      @click="refresh()"
+    />
+    <UButton
+      v-else-if="failedMove"
+      color="neutral"
+      variant="outline"
+      label="Retry status change"
+      @click="retryMove"
+    />
+    <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
+    <UCard v-if="pending && !data"><p class="text-muted">Loading tickets…</p></UCard>
+    <template v-else-if="!error || data">
       <UCard v-if="!tickets.length">
         <h2 class="font-medium text-highlighted">
           No {{ showArchived ? '' : 'active ' }}tickets yet
@@ -114,17 +314,27 @@ async function advance(id: string, status: string) {
         <p class="mt-2 text-muted">Create a ticket under a release to get started.</p>
       </UCard>
       <div
+        ref="board"
         class="hidden w-full max-w-full overflow-x-auto pb-3 md:block"
         role="region"
         aria-label="Ticket board"
         tabindex="0"
+        @dragover.capture="updateEdgeScroll"
+        @dragleave.self="leaveBoard"
       >
         <div class="grid min-w-[105rem] grid-cols-7 gap-4">
           <section
             v-for="group in groups"
             :key="group.status"
-            class="min-w-0 space-y-3"
+            class="min-w-0 space-y-3 rounded-lg border px-2 py-8 transition-colors"
+            :class="
+              overStatus === group.status ? 'border-primary bg-primary/5' : 'border-transparent'
+            "
             :aria-label="`${group.status} tickets`"
+            @dragenter="overLane($event, group.status)"
+            @dragover="overLane($event, group.status)"
+            @dragleave.self="leaveLane($event, group.status)"
+            @drop="dropOnLane($event, group.status)"
           >
             <h2 class="flex items-center justify-between font-semibold text-highlighted">
               {{ group.status }}
@@ -135,8 +345,12 @@ async function advance(id: string, status: string) {
               :key="item.ticket.id"
               :item="item"
               :changing="changing === item.ticket.id"
+              :busy="!!changing"
+              :can-drag="desktopDragEnabled"
               :highlighted="highlightedId === item.ticket.id"
               @advance="advance(item.ticket.id, item.ticket.status)"
+              @drag-start="startDrag($event, item.ticket.id)"
+              @drag-end="clearDrag"
               @related-hover="hoveredTargetId = $event"
               @related-click="locateRelated"
             />
@@ -182,8 +396,12 @@ async function advance(id: string, status: string) {
                   :key="item.ticket.id"
                   :item="item"
                   :changing="changing === item.ticket.id"
+                  :busy="!!changing"
+                  :can-drag="desktopDragEnabled"
                   :highlighted="highlightedId === item.ticket.id"
                   @advance="advance(item.ticket.id, item.ticket.status)"
+                  @drag-start="startDrag($event, item.ticket.id)"
+                  @drag-end="clearDrag"
                   @related-hover="hoveredTargetId = $event"
                   @related-click="locateRelated"
                 />

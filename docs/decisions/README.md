@@ -33,14 +33,15 @@ NNNN-short-descriptive-slug.md
 
 ## Index
 
-| ADR                                                | Status   | Title                                                |
-| -------------------------------------------------- | -------- | ---------------------------------------------------- |
-| [0001](0001-llm-assisted-development-workflow.md)  | Accepted | LLM-assisted development workflow                    |
-| [0002](0002-m0-bootstrap-baseline.md)              | Accepted | M0 bootstrap baseline                                |
-| [0003](0003-m1-authentication-and-database.md)     | Accepted | M1 authentication and Better Auth database baseline  |
-| [0004](0004-m2-core-data-model.md)                 | Accepted | M2 work hierarchy and archive lifecycle              |
-| [0005](0005-m2-domain-validation-and-ui-polish.md) | Accepted | M2 domain validation and hierarchy UI polish         |
-| [0006](0006-uuidv7-identifiers.md)                 | Accepted | UUIDv7 identifiers across auth and domain data       |
-| [0007](0007-m3-ticket-model-and-relations.md)      | Accepted | M3 ticket model and relations                        |
-| [0008](0008-ticket-estimates-and-board-layout.md)  | Accepted | Human-readable estimates and responsive ticket board |
-| [0009](0009-desktop-only-drag-and-drop.md)         | Accepted | Desktop-only drag-and-drop interactions              |
+| ADR                                                    | Status     | Title                                                |
+| ------------------------------------------------------ | ---------- | ---------------------------------------------------- |
+| [0001](0001-llm-assisted-development-workflow.md)      | Accepted   | LLM-assisted development workflow                    |
+| [0002](0002-m0-bootstrap-baseline.md)                  | Accepted   | M0 bootstrap baseline                                |
+| [0003](0003-m1-authentication-and-database.md)         | Accepted   | M1 authentication and Better Auth database baseline  |
+| [0004](0004-m2-core-data-model.md)                     | Accepted   | M2 work hierarchy and archive lifecycle              |
+| [0005](0005-m2-domain-validation-and-ui-polish.md)     | Accepted   | M2 domain validation and hierarchy UI polish         |
+| [0006](0006-uuidv7-identifiers.md)                     | Accepted   | UUIDv7 identifiers across auth and domain data       |
+| [0007](0007-m3-ticket-model-and-relations.md)          | Accepted   | M3 ticket model and relations                        |
+| [0008](0008-ticket-estimates-and-board-layout.md)      | Accepted   | Human-readable estimates and responsive ticket board |
+| [0009](0009-desktop-only-drag-and-drop.md)             | Superseded | Desktop-only drag-and-drop interactions              |
+| [0010](0010-board-drag-and-compact-ticket-metadata.md) | Accepted   | Full-card board drag and compact ticket metadata     |
