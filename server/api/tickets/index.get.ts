@@ -1,6 +1,14 @@
-import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import { db } from '../../db'
-import { client, project, release, ticket, ticketRelation } from '../../db/schema'
+import {
+  client,
+  project,
+  release,
+  ticket,
+  ticketLink,
+  ticketRelation,
+  timeEntry,
+} from '../../db/schema'
 import { includeArchived, requireUserId } from '../../utils/domain'
 import { validId } from '../../domain/tickets'
 import { getQuery } from 'h3'
@@ -41,6 +49,27 @@ export default defineEventHandler(async (event) => {
     .select({ fromTicketId: ticketRelation.fromTicketId, toTicketId: ticketRelation.toTicketId })
     .from(ticketRelation)
     .where(or(inArray(ticketRelation.fromTicketId, ids), inArray(ticketRelation.toTicketId, ids)))
+  const [usage, links] = await Promise.all([
+    db
+      .select({
+        ticketId: timeEntry.ticketId,
+        minutes: sql<number>`coalesce(sum(${timeEntry.durationMinutes}), 0)::double precision`,
+      })
+      .from(timeEntry)
+      .where(inArray(timeEntry.ticketId, ids))
+      .groupBy(timeEntry.ticketId),
+    db
+      .select({
+        id: ticketLink.id,
+        ticketId: ticketLink.ticketId,
+        label: ticketLink.label,
+        url: ticketLink.url,
+      })
+      .from(ticketLink)
+      .where(inArray(ticketLink.ticketId, ids))
+      .orderBy(asc(ticketLink.label), asc(ticketLink.id)),
+  ])
+  const minutesByTicket = new Map(usage.map((row) => [row.ticketId, row.minutes]))
   const relatedIds = [
     ...new Set(relations.flatMap(({ fromTicketId, toTicketId }) => [fromTicketId, toTicketId])),
   ]
@@ -65,6 +94,9 @@ export default defineEventHandler(async (event) => {
   const targetById = new Map(validTargets.map((target) => [target.id, target]))
   const boardIds = new Set(ids)
   const relatedById = new Map<string, { id: string; title: string }[]>()
+  const linksById = new Map<string, { id: string; label: string; url: string }[]>()
+  for (const { id, ticketId, label, url } of links)
+    linksById.set(ticketId, [...(linksById.get(ticketId) ?? []), { id, label, url }])
   for (const { fromTicketId, toTicketId } of relations) {
     for (const [source, targetId] of [
       [fromTicketId, toTicketId],
@@ -78,9 +110,11 @@ export default defineEventHandler(async (event) => {
   return {
     tickets: tickets.map((item) => ({
       ...item,
+      trackedMinutes: minutesByTicket.get(item.ticket.id) ?? 0,
       relatedTickets: (relatedById.get(item.ticket.id) ?? []).toSorted(
         (a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id),
       ),
+      externalLinks: linksById.get(item.ticket.id) ?? [],
     })),
   }
 })

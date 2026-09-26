@@ -79,7 +79,7 @@ async function submit() {
     <UCard v-else-if="!releases.length"
       ><h2 class="font-medium text-highlighted">Create a release first</h2>
       <p class="mt-2 text-muted">Tickets must belong to an active release.</p>
-      <UButton to="/releases/new" class="mt-4" label="Create release"
+      <UButton to="/releases/new" class="mt-4" icon="lucide:plus" label="Create release"
     /></UCard>
     <UCard v-else
       ><form class="space-y-5" @submit.prevent="submit">
@@ -109,7 +109,7 @@ async function submit() {
           <div
             v-for="(link, index) in links"
             :key="index"
-            class="flex flex-col gap-2 rounded-lg border border-default p-3 sm:flex-row sm:items-end"
+            class="flex flex-col gap-2 rounded-lg border border-default bg-elevated/50 p-3 sm:flex-row sm:items-end"
           >
             <UFormField :label="`Link ${index + 1} label`" required class="flex-1"
               ><UInput v-model="link.label" class="w-full" placeholder="PR"
@@ -124,6 +124,7 @@ async function submit() {
             <UButton
               color="error"
               variant="ghost"
+              icon="lucide:x"
               :aria-label="`Remove link ${index + 1}`"
               label="Remove"
               @click="links.splice(index, 1)"
@@ -145,12 +146,13 @@ async function submit() {
           <div
             v-for="relatedId in relatedTicketIds"
             :key="relatedId"
-            class="flex items-center justify-between gap-2 rounded-lg border border-default p-3"
+            class="flex flex-col items-start gap-2 rounded-lg border border-muted bg-elevated/50 p-3 sm:flex-row sm:items-center sm:justify-between"
           >
             <span>{{ tickets.find((item) => item.ticket.id === relatedId)?.ticket.title }}</span>
             <UButton
               color="error"
               variant="ghost"
+              icon="lucide:x"
               :aria-label="`Unlink ${tickets.find((item) => item.ticket.id === relatedId)?.ticket.title}`"
               label="Remove"
               @click="relatedTicketIds = relatedTicketIds.filter((id) => id !== relatedId)"
@@ -176,6 +178,7 @@ async function submit() {
               color="neutral"
               variant="outline"
               :disabled="!selectedRelation"
+              icon="lucide:link-2"
               label="Add related ticket"
               @click="addRelation"
             />
@@ -187,11 +190,18 @@ async function submit() {
         <UAlert v-if="errorMessage" color="error" title="Could not create ticket">{{
           errorMessage
         }}</UAlert>
-        <div class="flex justify-end gap-3">
-          <UButton to="/tickets" color="neutral" variant="ghost" label="Cancel" /><UButton
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <UButton
+            to="/tickets"
+            color="neutral"
+            variant="ghost"
+            icon="lucide:x"
+            label="Cancel"
+          /><UButton
             type="submit"
             :disabled="!canSubmit"
             :loading="pending"
+            icon="lucide:plus"
             label="Create ticket"
           />
         </div></form

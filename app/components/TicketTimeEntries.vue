@@ -114,7 +114,7 @@ async function remove(id: string) {
       <li
         v-for="entry in data.entries"
         :key="entry.id"
-        class="flex flex-wrap items-start justify-between gap-3 rounded-md border border-default p-3"
+        class="flex flex-wrap items-start justify-between gap-3 rounded-md border border-muted bg-elevated/50 p-3"
       >
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
@@ -132,13 +132,15 @@ async function remove(id: string) {
             {{ entry.description }}
           </p>
         </div>
-        <div class="flex gap-1">
+        <div class="flex flex-col gap-1 sm:flex-row">
           <UButton
             color="neutral"
             variant="ghost"
             :disabled="busy"
             :aria-label="`Edit time entry ${entry.date} ${clock(entry.startMinute)}`"
+            icon="lucide:pencil"
             label="Edit"
+            class="w-full sm:w-auto"
             @click="beginEdit(entry)"
           />
           <UButton
@@ -146,7 +148,9 @@ async function remove(id: string) {
             variant="ghost"
             :disabled="busy"
             :aria-label="`Delete time entry ${entry.date} ${clock(entry.startMinute)}`"
+            icon="lucide:trash-2"
             label="Delete"
+            class="w-full sm:w-auto"
             @click="remove(entry.id)"
           />
         </div>
@@ -202,12 +206,22 @@ async function remove(id: string) {
         title="Could not save time entry"
         :description="actionError"
       />
-      <div class="flex gap-2">
+      <div class="flex flex-col gap-2 sm:flex-row">
         <UButton
           type="submit"
           :loading="busy"
+          :icon="editingId ? 'lucide:save' : 'lucide:plus'"
           :label="editingId ? 'Save correction' : 'Add time entry'"
-        /><UButton v-if="editingId" color="neutral" variant="ghost" label="Cancel" @click="reset" />
+          class="w-full sm:w-auto"
+        /><UButton
+          v-if="editingId"
+          color="neutral"
+          variant="ghost"
+          icon="lucide:x"
+          label="Cancel"
+          class="w-full sm:w-auto"
+          @click="reset"
+        />
       </div>
     </form>
     <UAlert

@@ -1,9 +1,9 @@
 # ADR 0007: M3 ticket model and relations
 
-- Status: Accepted
+- Status: Superseded (ticket-detail next-status action only; model and relation decisions retained)
 - Date: 2026-09-25
 - Supersedes: None
-- Superseded by: None
+- Superseded by: 0017-release-usage-and-ticket-detail-polish.md (next-status action only)
 
 ## Context
 
@@ -32,3 +32,4 @@ Ticket list/selector reads exclude archived parents and archived tickets by defa
 - `docs/milestones/m3-tickets-mvp.md`
 - `docs/decisions/0004-m2-core-data-model.md`
 - `docs/decisions/0006-uuidv7-identifiers.md`
+- `docs/decisions/0017-release-usage-and-ticket-detail-polish.md`

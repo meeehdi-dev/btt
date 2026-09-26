@@ -30,6 +30,7 @@
     "uuid": "^14.0.2"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "^1.2.137",
     "@nuxt/test-utils": "4.3.2",
     "@playwright/test": "1.58.2",
     "@types/node": "24.10.1",

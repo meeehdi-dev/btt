@@ -51,6 +51,7 @@ function safeRedirect(value: unknown) {
       class="mt-6 w-full justify-center"
       :loading="pending"
       :disabled="pending"
+      icon="lucide:github"
       label="Continue with GitHub"
       @click="signInWithGitHub"
     />

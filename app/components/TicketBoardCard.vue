@@ -11,12 +11,14 @@ type BoardTicket = Pick<
 defineProps<{
   item: {
     ticket: BoardTicket
+    trackedMinutes: number
     clientId: string
     clientName: string
     projectId: string
     projectName: string
     releaseName: string
     relatedTickets: { id: string; title: string }[]
+    externalLinks: { id: string; label: string; url: string }[]
   }
   changing: boolean
   busy: boolean
@@ -76,34 +78,20 @@ function dragEnd() {
           item.ticket.title
         }}</span></NuxtLink
       >
-      <UBadge color="neutral" variant="subtle" :aria-label="`Status: ${item.ticket.status}`"
-        ><UIcon name="lucide:circle-dot" class="mr-1 size-3" aria-hidden="true" />{{
-          item.ticket.status
-        }}</UBadge
-      >
-      <TicketEstimate v-if="item.ticket.estimateMinutes" :minutes="item.ticket.estimateMinutes" />
-      <div
-        v-if="item.relatedTickets.length"
-        class="flex shrink-0 gap-1"
-        aria-label="Related tickets"
-      >
-        <a
-          v-for="related in item.relatedTickets"
-          :key="related.id"
-          :href="`/tickets/${related.id}`"
-          :aria-label="`Related ticket: ${related.title}`"
-          :title="`Related ticket: ${related.title}`"
-          class="inline-flex size-7 items-center justify-center rounded text-muted hover:bg-accented hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
-          @mouseenter="$emit('related-hover', related.id)"
-          @mouseleave="$emit('related-hover', null)"
-          @focus="$emit('related-hover', related.id)"
-          @blur="$emit('related-hover', null)"
-          @click="$emit('related-click', $event, related.id)"
-          ><EntityIcon kind="related"
-        /></a>
-      </div>
+      <TicketContextPopovers
+        :related-tickets="item.relatedTickets"
+        :external-links="item.externalLinks"
+        @related-hover="emit('related-hover', $event)"
+        @related-click="(event, id) => emit('related-click', event, id)"
+      />
       <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
       <UBadge v-else-if="changing" color="primary" variant="subtle">Moving…</UBadge>
+    </div>
+    <div class="mt-1 flex min-w-0 items-center" aria-label="Ticket usage">
+      <TicketTrackedUsage
+        :minutes="item.trackedMinutes"
+        :estimate-minutes="item.ticket.estimateMinutes"
+      />
     </div>
     <p
       v-if="item.ticket.description"

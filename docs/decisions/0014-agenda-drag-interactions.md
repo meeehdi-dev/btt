@@ -1,9 +1,9 @@
 # ADR 0014: Single-day agenda drag interactions
 
-- Status: Accepted
+- Status: Superseded (only direct keyboard/mobile same-day Edit button requirement; other decisions retained)
 - Date: 2026-09-26
 - Supersedes: None
-- Superseded by: None
+- Superseded by: 0016-agenda-correction-control-and-board-filters.md (only direct Edit button)
 
 ## Context
 
@@ -32,3 +32,4 @@ Gesture state can remain local to Today, backed by pure interval geometry; no pe
 - `docs/milestones/m6-agenda-drag-blocks.md`
 - `docs/decisions/0011-manual-time-entry-history-and-slots.md`
 - `docs/decisions/0012-today-agenda-settings-and-history.md`
+- `docs/decisions/0016-agenda-correction-control-and-board-filters.md`

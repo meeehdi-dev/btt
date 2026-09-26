@@ -22,26 +22,30 @@ if (clientError.value || !client.value) {
   <div class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <NuxtLink to="/clients" class="inline-flex items-center gap-1 text-sm text-primary"
-          >← <EntityIcon kind="clients" />Clients</NuxtLink
-        >
-        <div class="mt-3 flex items-center gap-3">
-          <span
-            class="size-4 rounded-full border border-default"
-            :style="{ backgroundColor: client.color }"
-          />
-          <h1 class="flex items-center gap-2 text-3xl font-semibold text-highlighted">
-            <EntityIcon kind="clients" />{{ client.name }}
-          </h1>
-          <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
+        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <NuxtLink to="/clients" class="inline-flex items-center gap-1 text-sm text-primary"
+            ><EntityIcon kind="clients" />Clients</NuxtLink
+          >
+          <UIcon name="lucide:chevron-right" class="size-4 text-muted" aria-hidden="true" />
+          <div class="flex min-w-0 flex-wrap items-center gap-3">
+            <span
+              class="size-4 shrink-0 rounded-full border border-default"
+              :style="{ backgroundColor: client.color }"
+            />
+            <h1 class="flex items-center gap-2 text-3xl font-semibold text-highlighted">
+              <EntityIcon kind="clients" />{{ client.name }}
+            </h1>
+            <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
+          </div>
         </div>
         <p class="mt-2 text-muted">Projects and releases for this client.</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-col gap-2 sm:flex-row">
         <UButton
           :to="`/clients/${id}/edit${client.archivedAt ? '?archived=true' : ''}`"
           color="neutral"
           variant="outline"
+          icon="lucide:pencil"
           label="Edit"
         />
         <UButton :to="`/projects/new?client=${id}`" icon="lucide:plus" label="New project" />

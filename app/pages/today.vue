@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
+import { entityIcons } from '~/utils/entity-icons'
+import { validDate } from '#shared/time-entry'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+const route = useRoute()
 const date = shallowRef<CalendarDate | null>(null)
 const pickerOpen = ref(false)
 const addOpen = ref(false)
@@ -110,9 +113,6 @@ const filtered = computed(() =>
       (!filters.status || row.status === filters.status),
   ),
 )
-const filteredMinutes = computed(() =>
-  filtered.value.reduce((sum, row) => sum + row.entry.durationMinutes, 0),
-)
 const ticketId = ref('')
 const startTime = shallowRef(new Time(9, 0))
 const duration = ref(30)
@@ -189,9 +189,15 @@ const durations = Array.from({ length: 48 }, (_, index) => ({
   label: formatTicketEstimate((index + 1) * 30),
   value: (index + 1) * 30,
 }))
-onMounted(() => {
-  date.value = today(getLocalTimeZone())
-})
+function syncRouteDate() {
+  const requested = route.query.date
+  date.value =
+    typeof requested === 'string' && validDate(requested)
+      ? parseDate(requested)
+      : today(getLocalTimeZone())
+}
+onMounted(syncRouteDate)
+watch(() => route.query.date, syncRouteDate)
 watch(day, (value) => {
   if (value) void refresh()
 })
@@ -231,54 +237,76 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
 </script>
 <template>
   <div class="space-y-6">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <p class="text-sm font-medium text-primary">Today</p>
-        <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-          <EntityIcon kind="today" />Your day agenda
-        </h1>
-        <p class="mt-2 text-muted">Completed work across all your tickets.</p>
-      </div>
-      <UButton
-        to="/settings"
-        color="neutral"
-        variant="outline"
-        icon="lucide:settings"
-        label="Agenda settings"
-      />
-    </div>
-    <div class="flex flex-wrap items-center gap-2" aria-label="Choose agenda day">
-      <UButton
-        color="neutral"
-        variant="outline"
-        icon="lucide:chevron-left"
-        aria-label="Previous day"
-        @click="changeDay(-1)"
-      />
-      <UPopover v-model:open="pickerOpen">
+    <h1 class="sr-only">Today</h1>
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div
+        class="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex"
+        aria-label="Choose agenda day"
+      >
+        <UTooltip text="Previous day">
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="lucide:chevron-left"
+            aria-label="Previous day"
+            @click="changeDay(-1)"
+          />
+        </UTooltip>
+        <UPopover v-model:open="pickerOpen">
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="lucide:calendar-days"
+            :label="day || 'Loading day…'"
+            class="min-w-0"
+            :aria-label="`Agenda date: ${day}`"
+          />
+          <template #content
+            ><UCalendar
+              v-model="date"
+              prevent-deselect
+              class="p-2"
+              @update:model-value="pickerOpen = false"
+          /></template>
+        </UPopover>
+        <UTooltip text="Next day">
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="lucide:chevron-right"
+            aria-label="Next day"
+            @click="changeDay(1)"
+          />
+        </UTooltip>
         <UButton
           color="neutral"
-          variant="outline"
-          icon="lucide:calendar-days"
-          :label="day || 'Loading day…'"
-          :aria-label="`Agenda date: ${day}`"
+          variant="ghost"
+          icon="lucide:calendar-check"
+          label="Today"
+          @click="resetToday"
         />
-        <template #content
-          ><UCalendar
-            v-model="date"
-            prevent-deselect
-            class="p-2"
-            @update:model-value="pickerOpen = false"
-        /></template>
-      </UPopover>
-      <UButton
-        color="neutral"
-        variant="outline"
-        icon="lucide:chevron-right"
-        aria-label="Next day"
-        @click="changeDay(1)"
-      />
-      <UButton color="neutral" variant="ghost" label="Today" @click="resetToday" />
+      </div>
+      <div
+        class="flex min-w-44 w-full items-center gap-3 text-sm text-muted md:flex-1 lg:max-w-[50%]"
+        aria-label="Workday summary"
+      >
+        <UIcon name="lucide:clock-3" class="size-4 shrink-0" aria-hidden="true" />
+        <span
+          class="whitespace-nowrap"
+          :aria-label="`Worked ${formatTicketEstimate(tracked)} of ${formatTicketEstimate(target)} target`"
+          ><span class="text-primary">{{ formatTicketEstimate(tracked) }}</span>
+          <span class="text-muted">/ {{ formatTicketEstimate(target) }}</span></span
+        >
+        <progress
+          class="h-2 min-w-16 flex-1 accent-primary"
+          :value="progress"
+          max="100"
+          :aria-label="`Workday progress ${Math.floor((tracked / target) * 100)}%`"
+        />
+        <span v-if="tracked > target" class="whitespace-nowrap text-warning"
+          >+{{ formatTicketEstimate(tracked - target) }}</span
+        >
+      </div>
       <UModal
         v-model:open="addOpen"
         title="Add completed work"
@@ -326,16 +354,20 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
                 title="Could not add work"
                 :description="actionError"
               />
-              <div class="flex gap-2">
+              <div class="flex flex-col gap-2 sm:flex-row">
                 <UButton
                   type="submit"
+                  icon="lucide:save"
                   label="Save time entry"
                   :loading="busy"
                   :disabled="!day || !ticketId"
+                  class="w-full sm:w-auto"
                 /><UButton
                   color="neutral"
                   variant="ghost"
+                  icon="lucide:x"
                   label="Cancel"
+                  class="w-full sm:w-auto"
                   @click="addOpen = false"
                 />
               </div>
@@ -381,12 +413,20 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
               title="Could not correct work"
               :description="editingError"
             />
-            <div class="flex gap-2">
-              <UButton type="submit" label="Save correction" :loading="busy" />
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <UButton
+                type="submit"
+                icon="lucide:save"
+                label="Save correction"
+                :loading="busy"
+                class="w-full sm:w-auto"
+              />
               <UButton
                 color="neutral"
                 variant="ghost"
+                icon="lucide:x"
                 label="Cancel"
+                class="w-full sm:w-auto"
                 @click="editingOpen = false"
               />
             </div>
@@ -399,63 +439,63 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
       v-if="error"
       color="neutral"
       variant="outline"
+      icon="lucide:refresh-cw"
       label="Retry loading"
       @click="refresh()"
     />
     <UCard v-if="!day || (pending && !agenda)"><p class="text-muted">Loading agenda…</p></UCard>
     <template v-else-if="!error">
-      <div class="flex max-w-sm items-center gap-3 text-sm text-muted" aria-label="Workday summary">
-        <UIcon name="lucide:clock-3" class="size-4 shrink-0" aria-hidden="true" />
-        <span
-          class="whitespace-nowrap"
-          :aria-label="`Worked ${formatTicketEstimate(tracked)} of ${formatTicketEstimate(target)} target`"
-          >{{ formatTicketEstimate(tracked) }} / {{ formatTicketEstimate(target) }}</span
-        >
-        <progress
-          class="h-2 min-w-16 flex-1 accent-primary"
-          :value="progress"
-          max="100"
-          :aria-label="`Workday progress ${Math.floor((tracked / target) * 100)}%`"
-        />
-        <span v-if="tracked > target" class="whitespace-nowrap text-warning"
-          >+{{ formatTicketEstimate(tracked - target) }}</span
-        >
-      </div>
-      <UCard class="space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="font-semibold">Filter work</h2>
-          <UButton color="neutral" variant="ghost" label="Clear filters" @click="clearFilters" />
-        </div>
-        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          <UFormField
-            v-for="kind in ['client', 'project', 'release', 'ticket', 'status'] as const"
-            :key="kind"
-            :label="`Filter ${kind}`"
-          >
-            <USelectMenu
-              :model-value="filters[kind] || null"
-              value-key="value"
-              :items="options(kind)"
-              :disabled="!options(kind).length"
-              :search-input="false"
-              :clear="{ 'aria-label': `Clear ${kind} filter` }"
-              :placeholder="kind === 'status' ? 'All statuses' : `All ${kind}s`"
-              class="w-full"
-              :aria-label="`Filter ${kind}`"
-              @update:model-value="applyFilter(kind, $event ?? '')"
-            />
-          </UFormField>
+      <UCard :ui="{ body: 'p-2 sm:p-2' }">
+        <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <div
+              v-for="kind in ['client', 'project', 'release', 'ticket', 'status'] as const"
+              :key="kind"
+            >
+              <USelectMenu
+                :model-value="filters[kind] || null"
+                value-key="value"
+                :items="options(kind)"
+                :disabled="!options(kind).length"
+                :search-input="false"
+                :clear="{ 'aria-label': `Clear ${kind} filter` }"
+                :placeholder="kind === 'status' ? 'All statuses' : `All ${kind}s`"
+                class="w-full"
+                :aria-label="`Filter ${kind}`"
+                @update:model-value="applyFilter(kind, $event ?? '')"
+              >
+                <template #leading
+                  ><UTooltip :text="`Filter ${kind}`"
+                    ><UIcon
+                      :name="
+                        kind === 'status'
+                          ? 'lucide:circle-dot'
+                          : entityIcons[
+                              `${kind}s` as 'clients' | 'projects' | 'releases' | 'tickets'
+                            ]
+                      "
+                      class="size-4"
+                      :aria-label="`Filter ${kind}`" /></UTooltip
+                ></template>
+              </USelectMenu>
+            </div>
+          </div>
+          <UTooltip text="Clear all filters"
+            ><UButton
+              color="neutral"
+              variant="ghost"
+              icon="lucide:filter-x"
+              aria-label="Clear filters"
+              class="self-end"
+              @click="clearFilters"
+          /></UTooltip>
         </div>
         <p v-if="!filterSources.length && !ticketsError" class="text-sm text-muted">
           No entries or active tickets available for filtering.
         </p>
-        <p v-if="Object.values(filters).some(Boolean)" role="status" class="text-sm text-muted">
-          Showing {{ filtered.length }} entries ({{ formatTicketEstimate(filteredMinutes) }}) of
-          {{ formatTicketEstimate(tracked) }} total.
-        </p>
       </UCard>
       <UCard>
-        <h2 class="mb-3 font-semibold">{{ day }} agenda</h2>
+        <h2 class="sr-only">{{ day }} agenda</h2>
         <UAlert
           v-if="dragError"
           color="error"

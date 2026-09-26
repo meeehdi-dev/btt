@@ -38,10 +38,7 @@ Create a concise product plan for a work-only tool that combines:
 3. **Estimate-aware time tracking**
    - Time entries must link to a ticket.
    - When a ticket has an estimate, show tracked time as a percentage of the estimate.
-   - Use visual ratio colors instead of warnings:
-     - Normal below 80%.
-     - Warning color at 80%+.
-     - Red color at 100%+.
+   - Show tracked time and estimate together when available, with ratio colors: blue below 80%, green from 80% to below 100%, orange from 100% through 120%, and red above 120%.
 
 4. **Technical foundation**
    - Use `../tt` as inspiration, not as a direct technical base.
@@ -136,7 +133,7 @@ Relevant `tt` references:
   - `id`, `projectId`, `name`, optional `targetDate`, timestamps
 - `Ticket`
   - `id`, `releaseId`, `title`, `description`, `status`, optional `estimateMinutes`, timestamps
-  - UI should expose a quick action to move to the next logical status.
+  - Status changes are available through the ticket edit form and desktop board drag-and-drop; no ticket-detail next-status action.
 - `TicketLink`
   - `id`, `ticketId`, `label`, `url`
 - `TicketRelation`
@@ -249,7 +246,7 @@ Goal: add the lightweight Linear-style layer after the identifier strategy is se
 - Ticket CRUD.
 - Required release association.
 - Fixed statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
-- Quick action to advance a ticket to the next logical status.
+- Status can be changed in the edit form; desktop board drag-and-drop provides the primary workflow interaction.
 - Estimate field in minutes/hours.
 - External links with `label` and `url` only.
 - Linked tickets/items without parent-child hierarchy.
@@ -306,19 +303,24 @@ Acceptance:
 - Drag-created blocks require selecting/linking a ticket before save.
 - Moving/resizing respects overlap rules.
 
-### M7 — Search and polish
+### M7 — Search and compact UI polish
 
-Goal: make the MVP practical for daily use.
+Goal: make the MVP fast to navigate and compact for daily work without losing existing interactions.
 
-- Universal search across clients, projects, releases, tickets, and time entries.
-- Desktop keyboard-friendly shortcuts for common navigation/actions.
-- Mobile touch polish for agenda and forms.
-- Final empty/loading/error states.
+- Universal owner-scoped search across clients, projects, releases, tickets, and time entries, with grouped results and keyboard-friendly focus/navigation (including `/` and Ctrl/⌘K).
+- Replace the horizontal dashboard navigation with a persistent-state desktop left sidebar (collapsed to icons by default; menu/icons above, user and settings at the bottom) and a top search bar. On mobile, use a top-bar menu button opening a full-screen navigation menu with search; preserve accessible labels, focus handling, and sign-out.
+- Remove decorative page introductions and redundant heading/description blocks on list, Today, and Settings pages; keep compact entity titles/breadcrumbs and essential actions on detail/edit pages for orientation.
+- Today: one compact control row with date/calendar navigation, unfiltered workday progress (about half the available desktop width), and Add time entry spaced across the row on wider screens, stacking in that order as a column on mobile; remove its Settings shortcut (Settings remains in the avatar menu). Remove repetitive filter heading, match-count message, and drag instructions; keep desktop double-click correction but remove per-entry Edit button. The mobile direct same-day correction alternative is a follow-up; ticket detail editing remains. Apply the desktop-spaced-row/mobile-column rule to other touched action rows.
+- Projects: whole-card navigation with the nested client control taking click precedence. Project release/milestone list: whole-row/card navigation with its mark-done control taking precedence.
+- Ticket board, release ticket cards, and Today ticket entries: always show icon-triggered popovers for related tickets and external links, including a single item. Use a top-right count overlay only when there are multiple items, positioned within the trigger bounds so overflow-constrained cards do not clip it. Related tickets remain internal links with board highlight/locate behavior where possible; external destinations remain native safe links. Preserve desktop drag and mobile collapsibles.
+- Center the Settings form; use compact icon-leading filter inputs with tooltip labels in Today and Tickets, with one-line desktop filter bars and mobile columns, and icon-only Clear. Combine tracked time/estimate/percentage on release ticket cards and ticket board cards; emphasize tracked time with the primary semantic color and mute the estimate, while using the approved blue/green/orange/red ratio bands. Apply the same tracked-vs-target color distinction to Today workday progress; align metadata and remove the redundant grouped-tickets button. Use semantic Nuxt UI surfaces for list/card contrast. Add matching icons to app buttons and Nuxt UI tooltips to icon-only buttons instead of native `title` tooltips; preserve `title` for truncated content hints. Align client/project/release breadcrumbs inline with their headings. Remove ticket-detail next-status button; status remains editable in the form and movable on the board. Install the local Lucide icon collection (`@iconify-json/lucide`) to avoid icon availability warnings. Polish keyboard/touch interactions and final empty/loading/error states without changing stored domain rules.
 
 Acceptance:
 
-- Core entities can be found quickly.
-- Daily workflow feels controlled and stable.
+- Search finds only the signed-in user's eligible records, including time entries, and navigates to useful context by keyboard or pointer.
+- Desktop navigation starts as an icon rail, expansion persists across visits; mobile navigation is a full-screen menu. Both remain usable with keyboard, touch, and assistive names.
+- Today and other touched spaced control rows stack vertically on mobile; list pages are compact, nested controls do not trigger parent navigation, ticket relation hover/highlight/locate still works, count badges remain unclipped, board/release usage separates tracked time from estimate, and workday progress distinguishes worked time from target while remaining based on all entries for the selected day.
+- Existing create/edit/status/drag/archive workflows and empty/loading/error states continue to work.
 
 ### Later, post-MVP
 
@@ -338,8 +340,9 @@ Acceptance:
 - [ ] Client catalog.
 - [ ] Project catalog under clients, with names and colors.
 - [ ] Release/milestone catalog under projects, with optional target date.
-- [ ] Universal search across projects, tickets, and time entries.
-- [ ] Desktop keyboard-friendly interactions.
+- [ ] Universal search across clients, projects, releases, tickets, and time entries, available from the dashboard top bar (mobile full-screen menu) with keyboard access.
+- [ ] Desktop keyboard-friendly interactions, including search focus/results navigation and accessible icon-rail navigation.
+- [ ] Collapsible left sidebar (collapsed by default; persistent expansion) and full-screen mobile navigation menu, with user/settings at the bottom.
 - [ ] Mobile-friendly touch interactions for the today agenda.
 
 ### Time tracking
@@ -363,24 +366,24 @@ Acceptance:
 - [ ] Project list under clients with color and basic metadata.
 - [ ] Release/milestone list under projects with optional target date.
 - [ ] Ticket board/list with fixed MVP statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
-- [ ] Quick action to move a ticket to the next logical status.
+- [ ] Change ticket status via edit form or desktop board drag-and-drop; no ticket-detail next-status button.
 - [ ] Ticket fields: title, description, client, project, release, status, estimate, external links, linked items.
 - [ ] Generic external links field: label and URL only.
 - [ ] Time estimate field only; no complexity or target date.
 - [ ] Linked items: allow tickets to link to other tickets/items without parent-child hierarchy.
 - [ ] Comments/notes/activity timeline if still simple enough for MVP; otherwise move to later.
 - [ ] Require every tracked time entry to link to a ticket.
-- [ ] Show tracked-time percentage against estimate when available.
-- [ ] Color estimate usage ratio: normal under 80%, warning at 80%+, red at 100%+.
+- [ ] Show tracked time together with its estimate and percentage when available.
+- [ ] Color estimate usage ratio: blue under 80%, green from 80% to under 100%, orange from 100% through 120%, red above 120%.
 
 ### Unified views
 
-- [ ] Today dashboard / agenda: completed time blocks, scheduled work blocks, quick add for completed work, and day progress/overtime bar.
+- [ ] Today dashboard / agenda: completed time blocks, scheduled work blocks, quick add for completed work, and day progress/overtime bar; compact date + progress + add control row.
 - [ ] Client detail page: projects and recent tracked time.
 - [ ] Project detail page: releases, tickets, linked time entries, estimate usage.
 - [ ] Release detail page: tickets, optional target date, progress, linked tracked time.
 - [ ] Ticket detail page: status, required release, estimate, linked time, estimate ratio, links, related tickets/items.
-- [ ] Ticket board/list grouped by fixed statuses.
+- [ ] Ticket board/list grouped by fixed statuses; omit duplicate status on cards and use relation/external-link icon popovers on board, release and Today ticket cards, including single items; overlay counts only for multiple items. Keep board highlight/locate controls.
 - [ ] Later: weekly planning view inspired by `tt`.
 - [ ] Later: time summaries and review pages.
 

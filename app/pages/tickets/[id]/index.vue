@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { nextStatus } from '#shared/ticket-status'
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
@@ -28,10 +27,6 @@ async function action(run: () => Promise<unknown>) {
     pending.value = false
   }
 }
-async function advance() {
-  const status = nextStatus(record.value.status)
-  if (status) await action(() => $fetch<unknown>(endpoint, { method: 'PATCH', body: { status } }))
-}
 async function addLink() {
   await action(async () => {
     await $fetch<unknown>(endpoint + '/links', {
@@ -55,7 +50,7 @@ async function addRelation() {
 </script>
 <template>
   <div class="space-y-6">
-    <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <NuxtLink to="/tickets" class="inline-flex items-center gap-1 text-sm text-primary"
           >← <EntityIcon kind="tickets" />Tickets</NuxtLink
@@ -70,17 +65,17 @@ async function addRelation() {
           <span class="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
             <NuxtLink
               :to="`/clients/${data?.hierarchy.clientId}`"
-              class="inline-flex items-center gap-1 text-primary"
+              class="inline-flex items-center gap-1 text-muted hover:text-primary"
               ><EntityIcon kind="clients" />{{ data?.hierarchy.clientName }}</NuxtLink
             >
             <NuxtLink
               :to="`/projects/${data?.hierarchy.projectId}`"
-              class="inline-flex items-center gap-1 text-primary"
+              class="inline-flex items-center gap-1 text-muted hover:text-primary"
               ><EntityIcon kind="projects" />{{ data?.hierarchy.projectName }}</NuxtLink
             >
             <NuxtLink
               :to="`/releases/${record.releaseId}`"
-              class="inline-flex items-center gap-1 text-primary"
+              class="inline-flex items-center gap-1 text-muted hover:text-primary"
               ><EntityIcon kind="releases" />{{ data?.hierarchy.releaseName }}</NuxtLink
             >
           </span>
@@ -90,19 +85,11 @@ async function addRelation() {
           </template>
         </p>
       </div>
-      <div class="flex gap-2">
-        <UButton
-          v-if="!record.archivedAt && nextStatus(record.status)"
-          :loading="pending"
-          color="neutral"
-          variant="outline"
-          :label="`Move to ${nextStatus(record.status)}`"
-          @click="advance"
-        /><UButton
-          :to="`/tickets/${id}/edit${record.archivedAt ? '?archived=true' : ''}`"
-          label="Edit"
-        />
-      </div>
+      <UButton
+        :to="`/tickets/${id}/edit${record.archivedAt ? '?archived=true' : ''}`"
+        icon="lucide:pencil"
+        label="Edit"
+      />
     </div>
     <UAlert v-if="actionError" color="error" title="Could not update ticket">{{
       actionError
@@ -131,7 +118,7 @@ async function addRelation() {
           <li
             v-for="link in data.links"
             :key="link.id"
-            class="flex items-center justify-between gap-2"
+            class="flex items-center justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-3 py-2"
           >
             <a
               :href="link.url"
@@ -139,16 +126,20 @@ async function addRelation() {
               rel="noopener noreferrer"
               class="break-all text-primary underline"
               >{{ link.label }}</a
-            ><UButton
-              :disabled="pending"
-              color="error"
-              variant="ghost"
-              icon="lucide:x"
-              :aria-label="`Remove ${link.label}`"
-              @click="
-                action(() => $fetch<unknown>(endpoint + '/links/' + link.id, { method: 'DELETE' }))
-              "
-            />
+            ><UTooltip :text="`Remove ${link.label}`">
+              <UButton
+                :disabled="pending"
+                color="error"
+                variant="ghost"
+                icon="lucide:x"
+                :aria-label="`Remove ${link.label}`"
+                @click="
+                  action(() =>
+                    $fetch<unknown>(endpoint + '/links/' + link.id, { method: 'DELETE' }),
+                  )
+                "
+              />
+            </UTooltip>
           </li>
         </ul>
         <p v-else class="mt-2 text-muted">No external links.</p>
@@ -161,7 +152,7 @@ async function addRelation() {
               type="url"
               class="w-full"
               placeholder="https://example.com" /></UFormField
-          ><UButton type="submit" :loading="pending" label="Add link" /></form
+          ><UButton type="submit" :loading="pending" icon="lucide:plus" label="Add link" /></form
       ></UCard>
       <UCard
         ><h2 class="font-medium text-highlighted">Related tickets</h2>
@@ -169,27 +160,29 @@ async function addRelation() {
           <li
             v-for="other in data.related"
             :key="other.id"
-            class="flex items-center justify-between gap-2"
+            class="flex items-center justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-3 py-2"
           >
             <NuxtLink
               :to="`/tickets/${other.id}`"
               class="inline-flex items-center gap-1 text-primary underline"
               ><EntityIcon kind="tickets" />{{ other.title }}</NuxtLink
             >
-            <UButton
-              :disabled="pending"
-              color="error"
-              variant="ghost"
-              icon="lucide:x"
-              :aria-label="`Unlink ${other.title}`"
-              @click="
-                action(() =>
-                  $fetch<unknown>(endpoint + '/relations/' + other.relationId, {
-                    method: 'DELETE',
-                  }),
-                )
-              "
-            />
+            <UTooltip :text="`Unlink ${other.title}`">
+              <UButton
+                :disabled="pending"
+                color="error"
+                variant="ghost"
+                icon="lucide:x"
+                :aria-label="`Unlink ${other.title}`"
+                @click="
+                  action(() =>
+                    $fetch<unknown>(endpoint + '/relations/' + other.relationId, {
+                      method: 'DELETE',
+                    }),
+                  )
+                "
+              />
+            </UTooltip>
           </li>
         </ul>
         <p v-else class="mt-2 text-muted">No related tickets.</p>
@@ -215,6 +208,7 @@ async function addRelation() {
             type="submit"
             :disabled="!relatedId"
             :loading="pending"
+            icon="lucide:link-2"
             label="Link ticket"
           /></form
       ></UCard>

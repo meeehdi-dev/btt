@@ -10,20 +10,19 @@ const clients = computed(() => data.value?.clients ?? [])
 
 <template>
   <div class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p class="text-sm font-medium text-primary">Workspace</p>
-        <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-          <EntityIcon kind="clients" />Clients
-        </h1>
-        <p class="mt-3 max-w-2xl text-muted">Organize projects and releases by client.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <ArchiveFilterButton v-model="showArchived" />
-        <UButton to="/clients/new" icon="lucide:plus" label="New client" />
-      </div>
+    <h1 class="sr-only">Clients</h1>
+    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <ArchiveFilterButton v-model="showArchived" />
+      <UButton to="/clients/new" icon="lucide:plus" label="New client" />
     </div>
-    <UButton v-if="error" variant="ghost" color="error" label="Retry" @click="refresh()" />
+    <UButton
+      v-if="error"
+      variant="ghost"
+      color="error"
+      icon="lucide:refresh-cw"
+      label="Retry"
+      @click="refresh()"
+    />
     <UCard v-if="pending"><p class="text-muted">Loading clients…</p></UCard>
     <UCard v-else-if="!clients.length">
       <h2 class="font-medium text-highlighted">

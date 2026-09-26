@@ -62,7 +62,7 @@ async function submit() {
     <UCard v-else-if="!projects.length">
       <h2 class="font-medium text-highlighted">Create a project first</h2>
       <p class="mt-2 text-muted">Releases must belong to an active project.</p>
-      <UButton class="mt-4" to="/projects/new" label="Create project" />
+      <UButton class="mt-4" to="/projects/new" icon="lucide:plus" label="Create project" />
     </UCard>
     <UCard v-else>
       <form class="space-y-5" @submit.prevent="submit">
@@ -88,9 +88,15 @@ async function submit() {
         <UAlert v-if="errorMessage" color="error" title="Could not create release">{{
           errorMessage
         }}</UAlert>
-        <div class="flex justify-end gap-3">
-          <UButton to="/projects" color="neutral" variant="ghost" label="Cancel" />
-          <UButton type="submit" :disabled="!canSubmit" :loading="pending" label="Create release" />
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <UButton to="/projects" color="neutral" variant="ghost" icon="lucide:x" label="Cancel" />
+          <UButton
+            type="submit"
+            :disabled="!canSubmit"
+            :loading="pending"
+            icon="lucide:plus"
+            label="Create release"
+          />
         </div>
       </form>
     </UCard>

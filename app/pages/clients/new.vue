@@ -44,9 +44,9 @@ async function submit() {
         <UAlert v-if="errorMessage" color="error" title="Could not create client">{{
           errorMessage
         }}</UAlert>
-        <div class="flex justify-end gap-3">
-          <UButton to="/clients" color="neutral" variant="ghost" label="Cancel" />
-          <UButton type="submit" :loading="pending" label="Create client" />
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <UButton to="/clients" color="neutral" variant="ghost" icon="lucide:x" label="Cancel" />
+          <UButton type="submit" :loading="pending" icon="lucide:plus" label="Create client" />
         </div>
       </form>
     </UCard>

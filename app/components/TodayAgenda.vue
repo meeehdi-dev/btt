@@ -18,6 +18,8 @@ type Row = {
   clientName: string
   clientArchivedAt: string | null
   status: string
+  relatedTickets: { id: string; title: string; archived: boolean }[]
+  externalLinks: { id: string; label: string; url: string }[]
 }
 const props = defineProps<{
   rows: Row[]
@@ -255,10 +257,6 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
       :description="alert"
       role="alert"
     />
-    <p class="hidden text-xs text-muted md:block">
-      Drag empty space to add work; drag a block to move it, or its edges to resize. Dragging is
-      limited to visible hours. Use Edit for precise corrections.
-    </p>
     <section v-if="early.length" aria-label="Before visible hours" class="space-y-2">
       <h3 class="font-medium">Before visible hours</h3>
       <TodayAgendaEntry

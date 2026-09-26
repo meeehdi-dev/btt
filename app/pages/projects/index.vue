@@ -10,20 +10,19 @@ const projects = computed(() => data.value?.projects ?? [])
 
 <template>
   <div class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p class="text-sm font-medium text-primary">Workspace</p>
-        <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-          <EntityIcon kind="projects" />Projects
-        </h1>
-        <p class="mt-3 max-w-2xl text-muted">Projects group releases into deliverable work.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <ArchiveFilterButton v-model="showArchived" />
-        <UButton to="/projects/new" icon="lucide:plus" label="New project" />
-      </div>
+    <h1 class="sr-only">Projects</h1>
+    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <ArchiveFilterButton v-model="showArchived" />
+      <UButton to="/projects/new" icon="lucide:plus" label="New project" />
     </div>
-    <UButton v-if="error" color="error" variant="ghost" label="Retry" @click="refresh()" />
+    <UButton
+      v-if="error"
+      color="error"
+      variant="ghost"
+      icon="lucide:refresh-cw"
+      label="Retry"
+      @click="refresh()"
+    />
     <UCard v-if="pending"><p class="text-muted">Loading projects…</p></UCard>
     <UCard v-else-if="!projects.length"
       ><h2 class="font-medium text-highlighted">
@@ -35,21 +34,25 @@ const projects = computed(() => data.value?.projects ?? [])
       <div
         v-for="item in projects"
         :key="item.project.id"
-        class="rounded-lg border border-default bg-elevated p-5"
+        class="group relative rounded-lg border border-default bg-elevated p-5 transition hover:border-primary focus-within:border-primary"
       >
+        <NuxtLink
+          :to="`/projects/${item.project.id}${item.project.archivedAt ? '?archived=true' : ''}`"
+          :aria-label="`Open project ${item.project.name}`"
+          class="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
+        />
         <div class="flex items-start justify-between gap-3">
-          <NuxtLink
-            :to="`/projects/${item.project.id}${item.project.archivedAt ? '?archived=true' : ''}`"
-            class="inline-flex items-center gap-2 font-medium text-highlighted hover:text-primary"
+          <span
+            class="inline-flex items-center gap-2 font-medium text-highlighted group-hover:text-primary"
           >
             <span class="size-3 rounded-full" :style="{ backgroundColor: item.project.color }" />
             <EntityIcon kind="projects" />{{ item.project.name }}
-          </NuxtLink>
+          </span>
           <UBadge v-if="item.project.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
         </div>
         <NuxtLink
           :to="`/clients/${item.project.clientId}`"
-          class="mt-2 inline-flex items-center gap-1 text-sm text-muted hover:text-primary"
+          class="relative z-10 mt-2 inline-flex items-center gap-1 text-sm text-muted hover:text-primary"
           ><EntityIcon kind="clients" />{{ item.clientName }}</NuxtLink
         >
       </div>

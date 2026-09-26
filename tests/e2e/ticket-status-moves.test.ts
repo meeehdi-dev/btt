@@ -164,14 +164,13 @@ test('board status moves work across lanes, without reordering or changing card 
     // Source lane drop and cancelled drag must not write anything.
     await card(idea.id).dragTo(lane('Idea'), { sourcePosition: { x: 8, y: 8 } })
     expect(patchCount).toBe(0)
-    await card(idea.id).dragTo(page.getByRole('heading', { name: 'Tickets' }), {
+    await card(idea.id).dragTo(page.getByRole('searchbox', { name: 'Search workspace' }), {
       sourcePosition: { x: 8, y: 8 },
     })
     await expect(page.locator('html')).toHaveAttribute('data-drag-image-ticket-id', idea.id)
     await card(idea.id).getByRole('link', { name: 'Idea source' }).dragTo(lane('Done'))
-    await card(idea.id)
-      .getByRole('link', { name: 'Related ticket: Done source' })
-      .dragTo(lane('Done'))
+    await card(idea.id).getByRole('button', { name: 'Related tickets' }).hover()
+    await page.locator(`[data-related-ticket-id="${done.id}"]`).dragTo(lane('Done'))
     await expect(page).toHaveURL(new RegExp(`/tickets\\?release=${r.id}$`))
     expect(patchCount).toBe(0)
     await board.evaluate((node) => {
@@ -216,9 +215,8 @@ test('board status moves work across lanes, without reordering or changing card 
     await dragBetweenLanes(page, board, card(done.id), lane('Estimate'))
     await expect(lane('Estimate').getByText('Done source')).toBeVisible()
     expect(patchCount).toBe(6)
-    await expect(
-      card(idea.id).getByRole('link', { name: 'Related ticket: Done source' }),
-    ).toBeVisible()
+    await card(idea.id).getByRole('button', { name: 'Related tickets' }).hover()
+    await expect(page.locator(`[data-related-ticket-id="${done.id}"]`)).toBeVisible()
     await expect(card(idea.id).getByRole('link', { name: 'Move Client' })).toHaveAttribute(
       'href',
       `/clients/${c.id}`,
@@ -227,7 +225,7 @@ test('board status moves work across lanes, without reordering or changing card 
       'href',
       `/releases/${r.id}`,
     )
-    await card(idea.id).getByRole('link', { name: 'Related ticket: Done source' }).click()
+    await page.locator(`[data-related-ticket-id="${done.id}"]`).click()
     await expect(page).toHaveURL(new RegExp(`/tickets\\?release=${r.id}$`))
     await expect(card(done.id)).toHaveClass(/border-primary/)
 
@@ -262,7 +260,10 @@ test('board status moves work across lanes, without reordering or changing card 
     ).not.toContainText('Test ·')
     await page.goto(`/releases/${r.id}`)
     await expect(page.getByText('No estimate')).toHaveCount(0)
-    await expect(page.locator('p').filter({ hasText: /^Test/ }).first()).not.toContainText('Test ·')
+    await expect(page.getByRole('link', { name: 'View grouped tickets' })).toHaveCount(0)
+    const releaseTicket = page.locator(`[data-release-ticket-id="${idea.id}"]`)
+    await expect(releaseTicket.locator('div.flex.items-center').first()).toBeVisible()
+    await expect(releaseTicket.locator('div.flex.items-center').first()).not.toContainText('Test ·')
 
     await page.goto(`/tickets?release=${r.id}`)
     await page.waitForLoadState('networkidle')
@@ -286,7 +287,7 @@ test('board status moves work across lanes, without reordering or changing card 
       await expect(mobileCard).toBeVisible()
       await expect(mobileCard).toHaveAttribute('draggable', 'false')
       await expect(mobile.getByRole('combobox', { name: /Change status/ })).toHaveCount(0)
-      await mobileCard.dragTo(mobile.getByRole('heading', { name: 'Tickets' }), {
+      await mobileCard.dragTo(mobile.getByRole('button', { name: 'Open menu' }), {
         sourcePosition: { x: 8, y: 8 },
       })
       await expect(testLane.getByText('Idea source')).toBeVisible()

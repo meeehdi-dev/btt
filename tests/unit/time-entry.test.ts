@@ -25,10 +25,13 @@ describe('time entry rules', () => {
     expect(overlaps(a, { startMinute: 90, durationMinutes: 30 })).toBe(true)
     expect(overlaps({ startMinute: 90, durationMinutes: 30 }, a)).toBe(true)
   })
-  it('colors exact estimate thresholds', () => {
-    expect(usageColor(79, 100)).toBe('neutral')
-    expect(usageColor(80, 100)).toBe('warning')
-    expect(usageColor(100, 100)).toBe('error')
+  it('colors estimate usage across the requested percentage bands', () => {
+    expect(usageColor(79, 100)).toBe('info')
+    expect(usageColor(80, 100)).toBe('success')
+    expect(usageColor(99, 100)).toBe('success')
+    expect(usageColor(100, 100)).toBe('warning')
+    expect(usageColor(120, 100)).toBe('warning')
+    expect(usageColor(121, 100)).toBe('error')
   })
   it('decodes owned request fields through Effect schema', async () => {
     await expect(

@@ -217,6 +217,14 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page.reload()
     await expect(page.getByRole('link', { name: 'PR', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Second ticket' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Move to/ })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Ticket Client' })).toHaveClass(/text-muted/)
+    await expect(page.getByRole('link', { name: 'PR', exact: true }).locator('..')).toHaveClass(
+      /bg-elevated/,
+    )
+    await expect(page.getByRole('link', { name: 'Second ticket' }).locator('..')).toHaveClass(
+      /bg-elevated/,
+    )
     const otherContext = await browser.newContext()
     try {
       const otherPage = await otherContext.newPage()

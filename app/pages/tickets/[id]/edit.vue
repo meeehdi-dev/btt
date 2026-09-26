@@ -104,26 +104,32 @@ async function remove() {
         <UAlert v-if="errorMessage" color="error" title="Could not save changes">{{
           errorMessage
         }}</UAlert>
-        <div class="flex flex-wrap justify-between gap-3">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <UButton
             v-if="archived"
             color="error"
             variant="ghost"
             :disabled="pending"
+            icon="lucide:trash-2"
             label="Permanently delete"
+            class="w-full sm:w-auto"
             @click="remove"
           />
-          <div class="ml-auto flex gap-3">
+          <div class="flex flex-col gap-2 sm:ml-auto sm:flex-row">
             <UButton
               :to="`/tickets/${id}${archived ? '?archived=true' : ''}`"
               color="neutral"
               variant="ghost"
+              icon="lucide:x"
               label="Cancel"
+              class="w-full sm:w-auto"
             /><UButton
               type="submit"
               :loading="pending"
               :disabled="!!releasesError || !releasesData?.releases.length"
+              icon="lucide:save"
               label="Save changes"
+              class="w-full sm:w-auto"
             />
           </div>
         </div></form

@@ -107,6 +107,30 @@ test('owned historical time entries enforce daily slots, overlap, archive and us
     expect(moves.map((res) => res.status()).toSorted()).toEqual([200, 409])
     expect((await page.request.delete(`${endpoint}/${shiftA.id}`)).ok()).toBe(true)
     expect((await page.request.delete(`${endpoint}/${shiftB.id}`)).ok()).toBe(true)
+    const releaseTickets = await (
+      await page.request.get('/api/tickets', { params: { releaseId: r.id } })
+    ).json()
+    expect(
+      releaseTickets.tickets.find((item: { ticket: { id: string } }) => item.ticket.id === a.id)
+        .trackedMinutes,
+    ).toBe(90)
+    await page.goto(`/releases/${r.id}`)
+    const releaseCard = page.locator(`[data-release-ticket-id="${a.id}"]`)
+    const releaseUsage = releaseCard.getByLabel('Tracked: 1hr 30m of 1hr')
+    await expect(releaseUsage).toBeVisible()
+    await expect(releaseUsage.locator('.text-primary')).toHaveText('1hr 30m')
+    await expect(releaseUsage.locator('.text-muted')).toHaveText('/ 1hr')
+    await expect(releaseCard.getByLabel('Estimate usage: 150%')).toBeVisible()
+    await expect(
+      page.locator(`[data-release-ticket-id="${b.id}"]`).getByLabel('Tracked: 0m'),
+    ).toBeVisible()
+    await page.goto('/tickets')
+    await page.waitForLoadState('networkidle')
+    const boardCard = page.locator(`[data-board-ticket-id="${a.id}"]`).filter({ visible: true })
+    const boardUsage = boardCard.getByLabel('Tracked: 1hr 30m of 1hr')
+    await expect(boardUsage.locator('.text-primary')).toHaveText('1hr 30m')
+    await expect(boardUsage.locator('.text-muted')).toHaveText('/ 1hr')
+    await expect(boardCard.getByLabel('Estimate usage: 150%')).toBeVisible()
     await page.goto(`/tickets/${a.id}`)
     await page.waitForLoadState('networkidle')
     await expect(page.getByLabel('Estimate usage: 150%')).toBeVisible()

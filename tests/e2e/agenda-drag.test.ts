@@ -127,8 +127,7 @@ test('desktop drag creation, hidden blockers, moves, resizing and non-drag mobil
             .startMinute,
       )
       .toBe(780)
-    const iconOnlyEdit = moving.getByRole('button', { name: /Edit time entry/ })
-    await expect(iconOnlyEdit).toHaveText('')
+    await expect(moving.getByRole('button', { name: /Edit time entry/ })).toHaveCount(0)
     await moving.getByText('Movable block').dblclick()
     await expect(page.getByRole('dialog', { name: 'Correct time entry' })).toBeVisible()
     await page.keyboard.press('Escape')
@@ -169,20 +168,11 @@ test('desktop drag creation, hidden blockers, moves, resizing and non-drag mobil
     await expect(page.getByRole('list', { name: 'Work in visible hours' })).toContainText(
       'Movable block',
     )
-    await page
-      .getByRole('list', { name: 'Work in visible hours' })
-      .getByRole('article')
-      .filter({ hasText: 'Movable block' })
-      .getByRole('button', { name: /Edit time entry/ })
-      .click()
-    const editDialog = page.getByRole('dialog', { name: 'Correct time entry' })
-    await expect(editDialog).toBeVisible()
-    await editDialog.getByRole('textbox', { name: 'Work description' }).fill('Corrected on mobile')
-    await editDialog.getByRole('button', { name: 'Save correction' }).click()
-    await expect(editDialog).toHaveCount(0)
-    await expect(page.getByRole('list', { name: 'Work in visible hours' })).toContainText(
-      'Corrected on mobile',
-    )
+    await expect(
+      page
+        .getByRole('list', { name: 'Work in visible hours' })
+        .getByRole('button', { name: /Edit time entry/ }),
+    ).toHaveCount(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.setViewportSize({ width: 1440, height: 2500 })
     await page.reload()

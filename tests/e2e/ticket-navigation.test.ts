@@ -68,25 +68,36 @@ test('board entity links and related-ticket icons locate visible targets', async
     await page.waitForLoadState('networkidle')
     const board = page.getByRole('region', { name: 'Ticket board' })
     const sourceCard = board.locator(`[data-board-ticket-id="${source.id}"]`)
+    await page.getByRole('button', { name: 'Filter client' }).click()
+    await page.getByRole('option', { name: 'Nav Client' }).click()
+    await expect(page.getByRole('button', { name: 'Filter client' })).toContainText('Nav Client')
+    await page.getByRole('button', { name: 'Filter release' }).click()
+    await page.getByRole('option', { name: 'Nav Release' }).click()
+    await expect(board.getByText('Cross release target')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Filter ticket' }).click()
+    await page.getByRole('option', { name: 'Source ticket' }).click()
+    await expect(sourceCard).toBeVisible()
+    await expect(board.locator(`[data-board-ticket-id="${target.id}"]`)).toHaveCount(0)
+    await page.getByRole('button', { name: 'Clear filters' }).click()
     const targetCard = board.locator(`[data-board-ticket-id="${target.id}"]`)
-    const shortcut = sourceCard.getByRole('link', { name: 'Related ticket: Target ticket' })
+    await sourceCard.getByRole('button', { name: 'Related tickets' }).hover()
+    const shortcut = page.locator(`[data-related-ticket-id="${target.id}"]`)
     await expect(shortcut).toBeVisible()
     await expect(targetCard).toHaveClass(/border-default/)
-    await expect(shortcut).toHaveAttribute('title', 'Related ticket: Target ticket')
     await shortcut.hover()
     await expect(targetCard).toHaveClass(/border-primary/)
-    await page.getByRole('heading', { name: 'Tickets' }).hover()
+    await board.getByRole('heading', { name: 'Idea' }).hover()
     await expect(targetCard).toHaveClass(/border-default/)
     await shortcut.click()
     await expect(page).toHaveURL(/\/tickets$/)
     await expect(targetCard).toHaveClass(/border-primary/)
     await expect.poll(() => board.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
-    await page.getByRole('heading', { name: 'Tickets' }).hover()
+    await board.getByRole('heading', { name: 'Idea' }).hover()
     await expect(targetCard).toHaveClass(/border-primary/)
     // Clicking another relation switches the pinned border.
-    const crossShortcut = sourceCard.getByRole('link', {
-      name: 'Related ticket: Cross release target',
-    })
+    await sourceCard.getByRole('button', { name: 'Related tickets' }).focus()
+    await sourceCard.getByRole('button', { name: 'Related tickets' }).press('Enter')
+    const crossShortcut = page.locator(`[data-related-ticket-id="${cross.id}"]`)
     await crossShortcut.focus()
     await crossShortcut.press('Enter')
     await expect(board.locator(`[data-board-ticket-id="${cross.id}"]`)).toHaveClass(
@@ -115,8 +126,9 @@ test('board entity links and related-ticket icons locate visible targets', async
     await page
       .getByRole('region', { name: 'Ticket board' })
       .locator(`[data-board-ticket-id="${source.id}"]`)
-      .getByRole('link', { name: 'Related ticket: Cross release target' })
-      .click()
+      .getByRole('button', { name: 'Related tickets' })
+      .hover()
+    await page.locator(`[data-related-ticket-id="${cross.id}"]`).click()
     await expect(page).toHaveURL(`/tickets/${cross.id}`)
 
     // Archived targets and descendants of an archived parent do not leak a shortcut.
@@ -134,7 +146,7 @@ test('board entity links and related-ticket icons locate visible targets', async
       page
         .getByRole('region', { name: 'Ticket board' })
         .locator(`[data-board-ticket-id="${source.id}"]`)
-        .getByRole('link', { name: 'Related ticket: Target ticket' }),
+        .locator(`[data-related-ticket-id="${target.id}"]`),
     ).toHaveCount(0)
     expect(
       (await page.request.patch(`/api/tickets/${target.id}`, { data: { archived: false } })).ok(),
@@ -155,7 +167,7 @@ test('board entity links and related-ticket icons locate visible targets', async
       page
         .getByRole('region', { name: 'Ticket board' })
         .locator(`[data-board-ticket-id="${source.id}"]`)
-        .getByRole('link', { name: 'Related ticket: Cross release target' }),
+        .locator(`[data-related-ticket-id="${cross.id}"]`),
     ).toHaveCount(0)
     expect(
       (
@@ -205,7 +217,13 @@ test('board entity links and related-ticket icons locate visible targets', async
         'aria-expanded',
         'false',
       )
-      await idea.getByRole('link', { name: 'Related ticket: Target ticket' }).click()
+      await idea.getByRole('button', { name: 'Related tickets' }).click()
+      await expect(mobile.locator(`[data-related-ticket-id="${target.id}"]`)).toBeVisible({
+        timeout: 3000,
+      })
+      await mobile
+        .locator(`[data-related-ticket-id="${target.id}"]`)
+        .click({ noWaitAfter: true, timeout: 5000 })
       await expect(done.getByRole('button', { name: 'Done: 2 tickets' })).toHaveAttribute(
         'aria-expanded',
         'true',

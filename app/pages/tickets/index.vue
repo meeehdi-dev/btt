@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ticketStatuses } from '#shared/ticket-status'
+import { entityIcons } from '~/utils/entity-icons'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
@@ -14,10 +15,85 @@ const { data, pending, error, refresh } = await useFetch('/api/tickets', {
   })),
 })
 const tickets = computed(() => data.value?.tickets ?? [])
+type FilterKind = 'client' | 'project' | 'release' | 'ticket'
+const filters = reactive<Record<FilterKind, string>>({
+  client: '',
+  project: '',
+  release: '',
+  ticket: '',
+})
+function filterOptions(kind: FilterKind) {
+  const seen = new Map<string, string>()
+  for (const item of tickets.value) {
+    if (kind !== 'client' && filters.client && item.clientId !== filters.client) continue
+    if (
+      ['release', 'ticket'].includes(kind) &&
+      filters.project &&
+      item.projectId !== filters.project
+    )
+      continue
+    if (kind === 'ticket' && filters.release && item.ticket.releaseId !== filters.release) continue
+    const id =
+      kind === 'ticket'
+        ? item.ticket.id
+        : kind === 'release'
+          ? item.ticket.releaseId
+          : kind === 'project'
+            ? item.projectId
+            : item.clientId
+    const name =
+      kind === 'ticket'
+        ? item.ticket.title
+        : kind === 'release'
+          ? item.releaseName
+          : kind === 'project'
+            ? item.projectName
+            : item.clientName
+    seen.set(id, name)
+  }
+  return [...seen].map(([value, label]) => ({ value, label }))
+}
+function applyFilter(kind: FilterKind, id: string) {
+  const item = tickets.value.find((entry) =>
+    kind === 'client'
+      ? entry.clientId === id
+      : kind === 'project'
+        ? entry.projectId === id
+        : kind === 'release'
+          ? entry.ticket.releaseId === id
+          : entry.ticket.id === id,
+  )
+  if (item && kind !== 'client') filters.client = item.clientId
+  if (item && (kind === 'release' || kind === 'ticket')) filters.project = item.projectId
+  if (item && kind === 'ticket') filters.release = item.ticket.releaseId
+  filters[kind] = id
+  if (kind === 'client') {
+    filters.project = ''
+    filters.release = ''
+    filters.ticket = ''
+  }
+  if (kind === 'project') {
+    filters.release = ''
+    filters.ticket = ''
+  }
+  if (kind === 'release') filters.ticket = ''
+}
+function clearFilters() {
+  for (const kind of Object.keys(filters) as FilterKind[]) filters[kind] = ''
+}
+const visibleTickets = computed(() =>
+  tickets.value.filter(
+    (item) =>
+      (!filters.client || item.clientId === filters.client) &&
+      (!filters.project || item.projectId === filters.project) &&
+      (!filters.release || item.ticket.releaseId === filters.release) &&
+      (!filters.ticket || item.ticket.id === filters.ticket),
+  ),
+)
 const groups = computed(() =>
   ticketStatuses.map((status) => ({
     status,
-    items: tickets.value.filter((item) => item.ticket.status === status),
+    items: visibleTickets.value.filter((item) => item.ticket.status === status),
   })),
 )
 type TicketStatus = (typeof ticketStatuses)[number]
@@ -52,7 +128,11 @@ onMounted(() => {
   dragBreakpoint.addEventListener('change', syncDragBreakpoint)
 })
 
-watch([releaseId, showArchived], clearDrag)
+watch([releaseId, showArchived], () => {
+  clearDrag()
+  clearFilters()
+})
+watch(filters, clearDrag)
 watch(tickets, () => {
   if (
     draggingId.value &&
@@ -188,9 +268,9 @@ async function waitForCardAnimation(card: HTMLElement) {
 async function locateRelated(event: MouseEvent, id: string) {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
   event.preventDefault()
-  const target = tickets.value.find((item) => item.ticket.id === id)
+  const target = visibleTickets.value.find((item) => item.ticket.id === id)
   if (!target) {
-    await navigateTo(`/tickets/${id}`) // A release-filtered target is outside this board.
+    await navigateTo(`/tickets/${id}`) // A release- or filter-hidden target is outside this board.
     return
   }
   pinnedTargetId.value = id
@@ -257,24 +337,54 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
 
 <template>
   <div class="space-y-6">
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <p class="text-sm font-medium text-primary">Workspace</p>
-        <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-          <EntityIcon kind="tickets" />Tickets
-        </h1>
-        <p class="mt-2 text-muted">
-          Work grouped by status{{ releaseId ? ' for this release' : '' }}.
-        </p>
-      </div>
-      <div class="flex items-center gap-2">
-        <ArchiveFilterButton v-model="showArchived" /><UButton
-          :to="`/tickets/new${releaseId ? `?release=${releaseId}` : ''}`"
-          icon="lucide:plus"
-          label="New ticket"
-        />
-      </div>
+    <h1 class="sr-only">Tickets</h1>
+    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <ArchiveFilterButton v-model="showArchived" />
+      <UButton
+        :to="`/tickets/new${releaseId ? `?release=${releaseId}` : ''}`"
+        icon="lucide:plus"
+        label="New ticket"
+      />
     </div>
+    <UCard :ui="{ body: 'p-2 sm:p-2' }">
+      <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
+        <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div v-for="kind in ['client', 'project', 'release', 'ticket'] as const" :key="kind">
+            <USelectMenu
+              :model-value="filters[kind] || null"
+              value-key="value"
+              :items="filterOptions(kind)"
+              :disabled="!filterOptions(kind).length"
+              :search-input="false"
+              :clear="{ 'aria-label': `Clear ${kind} filter` }"
+              :placeholder="`All ${kind}s`"
+              class="w-full"
+              :aria-label="`Filter ${kind}`"
+              @update:model-value="applyFilter(kind, $event ?? '')"
+            >
+              <template #leading
+                ><UTooltip :text="`Filter ${kind}`"
+                  ><UIcon
+                    :name="
+                      entityIcons[`${kind}s` as 'clients' | 'projects' | 'releases' | 'tickets']
+                    "
+                    class="size-4"
+                    :aria-label="`Filter ${kind}`" /></UTooltip
+              ></template>
+            </USelectMenu>
+          </div>
+        </div>
+        <UTooltip text="Clear all filters"
+          ><UButton
+            color="neutral"
+            variant="ghost"
+            icon="lucide:filter-x"
+            aria-label="Clear filters"
+            class="self-end"
+            @click="clearFilters"
+        /></UTooltip>
+      </div>
+    </UCard>
     <UAlert
       v-if="error || actionError"
       role="alert"
@@ -286,6 +396,7 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       v-if="error"
       color="neutral"
       variant="outline"
+      icon="lucide:refresh-cw"
       label="Retry loading"
       @click="refresh()"
     />
@@ -293,17 +404,24 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       v-else-if="failedMove"
       color="neutral"
       variant="outline"
+      icon="lucide:refresh-cw"
       label="Retry status change"
       @click="retryMove"
     />
     <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
     <UCard v-if="pending && !data"><p class="text-muted">Loading tickets…</p></UCard>
     <template v-else-if="!error || data">
-      <UCard v-if="!tickets.length">
+      <UCard v-if="!visibleTickets.length">
         <h2 class="font-medium text-highlighted">
-          No {{ showArchived ? '' : 'active ' }}tickets yet
+          {{
+            tickets.length
+              ? 'No tickets match these filters'
+              : `No ${showArchived ? '' : 'active '}tickets yet`
+          }}
         </h2>
-        <p class="mt-2 text-muted">Create a ticket under a release to get started.</p>
+        <p v-if="!tickets.length" class="mt-2 text-muted">
+          Create a ticket under a release to get started.
+        </p>
       </UCard>
       <div
         ref="board"

@@ -17,6 +17,8 @@ type Row = {
   clientName: string
   clientArchivedAt: string | null
   status: string
+  relatedTickets: { id: string; title: string; archived: boolean }[]
+  externalLinks: { id: string; label: string; url: string }[]
 }
 const props = defineProps<{ row: Row }>()
 const spacious = computed(() => props.row.entry.durationMinutes >= 60)
@@ -75,6 +77,7 @@ const badges = computed(() => [
 </script>
 <template>
   <article
+    :data-agenda-ticket-id="row.ticketId"
     class="flex h-full min-w-0 flex-col justify-between gap-1 overflow-hidden rounded-lg border border-default bg-elevated p-1.5 text-xs md:p-2"
     :style="{ borderLeftColor: row.projectColor, borderLeftWidth: '4px' }"
     @dblclick="onDoubleClick"
@@ -114,14 +117,6 @@ const badges = computed(() => [
     </p>
     <div v-else-if="spacious" class="flex-1" aria-hidden="true" />
     <div class="flex min-w-0 shrink-0 gap-1 overflow-x-auto" aria-label="Entry context">
-      <UButton
-        size="xs"
-        color="neutral"
-        variant="outline"
-        icon="lucide:pencil"
-        :aria-label="`Edit time entry ${clock(row.entry.startMinute)}`"
-        @click="emit('edit')"
-      />
       <UPopover
         v-for="badge in badges"
         :key="badge.kind"
@@ -146,6 +141,7 @@ const badges = computed(() => [
               size="xs"
               variant="ghost"
               color="neutral"
+              icon="lucide:filter"
               :label="`Filter by ${badge.name}`"
               @click="emit('filter', badge.kind, badge.id)"
             />
@@ -155,6 +151,7 @@ const badges = computed(() => [
               variant="ghost"
               color="neutral"
               :to="badge.to"
+              icon="lucide:external-link"
               :label="`Open ${badge.name}`"
             /></div
         ></template>
@@ -173,6 +170,7 @@ const badges = computed(() => [
               size="xs"
               variant="ghost"
               color="neutral"
+              icon="lucide:filter"
               :label="`Filter by ${row.ticketTitle}`"
               @click="emit('filter', 'ticket', row.ticketId)"
             />
@@ -181,10 +179,15 @@ const badges = computed(() => [
               variant="ghost"
               color="neutral"
               :to="ticketUrl"
+              icon="lucide:external-link"
               :label="`Open ${row.ticketTitle}`"
             /></div
         ></template>
       </UPopover>
+      <TicketContextPopovers
+        :related-tickets="row.relatedTickets"
+        :external-links="row.externalLinks"
+      />
     </div>
   </article>
 </template>

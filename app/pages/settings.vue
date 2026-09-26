@@ -50,16 +50,8 @@ async function save() {
 }
 </script>
 <template>
-  <div class="max-w-2xl space-y-6">
-    <div>
-      <p class="text-sm font-medium text-primary">Settings</p>
-      <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-        <EntityIcon kind="settings" />Workspace settings
-      </h1>
-      <p class="mt-3 text-muted">
-        Visible hours control the Today display, not which work you can record.
-      </p>
-    </div>
+  <div class="mx-auto max-w-xl space-y-4">
+    <h1 class="sr-only">Workspace settings</h1>
     <UAlert v-if="error" color="error" title="Could not load settings" />
     <UCard v-else
       ><form class="space-y-4" @submit.prevent="save">
@@ -79,7 +71,7 @@ async function save() {
           title="Could not save settings"
         />
         <p v-if="saved" role="status" class="text-sm text-success">Settings saved.</p>
-        <UButton type="submit" label="Save settings" :loading="saving" /></form
+        <UButton type="submit" icon="lucide:save" label="Save settings" :loading="saving" /></form
     ></UCard>
   </div>
 </template>

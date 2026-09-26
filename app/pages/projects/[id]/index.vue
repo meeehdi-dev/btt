@@ -47,38 +47,37 @@ async function markDone(releaseId: string) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <NuxtLink
-          :to="`/clients/${project.project.clientId}${project.clientArchivedAt ? '?archived=true' : ''}`"
-          class="inline-flex items-center gap-1 text-sm text-primary"
-          >← <EntityIcon kind="clients" />{{ project.clientName }}</NuxtLink
-        >
-        <div class="mt-3 flex items-center gap-3">
-          <span class="size-4 rounded-full" :style="{ backgroundColor: project.project.color }" />
-          <h1 class="flex items-center gap-2 text-3xl font-semibold text-highlighted">
-            <EntityIcon kind="projects" />{{ project.project.name }}
-          </h1>
-          <UBadge v-if="project.project.archivedAt" color="neutral" variant="subtle"
-            >Archived</UBadge
-          >
-        </div>
-        <p class="mt-2 text-muted">
+        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <NuxtLink
             :to="`/clients/${project.project.clientId}${project.clientArchivedAt ? '?archived=true' : ''}`"
-            class="inline-flex items-center gap-1 hover:text-primary"
+            class="inline-flex items-center gap-1 text-sm text-primary"
             ><EntityIcon kind="clients" />{{ project.clientName }}</NuxtLink
           >
-          · Releases and milestones.
-        </p>
+          <UIcon name="lucide:chevron-right" class="size-4 text-muted" aria-hidden="true" />
+          <div class="flex min-w-0 flex-wrap items-center gap-3">
+            <span
+              class="size-4 shrink-0 rounded-full"
+              :style="{ backgroundColor: project.project.color }"
+            />
+            <h1 class="flex items-center gap-2 text-3xl font-semibold text-highlighted">
+              <EntityIcon kind="projects" />{{ project.project.name }}
+            </h1>
+            <UBadge v-if="project.project.archivedAt" color="neutral" variant="subtle"
+              >Archived</UBadge
+            >
+          </div>
+        </div>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-col gap-2 sm:flex-row">
         <ArchiveFilterButton v-model="showArchived" />
         <UButton
           v-if="!project.clientArchivedAt"
           :to="`/projects/${id}/edit${project.project.archivedAt ? '?archived=true' : ''}`"
           color="neutral"
           variant="outline"
+          icon="lucide:pencil"
           label="Edit"
         />
         <UButton
@@ -105,12 +104,14 @@ async function markDone(releaseId: string) {
       <div
         v-for="item in releases"
         :key="item.release.id"
-        class="rounded-lg border border-default bg-elevated p-5"
+        class="group relative cursor-pointer rounded-lg border border-default bg-elevated p-5 transition hover:border-primary focus-within:border-primary"
       >
         <NuxtLink
           :to="`/releases/${item.release.id}${item.release.archivedAt ? '?archived=true' : ''}`"
-          class="block transition hover:text-primary"
-        >
+          :aria-label="`Open release ${item.release.name}`"
+          class="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
+        />
+        <div class="pointer-events-none">
           <div class="flex items-start justify-between gap-3">
             <h2 class="inline-flex items-center gap-1 font-medium text-highlighted">
               <EntityIcon kind="releases" />{{ item.release.name }}
@@ -122,18 +123,23 @@ async function markDone(releaseId: string) {
           <div class="mt-3">
             <ReleaseTargetDate :target-date="item.release.targetDate" />
           </div>
-        </NuxtLink>
-        <div v-if="!item.release.archivedAt" class="mt-3 flex justify-end">
-          <UButton
-            square
-            color="success"
-            variant="soft"
-            icon="lucide:check"
-            title="Mark done"
-            :loading="donePending === item.release.id"
-            aria-label="Mark release as done"
-            @click="markDone(item.release.id)"
-          />
+        </div>
+        <div
+          v-if="!item.release.archivedAt"
+          class="pointer-events-none relative z-10 mt-3 flex justify-end"
+        >
+          <UTooltip text="Mark done">
+            <UButton
+              square
+              color="success"
+              variant="soft"
+              icon="lucide:check"
+              :loading="donePending === item.release.id"
+              aria-label="Mark release as done"
+              class="pointer-events-auto cursor-pointer"
+              @click.stop="markDone(item.release.id)"
+            />
+          </UTooltip>
         </div>
       </div>
     </div>
