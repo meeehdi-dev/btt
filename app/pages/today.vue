@@ -119,6 +119,72 @@ const duration = ref(30)
 const description = ref('')
 const busy = ref(false)
 const actionError = ref('')
+const dragError = ref('')
+const editingId = ref<string | null>(null)
+const editingOpen = ref(false)
+const editingTime = shallowRef(new Time(9, 0))
+const editingDuration = ref(30)
+const editingDescription = ref('')
+const editingError = ref('')
+watch(day, () => {
+  editingOpen.value = false
+  addOpen.value = false
+  dragError.value = ''
+})
+function beginEdit(id: string) {
+  const row = entries.value.find(({ entry }) => entry.id === id)
+  if (!row) return
+  editingId.value = id
+  editingTime.value = new Time(Math.floor(row.entry.startMinute / 60), row.entry.startMinute % 60)
+  editingDuration.value = row.entry.durationMinutes
+  editingDescription.value = row.entry.description
+  editingError.value = ''
+  editingOpen.value = true
+}
+async function saveEdit() {
+  if (!editingId.value) return
+  busy.value = true
+  editingError.value = ''
+  try {
+    await $fetch(`/api/time-entries/${editingId.value}`, {
+      method: 'PATCH',
+      body: {
+        startMinute: editingTime.value.hour * 60 + editingTime.value.minute,
+        durationMinutes: editingDuration.value,
+        description: editingDescription.value,
+      },
+    })
+    await refresh()
+    editingOpen.value = false
+  } catch (cause) {
+    editingError.value = cause instanceof Error ? cause.message : 'Could not correct time entry.'
+    await refresh()
+  } finally {
+    busy.value = false
+  }
+}
+function beginDragCreate(startMinute: number, durationMinutes: number) {
+  startTime.value = new Time(Math.floor(startMinute / 60), startMinute % 60)
+  duration.value = durationMinutes
+  actionError.value = ''
+  addOpen.value = true
+}
+async function changeEntry(id: string, startMinute: number, durationMinutes: number) {
+  busy.value = true
+  dragError.value = ''
+  try {
+    await $fetch(`/api/time-entries/${id}`, {
+      method: 'PATCH',
+      body: { startMinute, durationMinutes },
+    })
+    await refresh()
+  } catch (cause) {
+    dragError.value = cause instanceof Error ? cause.message : 'Could not move time entry.'
+    await refresh()
+  } finally {
+    busy.value = false
+  }
+}
 const durations = Array.from({ length: 48 }, (_, index) => ({
   label: formatTicketEstimate((index + 1) * 30),
   value: (index + 1) * 30,
@@ -282,6 +348,51 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
           </form>
         </template>
       </UModal>
+      <UModal
+        v-model:open="editingOpen"
+        title="Correct time entry"
+        description="Change the time or description on this day without dragging. For another date, use the ticket detail editor."
+        scrollable
+      >
+        <template #body>
+          <form class="space-y-4" @submit.prevent="saveEdit">
+            <p class="text-sm text-muted">Work date: {{ day }}</p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <UFormField label="Start time" required>
+                <UInputTime
+                  v-model="editingTime"
+                  :hour-cycle="24"
+                  :step="{ minute: 30 }"
+                  step-snapping
+                  class="w-full"
+                  aria-label="Correction start time"
+                />
+              </UFormField>
+              <UFormField label="Duration" required>
+                <USelect v-model="editingDuration" :items="durations" class="w-full" />
+              </UFormField>
+            </div>
+            <UFormField label="Work description">
+              <UTextarea v-model="editingDescription" class="w-full" />
+            </UFormField>
+            <UAlert
+              v-if="editingError"
+              color="error"
+              title="Could not correct work"
+              :description="editingError"
+            />
+            <div class="flex gap-2">
+              <UButton type="submit" label="Save correction" :loading="busy" />
+              <UButton
+                color="neutral"
+                variant="ghost"
+                label="Cancel"
+                @click="editingOpen = false"
+              />
+            </div>
+          </form>
+        </template>
+      </UModal>
     </div>
     <UAlert v-if="error || settingsError" color="error" title="Could not load your agenda" />
     <UButton
@@ -345,6 +456,14 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
       </UCard>
       <UCard>
         <h2 class="mb-3 font-semibold">{{ day }} agenda</h2>
+        <UAlert
+          v-if="dragError"
+          color="error"
+          title="Could not update time entry"
+          :description="dragError"
+          role="alert"
+          class="mb-3"
+        />
         <p
           v-if="!filtered.length && Object.values(filters).some(Boolean)"
           class="mb-3 text-sm text-muted"
@@ -356,9 +475,14 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
         </p>
         <TodayAgenda
           :rows="filtered"
+          :occupied="entries"
           :start="settings?.visibleStartMinute ?? 480"
           :end="settings?.visibleEndMinute ?? 1200"
+          :busy="busy || pending"
           @filter="applyFilter"
+          @create="beginDragCreate"
+          @change="changeEntry"
+          @edit="beginEdit"
         />
       </UCard>
     </template>

@@ -48,3 +48,4 @@ NNNN-short-descriptive-slug.md
 | [0011](0011-manual-time-entry-history-and-slots.md)    | Accepted   | Manual time entry history and slots                  |
 | [0012](0012-today-agenda-settings-and-history.md)      | Accepted   | Today agenda settings and historical work            |
 | [0013](0013-board-status-control-removal.md)           | Accepted   | Remove next-status control from ticket board         |
+| [0014](0014-agenda-drag-interactions.md)               | Accepted   | Single-day agenda drag interactions                  |

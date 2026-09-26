@@ -22,7 +22,17 @@ const props = defineProps<{ row: Row }>()
 const spacious = computed(() => props.row.entry.durationMinutes >= 60)
 const emit = defineEmits<{
   filter: [kind: 'client' | 'project' | 'release' | 'ticket' | 'status', id: string]
+  edit: []
 }>()
+function onDoubleClick(event: MouseEvent) {
+  if (
+    event.target instanceof Element &&
+    event.target.closest('a,button,input,select,textarea,[role="button"],[role="combobox"]')
+  )
+    return
+  event.stopPropagation()
+  emit('edit')
+}
 function clock(minute: number) {
   return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`
 }
@@ -67,6 +77,7 @@ const badges = computed(() => [
   <article
     class="flex h-full min-w-0 flex-col justify-between gap-1 overflow-hidden rounded-lg border border-default bg-elevated p-1.5 text-xs md:p-2"
     :style="{ borderLeftColor: row.projectColor, borderLeftWidth: '4px' }"
+    @dblclick="onDoubleClick"
   >
     <div class="flex min-w-0 items-center gap-2 whitespace-nowrap">
       <NuxtLink
@@ -103,6 +114,14 @@ const badges = computed(() => [
     </p>
     <div v-else-if="spacious" class="flex-1" aria-hidden="true" />
     <div class="flex min-w-0 shrink-0 gap-1 overflow-x-auto" aria-label="Entry context">
+      <UButton
+        size="xs"
+        color="neutral"
+        variant="outline"
+        icon="lucide:pencil"
+        :aria-label="`Edit time entry ${clock(row.entry.startMinute)}`"
+        @click="emit('edit')"
+      />
       <UPopover
         v-for="badge in badges"
         :key="badge.kind"
