@@ -169,8 +169,36 @@ export const ticketRelation = pgTable(
   ],
 )
 
+export const timeEntry = pgTable(
+  'time_entry',
+  {
+    id: uuid('id').primaryKey(),
+    ticketId: uuid('ticket_id')
+      .notNull()
+      .references(() => ticket.id, { onDelete: 'restrict' }),
+    date: date('date').notNull(),
+    startMinute: integer('start_minute').notNull(),
+    durationMinutes: integer('duration_minutes').notNull(),
+    description: text('description').notNull().default(''),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+  },
+  (table) => [
+    index('time_entry_ticket_date_idx').on(table.ticketId, table.date),
+    index('time_entry_date_idx').on(table.date),
+    check(
+      'time_entry_start_check',
+      sql`${table.startMinute} >= 0 and ${table.startMinute} < 1440 and ${table.startMinute} % 30 = 0`,
+    ),
+    check(
+      'time_entry_duration_check',
+      sql`${table.durationMinutes} >= 30 and ${table.durationMinutes} % 30 = 0 and ${table.startMinute} + ${table.durationMinutes} <= 1440`,
+    ),
+  ],
+)
+
 export const authSchema = { user, session, account, verification }
-export const appSchema = { client, project, release, ticket, ticketLink, ticketRelation }
+export const appSchema = { client, project, release, ticket, ticketLink, ticketRelation, timeEntry }
 export const schema = { ...authSchema, ...appSchema }
 
 export type User = typeof user.$inferSelect
@@ -179,3 +207,4 @@ export type Client = typeof client.$inferSelect
 export type Project = typeof project.$inferSelect
 export type Release = typeof release.$inferSelect
 export type Ticket = typeof ticket.$inferSelect
+export type TimeEntry = typeof timeEntry.$inferSelect

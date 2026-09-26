@@ -331,7 +331,8 @@ test('release tickets, workflow, links and relations respect auth and archive li
     expect(await (await page.request.get(`/api/tickets?releaseId=${r.id}`)).json()).toMatchObject({
       tickets: [],
     })
-    expect((await page.request.get(`/api/tickets/${b.id}?archived=true`)).status()).toBe(404)
+    expect((await page.request.get(`/api/tickets/${b.id}`)).status()).toBe(404)
+    expect((await page.request.get(`/api/tickets/${b.id}?archived=true`)).status()).toBe(200)
     expect(
       (await page.request.patch(`/api/releases/${r.id}`, { data: { archived: false } })).ok(),
     ).toBeTruthy()

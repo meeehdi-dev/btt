@@ -59,10 +59,11 @@ export async function ownedTicket(event: H3Event, id: string) {
 }
 export function visibleTicket(record: Awaited<ReturnType<typeof ownedTicket>>, archived: boolean) {
   if (
-    record.clientArchivedAt ||
-    record.projectArchivedAt ||
-    record.releaseArchivedAt ||
-    (!archived && record.ticket.archivedAt)
+    !archived &&
+    (record.clientArchivedAt ||
+      record.projectArchivedAt ||
+      record.releaseArchivedAt ||
+      record.ticket.archivedAt)
   )
     notFound('Ticket not found')
   return record

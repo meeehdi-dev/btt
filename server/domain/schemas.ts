@@ -57,6 +57,21 @@ export const TicketUpdate = Schema.Struct({
   estimateMinutes: Schema.optional(Estimate),
   archived: Schema.optional(Schema.Boolean),
 })
+const EntryMinute = Schema.Number.check(Schema.isInt())
+export const TimeEntryCreate = Schema.Struct({
+  ticketId: Id,
+  date: TargetDate,
+  startMinute: EntryMinute,
+  durationMinutes: EntryMinute,
+  description: Schema.optional(Description),
+})
+export const TimeEntryUpdate = Schema.Struct({
+  ticketId: Schema.optional(Id),
+  date: Schema.optional(TargetDate),
+  startMinute: Schema.optional(EntryMinute),
+  durationMinutes: Schema.optional(EntryMinute),
+  description: Schema.optional(Description),
+})
 export type ClientCreateInput = Schema.Schema.Type<typeof ClientCreate>
 export type ClientUpdateInput = Schema.Schema.Type<typeof ClientUpdate>
 export type ProjectCreateInput = Schema.Schema.Type<typeof ProjectCreate>

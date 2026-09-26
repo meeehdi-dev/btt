@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.5",
+    "@internationalized/date": "3.12.4",
     "@nuxt/ui": "4.11.1",
     "better-auth": "1.7.5",
     "drizzle-orm": "0.45.3",

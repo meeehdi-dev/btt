@@ -113,6 +113,17 @@ async function addRelation() {
         {{ record.description || 'No description yet.' }}
       </p></UCard
     >
+    <TicketTimeEntries
+      :ticket-id="id"
+      :title="record.title"
+      :estimate-minutes="record.estimateMinutes"
+      :can-create="
+        !record.archivedAt &&
+        !data?.hierarchy.releaseArchivedAt &&
+        !data?.hierarchy.projectArchivedAt &&
+        !data?.hierarchy.clientArchivedAt
+      "
+    />
     <div class="grid gap-6 md:grid-cols-2">
       <UCard
         ><h2 class="font-medium text-highlighted">External links</h2>

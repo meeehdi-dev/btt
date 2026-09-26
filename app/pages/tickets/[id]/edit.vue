@@ -40,7 +40,12 @@ async function save() {
   }
 }
 async function remove() {
-  if (!confirm('Permanently delete this archived ticket and its links/relations?')) return
+  if (
+    !confirm(
+      'Permanently delete this archived ticket and its links/relations? Tickets with tracked time cannot be deleted.',
+    )
+  )
+    return
   pending.value = true
   errorMessage.value = ''
   try {
