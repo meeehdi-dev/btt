@@ -168,6 +168,23 @@ test('desktop drag creation, hidden blockers, moves, resizing and non-drag mobil
     await expect(page.getByRole('list', { name: 'Work in visible hours' })).toContainText(
       'Movable block',
     )
+    const deletableId = await add(hiddenTicket.id, 1140, 30, 'Delete correction')
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    const deletableEntry = page
+      .getByRole('list', { name: 'Work in visible hours' })
+      .getByText('Delete correction')
+    await deletableEntry.dblclick()
+    const correctionDialog = page.getByRole('dialog', { name: 'Correct time entry' })
+    await expect(correctionDialog.getByRole('button', { name: 'Delete time entry' })).toBeVisible()
+    page.once('dialog', (dialog) => dialog.accept())
+    await correctionDialog.getByRole('button', { name: 'Delete time entry' }).click()
+    await expect(correctionDialog).toHaveCount(0)
+    expect(
+      (
+        await (await page.request.get('/api/agenda', { params: { date: day } })).json()
+      ).entries.some((row: { entry: { id: string } }) => row.entry.id === deletableId),
+    ).toBe(false)
     await expect(
       page
         .getByRole('list', { name: 'Work in visible hours' })

@@ -128,6 +128,7 @@ test('release tickets, workflow, links and relations respect auth and archive li
         links: [
           { label: 'PR', url: 'https://example.com/pr' },
           { label: 'Design', url: 'https://example.com/design' },
+          { url: 'https://jira.atlassian.com/browse/NXMR-1' },
         ],
         relatedTicketIds: [b.id, crossRelease.id],
       },
@@ -135,10 +136,9 @@ test('release tickets, workflow, links and relations respect auth and archive li
     expect(linkedCreation.ok()).toBeTruthy()
     const linkedId = (await linkedCreation.json()).id as string
     const linkedDetails = await (await page.request.get(`/api/tickets/${linkedId}`)).json()
-    expect(linkedDetails.links.map((link: { label: string }) => link.label)).toEqual([
-      'PR',
-      'Design',
-    ])
+    expect(linkedDetails.links.map((link: { label: string | null }) => link.label)).toEqual(
+      expect.arrayContaining(['PR', 'Design', null]),
+    )
     expect(linkedDetails.related.map((other: { id: string }) => other.id).toSorted()).toEqual(
       [b.id, crossRelease.id].toSorted(),
     )
@@ -165,6 +165,10 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page.getByRole('button', { name: 'Add link' }).click()
     await page.getByRole('textbox', { name: 'Link 1 label' }).fill('Brief')
     await page.getByRole('textbox', { name: 'Link 1 URL' }).fill('https://example.com/brief')
+    await page.getByRole('button', { name: 'Add link' }).click()
+    await page
+      .getByRole('textbox', { name: 'Link 2 URL' })
+      .fill('https://jira.atlassian.com/browse/NXMR-CREATE')
     await page.getByRole('combobox', { name: 'Choose related ticket' }).click()
     await page.getByRole('option', { name: /Second ticket/ }).click()
     await page.getByRole('button', { name: 'Add related ticket' }).click()
@@ -173,6 +177,17 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await expect(page.getByRole('heading', { name: 'Created in browser' })).toBeVisible()
     await expect(page.getByLabel('Estimated: 1hr 30m')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Brief' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'jira.atlassian.com', exact: true })).toBeVisible()
+    const browserTicketId = page.url().split('/').at(-1)!
+    const browserTicketLinks = (
+      await (await page.request.get(`/api/tickets/${browserTicketId}`)).json()
+    ).links
+    expect(
+      browserTicketLinks.find(
+        (item: { label: string | null; url: string }) =>
+          item.url === 'https://jira.atlassian.com/browse/NXMR-CREATE',
+      )?.label,
+    ).toBeNull()
     await expect(page.getByRole('link', { name: 'Second ticket' })).toBeVisible()
     await page.goto('/tickets')
     await page.waitForLoadState('networkidle')
@@ -187,12 +202,39 @@ test('release tickets, workflow, links and relations respect auth and archive li
       page.getByRole('region', { name: 'Estimate tickets' }).getByText('First ticket'),
     ).toBeVisible()
     await page.goto(`/tickets/${a.id}`)
-    await expect(page.getByLabel('Estimated: 45m')).toBeVisible()
+    const metadata = page.getByLabel('Ticket metadata')
+    const status = metadata.getByLabel('Status: Estimate')
+    const estimate = metadata.getByLabel('Estimated: 45m')
+    await expect(status.locator('[aria-hidden="true"]')).toBeVisible()
+    await expect(estimate).toBeVisible()
+    const [statusBox, estimateBox] = await Promise.all([
+      status.boundingBox(),
+      estimate.boundingBox(),
+    ])
+    if (!statusBox || !estimateBox) throw new Error('Ticket metadata must be visible')
+    expect(
+      Math.abs(statusBox.y + statusBox.height / 2 - (estimateBox.y + estimateBox.height / 2)),
+    ).toBeLessThan(5)
+    const editTicket = page.getByRole('link', { name: 'Edit ticket' })
+    await expect(editTicket).toHaveAttribute('href', `/tickets/${a.id}/edit`)
+    await expect(editTicket).toHaveClass(/ring-accented/)
     const link = await page.request.post(`/api/tickets/${a.id}/links`, {
       data: { label: 'PR', url: 'https://example.com/pr' },
     })
     expect(link.ok()).toBeTruthy()
     const linkId = (await link.json()).id
+    const updateWithoutLabel = await page.request.patch(`/api/tickets/${a.id}/links/${linkId}`, {
+      data: { url: 'https://example.com/pr-updated' },
+    })
+    expect((await updateWithoutLabel.json()).label).toBe('PR')
+    const optionalLink = await page.request.post(`/api/tickets/${a.id}/links`, {
+      data: { url: 'https://jira.atlassian.com/browse/NXMR-API' },
+    })
+    expect(optionalLink.ok()).toBeTruthy()
+    expect((await optionalLink.json()).label).toBeNull()
+    expect(
+      (await page.request.patch(`/api/tickets/${a.id}/links/${linkId}`, { data: {} })).status(),
+    ).toBe(400)
     expect(
       (
         await page.request.post(`/api/tickets/${a.id}/links`, {
@@ -215,8 +257,26 @@ test('release tickets, workflow, links and relations respect auth and archive li
       ).status(),
     ).toBe(409)
     await page.reload()
+    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('link', { name: 'PR', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Second ticket' })).toBeVisible()
+    await page.getByRole('textbox', { name: 'Link label' }).fill('')
+    await page
+      .getByRole('textbox', { name: 'URL*', exact: true })
+      .fill('https://jira.atlassian.com/browse/NXMR-FORM')
+    await expect(page.getByRole('textbox', { name: 'URL*', exact: true })).toHaveValue(
+      'https://jira.atlassian.com/browse/NXMR-FORM',
+    )
+    await page.getByRole('button', { name: 'Add link' }).click()
+    const fallbackLink = page.locator('a[href="https://jira.atlassian.com/browse/NXMR-FORM"]')
+    await expect(fallbackLink).toHaveText('jira.atlassian.com')
+    const ticketLinks = (await (await page.request.get(`/api/tickets/${a.id}`)).json()).links
+    expect(
+      ticketLinks.some(
+        (item: { label: string | null; url: string }) =>
+          item.label === null && item.url === 'https://jira.atlassian.com/browse/NXMR-FORM',
+      ),
+    ).toBe(true)
     await expect(page.getByRole('button', { name: /Move to/ })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Ticket Client' })).toHaveClass(/text-muted/)
     await expect(page.getByRole('link', { name: 'PR', exact: true }).locator('..')).toHaveClass(
@@ -352,10 +412,14 @@ test('release tickets, workflow, links and relations respect auth and archive li
     const board = page.getByRole('region', { name: 'Ticket board' })
     await expect(board).toBeVisible()
     const positions = await Promise.all(
-      ['Idea', 'Estimate', 'Develop', 'Review', 'Test', 'Deploy', 'Done'].map(async (status) => {
-        const box = await board.getByRole('region', { name: `${status} tickets` }).boundingBox()
-        return box?.y
-      }),
+      ['Idea', 'Estimate', 'Develop', 'Review', 'Test', 'Deploy', 'Done'].map(
+        async (laneStatus) => {
+          const box = await board
+            .getByRole('region', { name: `${laneStatus} tickets` })
+            .boundingBox()
+          return box?.y
+        },
+      ),
     )
     expect(new Set(positions).size).toBe(1)
     await expect(board.getByText('No tickets in Review.')).toBeVisible()
@@ -375,9 +439,17 @@ test('release tickets, workflow, links and relations respect auth and archive li
       await mobile.waitForLoadState('networkidle')
       expect(await mobile.evaluate(() => innerWidth)).toBe(390)
       await expect(mobile.getByRole('heading', { name: 'Tickets' })).toBeVisible()
-      for (const status of ['Idea', 'Estimate', 'Develop', 'Review', 'Test', 'Deploy', 'Done']) {
+      for (const laneStatus of [
+        'Idea',
+        'Estimate',
+        'Develop',
+        'Review',
+        'Test',
+        'Deploy',
+        'Done',
+      ]) {
         const trigger = mobile.getByRole('button', {
-          name: new RegExp(`^${status}: \\d+ tickets$`),
+          name: new RegExp(`^${laneStatus}: \\d+ tickets$`),
         })
         await expect(trigger).toBeVisible()
         await expect(trigger).toHaveAttribute('aria-expanded', 'false')

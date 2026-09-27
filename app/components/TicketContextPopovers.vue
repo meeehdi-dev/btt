@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { ticketLinkLabel } from '~/utils/ticket-link-label'
+
 type RelatedTicket = { id: string; title: string; archived?: boolean }
-type ExternalLink = { id: string; label: string; url: string }
+type ExternalLink = { id: string; label: string | null; url: string }
 
 withDefaults(
   defineProps<{
@@ -11,9 +13,6 @@ withDefaults(
 )
 const relatedOpen = ref(false)
 const externalOpen = ref(false)
-const countChipUi = {
-  base: 'h-4 min-w-4 px-1 text-[10px] -translate-y-1/4 translate-x-1/4',
-}
 const emit = defineEmits<{
   'related-hover': [id: string | null]
   'related-click': [event: MouseEvent, id: string]
@@ -35,19 +34,12 @@ const emit = defineEmits<{
           square
           color="neutral"
           variant="ghost"
+          class="!text-muted hover:!text-default"
           aria-label="Related tickets"
           @focus="relatedOpen = true"
           @click="relatedOpen = true"
         >
-          <UChip
-            :show="relatedTickets.length > 1"
-            :text="relatedTickets.length > 1 ? relatedTickets.length : undefined"
-            color="neutral"
-            size="lg"
-            :ui="countChipUi"
-          >
-            <EntityIcon kind="related" />
-          </UChip>
+          <EntityIcon kind="related" />
         </UButton>
         <template #content>
           <div class="max-h-64 min-w-48 max-w-72 overflow-y-auto p-2" aria-label="Related tickets">
@@ -83,19 +75,12 @@ const emit = defineEmits<{
           square
           color="neutral"
           variant="ghost"
+          class="!text-muted hover:!text-default"
           aria-label="External links"
           @focus="externalOpen = true"
           @click="externalOpen = true"
         >
-          <UChip
-            :show="externalLinks.length > 1"
-            :text="externalLinks.length > 1 ? externalLinks.length : undefined"
-            color="neutral"
-            size="lg"
-            :ui="countChipUi"
-          >
-            <UIcon name="lucide:external-link" class="size-4" aria-hidden="true" />
-          </UChip>
+          <UIcon name="lucide:external-link" class="size-4" aria-hidden="true" />
         </UButton>
         <template #content>
           <div class="max-h-64 min-w-40 max-w-72 overflow-y-auto p-2" aria-label="External links">
@@ -108,7 +93,7 @@ const emit = defineEmits<{
               class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-default hover:bg-accented hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
             >
               <UIcon name="lucide:external-link" class="size-4 shrink-0" aria-hidden="true" />
-              <span class="min-w-0 truncate">{{ link.label }}</span>
+              <span class="min-w-0 truncate">{{ ticketLinkLabel(link.label, link.url) }}</span>
             </a>
           </div>
         </template>

@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { ticketStatuses } from '#shared/ticket-status'
 import { creationRange, moveRange, pointerSlot, resizeRange } from '~/utils/agenda-drag'
 import { overlaps, slotMinutes } from '#shared/time-entry'
+
+type TicketStatus = (typeof ticketStatuses)[number]
 
 type Row = {
   entry: { id: string; startMinute: number; durationMinutes: number; description: string }
@@ -19,7 +22,7 @@ type Row = {
   clientArchivedAt: string | null
   status: string
   relatedTickets: { id: string; title: string; archived: boolean }[]
-  externalLinks: { id: string; label: string; url: string }[]
+  externalLinks: { id: string; label: string | null; url: string }[]
 }
 const props = defineProps<{
   rows: Row[]
@@ -27,6 +30,7 @@ const props = defineProps<{
   start: number
   end: number
   busy?: boolean
+  statusChangingId?: string | null
 }>()
 const pixelsPerMinute = 2.25
 const emit = defineEmits<{
@@ -34,6 +38,7 @@ const emit = defineEmits<{
   create: [startMinute: number, durationMinutes: number]
   change: [id: string, startMinute: number, durationMinutes: number]
   edit: [id: string]
+  'change-status': [id: string, status: TicketStatus]
 }>()
 const clock = (minute: number) =>
   `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`
@@ -263,8 +268,10 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
         v-for="row in early"
         :key="row.entry.id"
         :row="row"
+        :status-busy="statusChangingId === row.ticketId"
         @filter="(kind, id) => emit('filter', kind, id)"
         @edit="emit('edit', row.entry.id)"
+        @change-status="(id, status) => emit('change-status', id, status)"
       />
     </section>
     <div
@@ -302,14 +309,16 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
           v-for="row in within"
           :key="row.entry.id"
           :data-agenda-entry="row.entry.id"
-          class="absolute inset-x-2"
+          class="absolute inset-x-2 py-px"
           :class="{ 'opacity-40': active && gesture?.id === row.entry.id }"
           :style="blockStyle(row.entry)"
         >
           <TodayAgendaEntry
             :row="row"
+            :status-busy="statusChangingId === row.ticketId"
             @filter="(kind, id) => emit('filter', kind, id)"
             @edit="emit('edit', row.entry.id)"
+            @change-status="(id, status) => emit('change-status', id, status)"
           />
           <div
             data-drag-edge="top"
@@ -326,10 +335,15 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
           <div
             v-for="row in hidden"
             :key="row.entry.id"
-            class="pointer-events-none absolute inset-x-2 opacity-40"
+            class="pointer-events-none absolute inset-x-2 py-px opacity-40"
             :style="blockStyle(row.entry)"
           >
-            <TodayAgendaEntry :row="row" @filter="(kind, id) => emit('filter', kind, id)" />
+            <TodayAgendaEntry
+              :row="row"
+              :status-busy="statusChangingId === row.ticketId"
+              @filter="(kind, id) => emit('filter', kind, id)"
+              @change-status="(id, status) => emit('change-status', id, status)"
+            />
           </div>
           <div
             v-if="gesture?.preview"
@@ -355,8 +369,10 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
       <li v-for="row in within" :key="row.entry.id">
         <TodayAgendaEntry
           :row="row"
+          :status-busy="statusChangingId === row.ticketId"
           @filter="(kind, id) => emit('filter', kind, id)"
           @edit="emit('edit', row.entry.id)"
+          @change-status="(id, status) => emit('change-status', id, status)"
         />
       </li>
     </ol>
@@ -366,8 +382,10 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
         v-for="row in late"
         :key="row.entry.id"
         :row="row"
+        :status-busy="statusChangingId === row.ticketId"
         @filter="(kind, id) => emit('filter', kind, id)"
         @edit="emit('edit', row.entry.id)"
+        @change-status="(id, status) => emit('change-status', id, status)"
       />
     </section>
   </div>

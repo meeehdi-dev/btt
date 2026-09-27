@@ -91,13 +91,19 @@ test('day read and settings are owner scoped, include archived history, and vali
     }
     await page.goto('/today')
     await page.waitForLoadState('networkidle')
+    const todayButton = page.getByRole('button', { name: 'Today', exact: true })
+    await expect(todayButton).toHaveAttribute('aria-current', 'date')
+    await expect(todayButton).toHaveClass(/bg-primary/)
+    const progress = page.getByRole('progressbar', { name: 'Workday progress' })
+    await expect(progress).toHaveAttribute('aria-valuenow', '60')
+    await expect(progress).toHaveAttribute('aria-valuemax', '60')
     await expect(page.getByRole('region', { name: 'Before visible hours' })).toContainText(
       'Before window',
     )
     await expect(page.getByRole('region', { name: 'After visible hours' })).toContainText(
       'After window',
     )
-    await expect(page.getByLabel('Workday progress 100%')).toBeVisible()
+    await expect(progress).toHaveAttribute('aria-valuetext', 'Worked 1hr of 1hr target')
     await page.getByRole('button', { name: 'Add time entry' }).click()
     const addDialog = page.getByRole('dialog', { name: 'Add completed work' })
     await expect(addDialog).toBeVisible()
@@ -125,13 +131,58 @@ test('day read and settings are owner scoped, include archived history, and vali
     const current = await (
       await page.request.get('/api/agenda', { params: { date: localDay } })
     ).json()
-    ids.entries.push(
-      current.entries.find(
-        (row: { entry: { description: string } }) => row.entry.description === 'From Today',
-      ).entry.id,
+    const todayEntryId = current.entries.find(
+      (row: { entry: { description: string } }) => row.entry.description === 'From Today',
+    ).entry.id
+    ids.entries.push(todayEntryId)
+    await expect(progress).toHaveAttribute(
+      'aria-valuetext',
+      'Worked 1hr 30m of 1hr target; 30m overtime',
     )
-    await expect(page.getByLabel('Workday progress 150%')).toBeVisible()
+    const todayCard = page
+      .getByRole('region', { name: 'Day timeline' })
+      .locator(`[data-agenda-ticket-id="${t.id}"]`)
+    await expect(todayCard).toContainText('30m')
+    await expect(todayCard).not.toContainText(/\b09:00–09:30\b/)
+    const adjacentResponse = await page.request.post('/api/time-entries', {
+      data: {
+        ticketId: t.id,
+        date: localDay,
+        startMinute: 570,
+        durationMinutes: 30,
+        description: 'Adjacent work',
+      },
+    })
+    expect(adjacentResponse.ok()).toBe(true)
+    const adjacentEntryId = (await adjacentResponse.json()).id
+    ids.entries.push(adjacentEntryId)
+    expect(
+      (
+        await page.request.patch('/api/settings', {
+          data: { visibleStartMinute: 480, visibleEndMinute: 1200, workDayDurationMinutes: 90 },
+        })
+      ).ok(),
+    ).toBe(true)
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    const dayTimeline = page.getByRole('region', { name: 'Day timeline' })
+    const firstBlock = dayTimeline.locator(`[data-agenda-entry="${todayEntryId}"]`)
+    const secondBlock = dayTimeline.locator(`[data-agenda-entry="${adjacentEntryId}"]`)
+    const [firstBounds, secondBounds] = await Promise.all([
+      firstBlock.boundingBox(),
+      secondBlock.boundingBox(),
+    ])
+    const [firstCardBounds, secondCardBounds] = await Promise.all([
+      firstBlock.getByRole('article').boundingBox(),
+      secondBlock.getByRole('article').boundingBox(),
+    ])
+    if (!firstBounds || !secondBounds || !firstCardBounds || !secondCardBounds)
+      throw new Error('Adjacent agenda entries must be visible')
+    expect(firstBounds.y + firstBounds.height).toBeCloseTo(secondBounds.y, 1)
+    expect(secondCardBounds.y).toBeGreaterThan(firstCardBounds.y + firstCardBounds.height)
     await page.getByRole('button', { name: 'Add time entry' }).click()
+    await addDialog.getByRole('combobox', { name: 'Ticket*' }).click()
+    await page.getByRole('option', { name: /Agenda ticket/ }).click()
     await addDialog.getByRole('button', { name: 'Save time entry' }).click()
     await expect(addDialog.getByText(/Time entries cannot overlap/)).toBeVisible()
     await addDialog.getByRole('button', { name: 'Cancel' }).click()
@@ -146,13 +197,17 @@ test('day read and settings are owner scoped, include archived history, and vali
     await page.getByLabel('Clear status filter').click()
     await expect(page.getByRole('button', { name: 'Filter status' })).toContainText('All statuses')
     await page.getByRole('button', { name: 'Next day' }).click()
-    await expect(page.getByText(/No completed work on this day/)).toBeVisible()
+    await expect(todayButton).not.toHaveAttribute('aria-current', 'date')
+    await expect(todayButton).not.toHaveClass(/bg-primary/)
+    await expect(page.getByText(/No completed work on this day/)).toHaveCount(0)
+    await expect(page.locator('[data-agenda-entry]')).toHaveCount(0)
     await page.getByRole('button', { name: 'Filter ticket' }).click()
     await page.getByRole('option', { name: 'Agenda ticket' }).click()
     await expect(page.getByText('No work matches these filters.')).toBeVisible()
     await page.getByRole('button', { name: 'Clear filters' }).click()
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Previous day' }).click()
+    await expect(todayButton).toHaveAttribute('aria-current', 'date')
     await page.setViewportSize({ width: 390, height: 844 })
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -160,12 +215,15 @@ test('day read and settings are owner scoped, include archived history, and vali
     await expect(page.getByRole('list', { name: 'Work in visible hours' })).toContainText(
       'From Today',
     )
-    await page
-      .getByRole('button', { name: 'ticket: Agenda ticket; actions' })
+    await expect(page.getByRole('button', { name: 'ticket: Agenda ticket; actions' })).toHaveCount(
+      0,
+    )
+    const ticketTitle = page
+      .getByRole('list', { name: 'Work in visible hours' })
+      .getByRole('link', { name: 'Agenda ticket' })
       .first()
-      .click({ timeout: 5_000 })
-    await page.getByRole('link', { name: 'Open Agenda ticket' }).focus()
-    await page.keyboard.press('Enter')
+    await expect(ticketTitle).toHaveAttribute('href', `/tickets/${t.id}`)
+    await ticketTitle.click()
     await expect(page).toHaveURL(new RegExp(`/tickets/${t.id}`))
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
@@ -191,7 +249,10 @@ test('day read and settings are owner scoped, include archived history, and vali
     ).toBe(true)
     await page.goto('/today')
     await page.waitForLoadState('networkidle')
-    await expect(page.getByLabel('Workday progress 250%')).toBeVisible()
+    await expect(progress).toHaveAttribute(
+      'aria-valuetext',
+      'Worked 3hr of 1hr 30m target; 1hr 30m overtime',
+    )
     const spaciousCard = page
       .getByRole('list', { name: 'Work in visible hours' })
       .getByRole('article')

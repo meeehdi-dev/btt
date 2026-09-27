@@ -2,7 +2,10 @@
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
 import { entityIcons } from '~/utils/entity-icons'
-import { validDate } from '#shared/time-entry'
+import { ticketStatuses } from '#shared/ticket-status'
+import { usageColor, validDate } from '#shared/time-entry'
+
+type TicketStatus = (typeof ticketStatuses)[number]
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
@@ -10,6 +13,7 @@ const date = shallowRef<CalendarDate | null>(null)
 const pickerOpen = ref(false)
 const addOpen = ref(false)
 const day = computed(() => date.value?.toString() ?? '')
+const isToday = computed(() => day.value === today(getLocalTimeZone()).toString())
 const {
   data: agenda,
   pending,
@@ -21,10 +25,47 @@ const {
   watch: false,
 })
 const { data: settings, error: settingsError } = await useFetch('/api/settings')
-const { data: ticketsData, error: ticketsError } = await useFetch('/api/tickets')
+const {
+  data: ticketsData,
+  error: ticketsError,
+  refresh: refreshTickets,
+} = await useFetch('/api/tickets')
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
 const entries = computed(() => agenda.value?.entries ?? [])
 type FilterKind = 'client' | 'project' | 'release' | 'ticket' | 'status'
+const isTouchDevice = ref(false)
+onMounted(() => {
+  isTouchDevice.value = window.matchMedia('(pointer: coarse)').matches
+})
+const filterSearchInputs = computed<
+  Record<FilterKind, { placeholder: string; icon: string; autofocus: boolean }>
+>(() => ({
+  client: {
+    placeholder: 'Search clients…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+  project: {
+    placeholder: 'Search projects…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+  release: {
+    placeholder: 'Search releases…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+  ticket: {
+    placeholder: 'Search tickets…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+  status: {
+    placeholder: 'Search statuses…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+}))
 const filters = reactive<Record<FilterKind, string>>({
   client: '',
   project: '',
@@ -120,12 +161,16 @@ const description = ref('')
 const busy = ref(false)
 const actionError = ref('')
 const dragError = ref('')
+const statusChangingId = ref<string | null>(null)
+const statusError = ref('')
+const statusMessage = ref('')
 const editingId = ref<string | null>(null)
 const editingOpen = ref(false)
 const editingTime = shallowRef(new Time(9, 0))
 const editingDuration = ref(30)
 const editingDescription = ref('')
 const editingError = ref('')
+const deletingEdit = ref(false)
 watch(day, () => {
   editingOpen.value = false
   addOpen.value = false
@@ -142,7 +187,7 @@ function beginEdit(id: string) {
   editingOpen.value = true
 }
 async function saveEdit() {
-  if (!editingId.value) return
+  if (!editingId.value || busy.value) return
   busy.value = true
   editingError.value = ''
   try {
@@ -160,6 +205,23 @@ async function saveEdit() {
     editingError.value = cause instanceof Error ? cause.message : 'Could not correct time entry.'
     await refresh()
   } finally {
+    busy.value = false
+  }
+}
+async function deleteEdit() {
+  if (!editingId.value || busy.value || !confirm('Delete this time entry?')) return
+  busy.value = true
+  deletingEdit.value = true
+  editingError.value = ''
+  try {
+    await $fetch(`/api/time-entries/${editingId.value}`, { method: 'DELETE' })
+    await refresh()
+    editingOpen.value = false
+    editingId.value = null
+  } catch (cause) {
+    editingError.value = cause instanceof Error ? cause.message : 'Could not delete time entry.'
+  } finally {
+    deletingEdit.value = false
     busy.value = false
   }
 }
@@ -207,6 +269,35 @@ function changeDay(offset: number) {
 function resetToday() {
   date.value = today(getLocalTimeZone())
 }
+async function changeTicketStatus(id: string, destination: TicketStatus) {
+  if (statusChangingId.value) return
+  const source = tickets.value.find(({ ticket }) => ticket.id === id)
+  if (
+    !source ||
+    source.ticket.archivedAt ||
+    source.ticket.status === destination ||
+    !ticketStatuses.includes(destination)
+  )
+    return
+  statusChangingId.value = id
+  statusError.value = ''
+  statusMessage.value = `Changing ${source.ticket.title} to ${destination}.`
+  let saved = false
+  try {
+    await $fetch(`/api/tickets/${id}`, { method: 'PATCH', body: { status: destination } })
+    saved = true
+    await Promise.all([refresh(), refreshTickets()])
+    if (error.value || ticketsError.value)
+      throw new Error('Ticket was updated, but Today could not refresh its agenda or ticket data.')
+    statusMessage.value = `Changed ${source.ticket.title} to ${destination}.`
+  } catch (cause) {
+    statusMessage.value = ''
+    statusError.value = cause instanceof Error ? cause.message : 'Could not change ticket status.'
+    if (!saved) await Promise.allSettled([refresh(), refreshTickets()])
+  } finally {
+    statusChangingId.value = null
+  }
+}
 async function add() {
   if (!day.value || !tickets.value.some(({ ticket }) => ticket.id === ticketId.value)) return
   busy.value = true
@@ -233,7 +324,28 @@ async function add() {
 }
 const tracked = computed(() => agenda.value?.trackedMinutes ?? 0)
 const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
-const progress = computed(() => Math.min(100, (tracked.value / target.value) * 100))
+const overtime = computed(() => Math.max(0, tracked.value - target.value))
+const overtimeSegment = computed(() => Math.min(overtime.value, target.value))
+const progressValue = computed(() => Math.min(tracked.value, target.value))
+const progressSegments = computed(() =>
+  tracked.value <= target.value
+    ? [{ value: tracked.value, color: 'info' as const }]
+    : [
+        { value: target.value - overtimeSegment.value, color: 'info' as const },
+        { value: overtimeSegment.value, color: 'warning' as const },
+      ],
+)
+const progressValueText = computed(
+  () =>
+    `Worked ${formatTicketEstimate(tracked.value)} of ${formatTicketEstimate(target.value)} target${overtime.value ? `; ${formatTicketEstimate(overtime.value)} overtime` : ''}`,
+)
+const textClasses = {
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning',
+  error: 'text-error',
+} as const
+const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, target.value)])
 </script>
 <template>
   <div class="space-y-6">
@@ -279,10 +391,11 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
           />
         </UTooltip>
         <UButton
-          color="neutral"
-          variant="ghost"
+          :color="isToday ? 'primary' : 'neutral'"
+          :variant="isToday ? 'soft' : 'ghost'"
           icon="lucide:calendar-check"
           label="Today"
+          :aria-current="isToday ? 'date' : undefined"
           @click="resetToday"
         />
       </div>
@@ -291,21 +404,27 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
         aria-label="Workday summary"
       >
         <UIcon name="lucide:clock-3" class="size-4 shrink-0" aria-hidden="true" />
-        <span
-          class="whitespace-nowrap"
-          :aria-label="`Worked ${formatTicketEstimate(tracked)} of ${formatTicketEstimate(target)} target`"
-          ><span class="text-primary">{{ formatTicketEstimate(tracked) }}</span>
+        <span class="whitespace-nowrap" :aria-label="progressValueText"
+          ><span :class="trackedTextClass">{{ formatTicketEstimate(tracked) }}</span>
           <span class="text-muted">/ {{ formatTicketEstimate(target) }}</span></span
         >
-        <progress
-          class="h-2 min-w-16 flex-1 accent-primary"
-          :value="progress"
-          max="100"
-          :aria-label="`Workday progress ${Math.floor((tracked / target) * 100)}%`"
-        />
-        <span v-if="tracked > target" class="whitespace-nowrap text-warning"
-          >+{{ formatTicketEstimate(tracked - target) }}</span
+        <div
+          role="progressbar"
+          aria-label="Workday progress"
+          :aria-valuemin="0"
+          :aria-valuemax="target"
+          :aria-valuenow="progressValue"
+          :aria-valuetext="progressValueText"
+          class="min-w-16 flex-1"
         >
+          <UProgressGroup
+            :items="progressSegments"
+            :max="target"
+            size="md"
+            class="min-w-16 flex-1"
+            aria-hidden="true"
+          />
+        </div>
       </div>
       <UModal
         v-model:open="addOpen"
@@ -410,7 +529,7 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
             <UAlert
               v-if="editingError"
               color="error"
-              title="Could not correct work"
+              title="Could not update time entry"
               :description="editingError"
             />
             <div class="flex flex-col gap-2 sm:flex-row">
@@ -418,16 +537,30 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
                 type="submit"
                 icon="lucide:save"
                 label="Save correction"
-                :loading="busy"
+                :loading="busy && !deletingEdit"
+                :disabled="busy"
                 class="w-full sm:w-auto"
               />
               <UButton
+                type="button"
                 color="neutral"
                 variant="ghost"
                 icon="lucide:x"
                 label="Cancel"
+                :disabled="busy"
                 class="w-full sm:w-auto"
                 @click="editingOpen = false"
+              />
+              <UButton
+                type="button"
+                color="error"
+                variant="soft"
+                icon="lucide:trash-2"
+                label="Delete time entry"
+                :loading="deletingEdit"
+                :disabled="busy"
+                class="w-full sm:ml-auto sm:w-auto"
+                @click="deleteEdit"
               />
             </div>
           </form>
@@ -435,6 +568,14 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
       </UModal>
     </div>
     <UAlert v-if="error || settingsError" color="error" title="Could not load your agenda" />
+    <UAlert
+      v-if="statusError"
+      role="alert"
+      color="error"
+      title="Could not change ticket status"
+      :description="statusError"
+    />
+    <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
     <UButton
       v-if="error"
       color="neutral"
@@ -457,7 +598,7 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
                 value-key="value"
                 :items="options(kind)"
                 :disabled="!options(kind).length"
-                :search-input="false"
+                :search-input="filterSearchInputs[kind]"
                 :clear="{ 'aria-label': `Clear ${kind} filter` }"
                 :placeholder="kind === 'status' ? 'All statuses' : `All ${kind}s`"
                 class="w-full"
@@ -510,19 +651,18 @@ const progress = computed(() => Math.min(100, (tracked.value / target.value) * 1
         >
           No work matches these filters.
         </p>
-        <p v-else-if="!entries.length" class="mb-3 text-sm text-muted">
-          No completed work on this day. Use Add time entry to record work.
-        </p>
         <TodayAgenda
           :rows="filtered"
           :occupied="entries"
           :start="settings?.visibleStartMinute ?? 480"
           :end="settings?.visibleEndMinute ?? 1200"
           :busy="busy || pending"
+          :status-changing-id="statusChangingId"
           @filter="applyFilter"
           @create="beginDragCreate"
           @change="changeEntry"
           @edit="beginEdit"
+          @change-status="changeTicketStatus"
         />
       </UCard>
     </template>

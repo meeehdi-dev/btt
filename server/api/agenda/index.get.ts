@@ -112,7 +112,7 @@ export default defineEventHandler(async (event) => {
       if (target) relatedById.set(sourceId, [...(relatedById.get(sourceId) ?? []), target])
     }
   }
-  const linksById = new Map<string, { id: string; label: string; url: string }[]>()
+  const linksById = new Map<string, { id: string; label: string | null; url: string }[]>()
   for (const { id, ticketId, label, url } of links)
     linksById.set(ticketId, [...(linksById.get(ticketId) ?? []), { id, label, url }])
   const enrichedEntries = entries.map((row) => ({

@@ -146,18 +146,8 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(board.getByText('Other ticket')).toHaveCount(0)
     await expect(lane('Estimate').getByText('No tickets in Estimate.')).toBeVisible()
     await expect(card(idea.id)).toHaveAttribute('draggable', 'true')
-    await expect(card(idea.id).locator('p[title="Board comment"]')).toBeVisible()
-    expect(
-      await card(idea.id).evaluate((node) => {
-        const comment = node.querySelector('p[title="Board comment"]')
-        const parents = node.querySelector('[aria-label="Ticket parent relations"]')
-        return (
-          !!comment?.querySelector('.size-4') &&
-          !!parents &&
-          comment.getBoundingClientRect().bottom <= parents.getBoundingClientRect().top
-        )
-      }),
-    ).toBe(true)
+    await expect(card(idea.id).getByText('Board comment')).toHaveCount(0)
+    await expect(card(idea.id).getByLabel('Ticket context')).toBeVisible()
     await expect(board.getByText('No estimate')).toHaveCount(0)
     await expect(board.getByText('Change status')).toHaveCount(0)
 
@@ -251,13 +241,23 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(lane('Test').getByText('Idea source')).toBeVisible()
     await card(idea.id).getByRole('link', { name: 'Idea source' }).click()
     await expect(page).toHaveURL(`/tickets/${idea.id}`)
-    await expect(page.getByText('No estimate')).toHaveCount(0)
-    await expect(
-      page
-        .locator('p')
-        .filter({ hasText: /· Test/ })
-        .first(),
-    ).not.toContainText('Test ·')
+    const ticketMetadata = page.getByLabel('Ticket metadata')
+    const ticketStatus = ticketMetadata.getByLabel('Status: Test')
+    const releaseLink = ticketMetadata.getByRole('link', { name: 'Move Release' })
+    await expect(ticketStatus.locator('[aria-hidden="true"]')).toBeVisible()
+    const [ticketStatusBounds, releaseLinkBounds] = await Promise.all([
+      ticketStatus.boundingBox(),
+      releaseLink.boundingBox(),
+    ])
+    if (!ticketStatusBounds || !releaseLinkBounds)
+      throw new Error('Ticket status and release link must be visible')
+    expect(
+      Math.abs(
+        ticketStatusBounds.y +
+          ticketStatusBounds.height / 2 -
+          (releaseLinkBounds.y + releaseLinkBounds.height / 2),
+      ),
+    ).toBeLessThan(5)
     await page.goto(`/releases/${r.id}`)
     await expect(page.getByText('No estimate')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'View grouped tickets' })).toHaveCount(0)

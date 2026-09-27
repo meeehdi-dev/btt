@@ -155,7 +155,7 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     await page.goto('/today?date=2030-02-10')
     const workdaySummary = page.getByLabel('Workday summary')
     await expect(workdaySummary).toContainText('30m')
-    await expect(workdaySummary.locator('.text-primary')).toHaveText('30m')
+    await expect(workdaySummary.locator('.text-info')).toHaveText('30m')
     await expect(workdaySummary.locator('.text-muted')).toHaveText('/ 8hr')
     const controlRow = page.getByLabel('Choose agenda day').locator('..')
     await expect

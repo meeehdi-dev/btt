@@ -16,6 +16,34 @@ const { data, pending, error, refresh } = await useFetch('/api/tickets', {
 })
 const tickets = computed(() => data.value?.tickets ?? [])
 type FilterKind = 'client' | 'project' | 'release' | 'ticket'
+const isTouchDevice = ref(false)
+onMounted(() => {
+  isTouchDevice.value = window.matchMedia('(pointer: coarse)').matches
+})
+const filterSearchInputs = computed<
+  Record<FilterKind, { placeholder: string; icon: string; autofocus: boolean }>
+>(() => ({
+  client: {
+    placeholder: 'Search clients…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+  project: {
+    placeholder: 'Search projects…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+  release: {
+    placeholder: 'Search releases…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+  ticket: {
+    placeholder: 'Search tickets…',
+    icon: 'lucide:search',
+    autofocus: !isTouchDevice.value,
+  },
+}))
 const filters = reactive<Record<FilterKind, string>>({
   client: '',
   project: '',
@@ -355,7 +383,7 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
               value-key="value"
               :items="filterOptions(kind)"
               :disabled="!filterOptions(kind).length"
-              :search-input="false"
+              :search-input="filterSearchInputs[kind]"
               :clear="{ 'aria-label': `Clear ${kind} filter` }"
               :placeholder="`All ${kind}s`"
               class="w-full"

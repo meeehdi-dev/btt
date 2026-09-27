@@ -10,10 +10,12 @@ const clients = computed(() => data.value?.clients ?? [])
 
 <template>
   <div class="space-y-6">
-    <h1 class="sr-only">Clients</h1>
-    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-      <ArchiveFilterButton v-model="showArchived" />
-      <UButton to="/clients/new" icon="lucide:plus" label="New client" />
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <h1 class="text-2xl font-semibold text-highlighted">Clients</h1>
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <ArchiveFilterButton v-model="showArchived" />
+        <UButton to="/clients/new" icon="lucide:plus" label="New client" />
+      </div>
     </div>
     <UButton
       v-if="error"
@@ -34,6 +36,7 @@ const clients = computed(() => data.value?.clients ?? [])
       <NuxtLink
         v-for="client in clients"
         :key="client.id"
+        :data-client-card-id="client.id"
         :to="`/clients/${client.id}${client.archivedAt ? '?archived=true' : ''}`"
         class="rounded-lg border border-default bg-elevated p-5 transition hover:border-primary"
       >
@@ -49,7 +52,16 @@ const clients = computed(() => data.value?.clients ?? [])
           </div>
           <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
         </div>
-        <p class="mt-2 text-sm text-muted">View projects and releases</p>
+        <HierarchyCounts
+          v-if="!client.archivedAt"
+          class="mt-3"
+          :counts="{
+            projects: client.projectCount,
+            releases: client.releaseCount,
+            tickets: client.ticketCount,
+          }"
+          aria-label="Active client contents"
+        />
       </NuxtLink>
     </div>
   </div>

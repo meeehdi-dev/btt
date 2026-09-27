@@ -10,7 +10,10 @@ export default defineEventHandler(async (event) => {
   await requireUserId(event)
   const body = await decodeBody(event, TicketCreate)
   await ownedRelease(event, body.releaseId)
-  const links = (body.links ?? []).map(({ label, url }) => ({ label, url: externalUrl(url) }))
+  const links = (body.links ?? []).map(({ label, url }) => ({
+    label: label ?? null,
+    url: externalUrl(url),
+  }))
   const relatedIds = body.relatedTicketIds ?? []
   if (new Set(relatedIds).size !== relatedIds.length) conflict('Tickets are already linked')
   for (const id of relatedIds) visibleTicket(await ownedTicket(event, id), false)

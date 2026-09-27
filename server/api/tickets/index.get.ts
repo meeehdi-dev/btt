@@ -94,7 +94,7 @@ export default defineEventHandler(async (event) => {
   const targetById = new Map(validTargets.map((target) => [target.id, target]))
   const boardIds = new Set(ids)
   const relatedById = new Map<string, { id: string; title: string }[]>()
-  const linksById = new Map<string, { id: string; label: string; url: string }[]>()
+  const linksById = new Map<string, { id: string; label: string | null; url: string }[]>()
   for (const { id, ticketId, label, url } of links)
     linksById.set(ticketId, [...(linksById.get(ticketId) ?? []), { id, label, url }])
   for (const { fromTicketId, toTicketId } of relations) {

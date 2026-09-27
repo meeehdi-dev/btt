@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ticketLinkLabel } from '~/utils/ticket-link-label'
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
@@ -29,9 +31,10 @@ async function action(run: () => Promise<unknown>) {
 }
 async function addLink() {
   await action(async () => {
+    const normalizedLabel = label.value.trim()
     await $fetch<unknown>(endpoint + '/links', {
       method: 'POST',
-      body: { label: label.value, url: url.value },
+      body: { ...(normalizedLabel ? { label: normalizedLabel } : {}), url: url.value },
     })
     label.value = ''
     url.value = ''
@@ -61,7 +64,10 @@ async function addRelation() {
           </h1>
           <UBadge v-if="record.archivedAt" color="neutral">Archived</UBadge>
         </div>
-        <p class="mt-2 text-muted">
+        <div
+          class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted"
+          aria-label="Ticket metadata"
+        >
           <span class="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
             <NuxtLink
               :to="`/clients/${data?.hierarchy.clientId}`"
@@ -79,16 +85,21 @@ async function addRelation() {
               ><EntityIcon kind="releases" />{{ data?.hierarchy.releaseName }}</NuxtLink
             >
           </span>
-          · {{ record.status
-          }}<template v-if="record.estimateMinutes">
-            · <TicketEstimate :minutes="record.estimateMinutes" />
-          </template>
-        </p>
+          <span
+            class="inline-flex shrink-0 items-center gap-1 self-center leading-none"
+            :aria-label="`Status: ${record.status}`"
+          >
+            <UIcon name="lucide:circle-dot" class="size-4" aria-hidden="true" />{{ record.status }}
+          </span>
+          <TicketEstimate v-if="record.estimateMinutes" :minutes="record.estimateMinutes" />
+        </div>
       </div>
       <UButton
         :to="`/tickets/${id}/edit${record.archivedAt ? '?archived=true' : ''}`"
+        color="neutral"
+        variant="outline"
         icon="lucide:pencil"
-        label="Edit"
+        label="Edit ticket"
       />
     </div>
     <UAlert v-if="actionError" color="error" title="Could not update ticket">{{
@@ -125,14 +136,14 @@ async function addRelation() {
               target="_blank"
               rel="noopener noreferrer"
               class="break-all text-primary underline"
-              >{{ link.label }}</a
-            ><UTooltip :text="`Remove ${link.label}`">
+              >{{ ticketLinkLabel(link.label, link.url) }}</a
+            ><UTooltip :text="`Remove ${ticketLinkLabel(link.label, link.url)}`">
               <UButton
                 :disabled="pending"
                 color="error"
                 variant="ghost"
                 icon="lucide:x"
-                :aria-label="`Remove ${link.label}`"
+                :aria-label="`Remove ${ticketLinkLabel(link.label, link.url)}`"
                 @click="
                   action(() =>
                     $fetch<unknown>(endpoint + '/links/' + link.id, { method: 'DELETE' }),
@@ -144,7 +155,7 @@ async function addRelation() {
         </ul>
         <p v-else class="mt-2 text-muted">No external links.</p>
         <form class="mt-4 space-y-2" @submit.prevent="addLink">
-          <UFormField label="Link label" required
+          <UFormField label="Link label" hint="Optional"
             ><UInput v-model="label" class="w-full" /></UFormField
           ><UFormField label="URL" required
             ><UInput

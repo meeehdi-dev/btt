@@ -27,6 +27,14 @@ const releases = computed(() =>
 if (projectError.value || !project.value)
   throw createError({ status: 404, statusText: 'Project not found' })
 
+function releaseProgressPercent(doneTicketCount: number, ticketCount: number) {
+  return ticketCount ? Math.round((doneTicketCount / ticketCount) * 100) : 0
+}
+
+function releaseProgressText(releaseName: string, doneTicketCount: number, ticketCount: number) {
+  return `${releaseName}: ${doneTicketCount} of ${ticketCount} active tickets done, ${releaseProgressPercent(doneTicketCount, ticketCount)}% complete`
+}
+
 async function markDone(releaseId: string) {
   donePending.value = releaseId
   doneError.value = ''
@@ -78,7 +86,7 @@ async function markDone(releaseId: string) {
           color="neutral"
           variant="outline"
           icon="lucide:pencil"
-          label="Edit"
+          label="Edit project"
         />
         <UButton
           v-if="!project.clientArchivedAt && !project.project.archivedAt"
@@ -104,6 +112,7 @@ async function markDone(releaseId: string) {
       <div
         v-for="item in releases"
         :key="item.release.id"
+        :data-release-card-id="item.release.id"
         class="group relative cursor-pointer rounded-lg border border-default bg-elevated p-5 transition hover:border-primary focus-within:border-primary"
       >
         <NuxtLink
@@ -111,35 +120,87 @@ async function markDone(releaseId: string) {
           :aria-label="`Open release ${item.release.name}`"
           class="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
         />
-        <div class="pointer-events-none">
-          <div class="flex items-start justify-between gap-3">
-            <h2 class="inline-flex items-center gap-1 font-medium text-highlighted">
-              <EntityIcon kind="releases" />{{ item.release.name }}
+        <div class="pointer-events-none relative z-10">
+          <div data-release-card-heading class="flex min-w-0 items-center gap-3">
+            <h2
+              class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted"
+              :title="item.release.name"
+            >
+              <EntityIcon kind="releases" /><span class="truncate">{{ item.release.name }}</span>
             </h2>
             <UBadge v-if="item.release.archivedAt" color="neutral" variant="subtle"
               >Archived</UBadge
             >
+            <UTooltip v-else text="Mark done">
+              <UButton
+                square
+                color="success"
+                variant="soft"
+                icon="lucide:check"
+                :loading="donePending === item.release.id"
+                aria-label="Mark release as done"
+                class="pointer-events-auto shrink-0 cursor-pointer"
+                @click.stop="markDone(item.release.id)"
+              />
+            </UTooltip>
           </div>
-          <div class="mt-3">
-            <ReleaseTargetDate :target-date="item.release.targetDate" />
-          </div>
-        </div>
-        <div
-          v-if="!item.release.archivedAt"
-          class="pointer-events-none relative z-10 mt-3 flex justify-end"
-        >
-          <UTooltip text="Mark done">
-            <UButton
-              square
-              color="success"
-              variant="soft"
-              icon="lucide:check"
-              :loading="donePending === item.release.id"
-              aria-label="Mark release as done"
-              class="pointer-events-auto cursor-pointer"
-              @click.stop="markDone(item.release.id)"
+          <div
+            data-release-card-summary
+            class="mt-2 flex min-w-0 items-center gap-2 overflow-x-auto"
+          >
+            <TicketHierarchyBadges
+              mode="links"
+              truncate-labels
+              class="pointer-events-auto w-max shrink-0"
+              :items="[
+                {
+                  kind: 'client',
+                  id: project.project.clientId,
+                  name: project.clientName,
+                  to: `/clients/${project.project.clientId}${project.clientArchivedAt ? '?archived=true' : ''}`,
+                },
+                {
+                  kind: 'project',
+                  id: project.project.id,
+                  name: project.project.name,
+                  to: `/projects/${project.project.id}${project.project.archivedAt ? '?archived=true' : ''}`,
+                },
+              ]"
+              aria-label="Release hierarchy"
             />
-          </UTooltip>
+            <p
+              v-if="
+                !project.project.archivedAt && !project.clientArchivedAt && !item.release.archivedAt
+              "
+              data-release-card-counts
+              class="flex shrink-0 items-center gap-1 text-xs text-muted"
+            >
+              <EntityIcon kind="tickets" />
+              {{ item.doneTicketCount }} / {{ item.ticketCount }} done
+            </p>
+          </div>
+          <div
+            v-if="
+              !project.project.archivedAt && !project.clientArchivedAt && !item.release.archivedAt
+            "
+            data-release-card-progress
+            class="mt-1 flex items-center gap-2"
+          >
+            <UProgress
+              class="min-w-0 flex-1"
+              :model-value="item.doneTicketCount"
+              :max="Math.max(item.ticketCount, 1)"
+              color="success"
+              size="sm"
+              :get-value-label="() => `${item.release.name} completion`"
+              :get-value-text="
+                () => releaseProgressText(item.release.name, item.doneTicketCount, item.ticketCount)
+              "
+            />
+            <span class="shrink-0 text-xs text-muted"
+              >{{ releaseProgressPercent(item.doneTicketCount, item.ticketCount) }}%</span
+            >
+          </div>
         </div>
       </div>
     </div>

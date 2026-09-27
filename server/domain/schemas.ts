@@ -37,7 +37,14 @@ const Estimate = Schema.NullOr(Schema.Number.check(Schema.isInt(), Schema.isGrea
 const Description = Schema.String.check(Schema.isMaxLength(10000))
 const LinkLabel = Schema.String.check(Schema.isTrimmed(), Schema.isPattern(/^\S(?:.{0,198}\S)?$/))
 
-export const TicketLinkCreate = Schema.Struct({ label: LinkLabel, url: Schema.String })
+export const TicketLinkCreate = Schema.Struct({
+  label: Schema.optional(Schema.NullOr(LinkLabel)),
+  url: Schema.String,
+})
+export const TicketLinkUpdate = Schema.Struct({
+  label: Schema.optional(Schema.NullOr(LinkLabel)),
+  url: Schema.optional(Schema.String),
+})
 export const TicketRelationCreate = Schema.Struct({ ticketId: Id })
 
 export const TicketCreate = Schema.Struct({

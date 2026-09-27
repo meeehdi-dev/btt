@@ -118,9 +118,12 @@ test('owned historical time entries enforce daily slots, overlap, archive and us
     const releaseCard = page.locator(`[data-release-ticket-id="${a.id}"]`)
     const releaseUsage = releaseCard.getByLabel('Tracked: 1hr 30m of 1hr')
     await expect(releaseUsage).toBeVisible()
-    await expect(releaseUsage.locator('.text-primary')).toHaveText('1hr 30m')
+    await expect(releaseUsage.locator('.text-error')).toHaveText('1hr 30m')
     await expect(releaseUsage.locator('.text-muted')).toHaveText('/ 1hr')
-    await expect(releaseCard.getByLabel('Estimate usage: 150%')).toBeVisible()
+    await expect(
+      releaseCard.locator('[data-release-ticket-header]').getByLabel('Tracked: 1hr 30m of 1hr'),
+    ).toBeVisible()
+    await expect(releaseCard.getByLabel('Estimate usage: 150%')).toHaveCount(0)
     await expect(
       page.locator(`[data-release-ticket-id="${b.id}"]`).getByLabel('Tracked: 0m'),
     ).toBeVisible()
@@ -128,9 +131,9 @@ test('owned historical time entries enforce daily slots, overlap, archive and us
     await page.waitForLoadState('networkidle')
     const boardCard = page.locator(`[data-board-ticket-id="${a.id}"]`).filter({ visible: true })
     const boardUsage = boardCard.getByLabel('Tracked: 1hr 30m of 1hr')
-    await expect(boardUsage.locator('.text-primary')).toHaveText('1hr 30m')
+    await expect(boardUsage.locator('.text-error')).toHaveText('1hr 30m')
     await expect(boardUsage.locator('.text-muted')).toHaveText('/ 1hr')
-    await expect(boardCard.getByLabel('Estimate usage: 150%')).toBeVisible()
+    await expect(boardCard.getByLabel('Estimate usage: 150%')).toHaveCount(0)
     await page.goto(`/tickets/${a.id}`)
     await page.waitForLoadState('networkidle')
     await expect(page.getByLabel('Estimate usage: 150%')).toBeVisible()

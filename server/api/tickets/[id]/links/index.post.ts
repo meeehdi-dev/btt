@@ -11,7 +11,12 @@ export default defineEventHandler(async (event) => {
   const body = await decodeBody(event, TicketLinkCreate)
   const [created] = await db
     .insert(ticketLink)
-    .values({ id: generateId(), ticketId: id, label: body.label, url: externalUrl(body.url) })
+    .values({
+      id: generateId(),
+      ticketId: id,
+      label: body.label ?? null,
+      url: externalUrl(body.url),
+    })
     .returning()
   return created
 })

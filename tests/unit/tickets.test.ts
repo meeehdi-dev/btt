@@ -3,12 +3,14 @@ import { describe, expect, it } from 'vitest'
 import {
   TicketCreate,
   TicketLinkCreate,
+  TicketLinkUpdate,
   TicketRelationCreate,
   TicketUpdate,
 } from '../../server/domain/schemas'
 import { nextStatus, ticketStatuses } from '../../shared/ticket-status'
 import { ticketStatus } from '../../server/db/schema'
 import { externalUrl } from '../../app/utils/ticket-url'
+import { ticketLinkLabel } from '../../app/utils/ticket-link-label'
 
 const decode = <S extends Schema.ConstraintDecoder<unknown>>(schema: S, input: unknown) =>
   Schema.decodeUnknownPromise(schema)(input)
@@ -58,6 +60,13 @@ describe('ticket workflow', () => {
     await expect(
       decode(TicketCreate, {
         releaseId: 'r',
+        title: 'Unlabeled link',
+        links: [{ url: 'https://jira.atlassian.com/browse/NXMR-1' }],
+      }),
+    ).resolves.toMatchObject({ links: [{ url: 'https://jira.atlassian.com/browse/NXMR-1' }] })
+    await expect(
+      decode(TicketCreate, {
+        releaseId: 'r',
         title: 'Invalid link',
         links: [{ label: '', url: 'https://example.com' }],
       }),
@@ -68,10 +77,28 @@ describe('ticket workflow', () => {
       decode(TicketLinkCreate, { label: 'PR', url: 'https://example.com' }),
     ).resolves.toBeTruthy()
     await expect(
+      decode(TicketLinkCreate, { url: 'https://jira.atlassian.com/browse/NXMR-1' }),
+    ).resolves.toMatchObject({ url: 'https://jira.atlassian.com/browse/NXMR-1' })
+    await expect(
+      decode(TicketLinkCreate, { label: null, url: 'https://example.com' }),
+    ).resolves.toMatchObject({ label: null })
+    await expect(
       decode(TicketLinkCreate, { label: '', url: 'https://example.com' }),
     ).rejects.toThrow()
+    await expect(decode(TicketLinkUpdate, {})).resolves.toEqual({})
+    await expect(decode(TicketLinkUpdate, { label: null })).resolves.toMatchObject({
+      label: null,
+    })
+    await expect(decode(TicketLinkUpdate, { url: 'https://example.com' })).resolves.toMatchObject({
+      url: 'https://example.com',
+    })
     await expect(decode(TicketRelationCreate, { ticketId: 't' })).resolves.toBeTruthy()
     expect(externalUrl('https://example.com/path')).toBe('https://example.com/path')
+    expect(ticketLinkLabel('Pull request', 'https://example.com/pr')).toBe('Pull request')
+    expect(ticketLinkLabel(null, 'https://jira.atlassian.com/browse/NXMR-1')).toBe(
+      'jira.atlassian.com',
+    )
+    expect(ticketLinkLabel(undefined, 'https://example.com/path')).toBe('example.com')
     expect(() => externalUrl('javascript:alert(1)')).toThrow()
     expect(() => externalUrl('https://user:pass@example.com')).toThrow()
   })

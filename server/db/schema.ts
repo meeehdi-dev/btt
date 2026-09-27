@@ -145,7 +145,7 @@ export const ticketLink = pgTable(
     ticketId: uuid('ticket_id')
       .notNull()
       .references(() => ticket.id, { onDelete: 'restrict' }),
-    label: text('label').notNull(),
+    label: text('label'),
     url: text('url').notNull(),
   },
   (table) => [index('ticket_link_ticket_id_idx').on(table.ticketId)],

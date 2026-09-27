@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { testAuth } from '../../server/utils/auth-test'
 import { db } from '../../server/db'
 import {
@@ -12,6 +12,42 @@ const uuidv7Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[
 
 async function expectTooltip(page: Page, text: string) {
   await expect(page.locator('[data-slot="content"]').filter({ hasText: text })).toBeVisible()
+}
+
+async function expectLeftAlignedProjectSummary(card: Locator) {
+  const clientButton = card.getByRole('link', { name: 'M2 Client' })
+  await expect(clientButton).toHaveClass(/bg-elevated/)
+  await expect(clientButton).toHaveClass(/text-muted/)
+  await expect(card.getByRole('list', { name: 'Active project contents' })).toHaveClass(
+    /text-muted/,
+  )
+  await expect(clientButton.locator('[aria-hidden="true"]')).toBeVisible()
+  const title = await card.locator('[data-project-card-title]').boundingBox()
+  const summary = await card.locator('[data-project-card-summary]').boundingBox()
+  const clientLink = await card.getByRole('link', { name: 'M2 Client' }).boundingBox()
+  const counts = await card.getByRole('list', { name: 'Active project contents' }).boundingBox()
+  if (!title || !summary || !clientLink || !counts) throw new Error('Project card must be visible')
+  expect(summary.y).toBeGreaterThan(title.y)
+  expect(summary.height).toBeLessThanOrEqual(24)
+  expect(Math.abs(summary.x - title.x)).toBeLessThan(2)
+  expect(Math.abs(clientLink.x - summary.x)).toBeLessThan(2)
+  expect(counts.x).toBeGreaterThanOrEqual(clientLink.x + clientLink.width - 1)
+  expect(counts.x - (clientLink.x + clientLink.width)).toBeLessThanOrEqual(16)
+}
+
+async function expectEditBeforeNew(page: Page, editLabel: string, newLabel: string) {
+  const edit = page.getByRole('link', { name: editLabel, exact: true })
+  const create = page.getByRole('link', { name: newLabel, exact: true })
+  await expect(edit).toBeVisible()
+  await expect(create).toBeVisible()
+  const [editBox, newBox] = await Promise.all([edit.boundingBox(), create.boundingBox()])
+  if (!editBox || !newBox) throw new Error('Header actions must be visible')
+  if (Math.abs(editBox.y - newBox.y) < 4) {
+    expect(editBox.x + editBox.width).toBeLessThanOrEqual(newBox.x)
+  } else {
+    expect(editBox.y + editBox.height).toBeLessThanOrEqual(newBox.y)
+    expect(Math.abs(editBox.x - newBox.x)).toBeLessThan(2)
+  }
 }
 
 test('redirects unauthenticated users and supports an authenticated shell session', async ({
@@ -126,15 +162,33 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     expect(release.projectId).toBe(project.id)
 
     await page.goto('/clients')
+    const clientsTitle = page.getByRole('heading', { name: 'Clients', exact: true })
+    await expect(clientsTitle).toBeVisible()
+    expect((await clientsTitle.boundingBox())?.height).toBeGreaterThan(20)
     const archiveToggle = page.getByRole('button', { name: 'Show archived' })
     await expect(archiveToggle).toBeVisible()
+    await expect(page.getByText('View projects and releases', { exact: true })).toHaveCount(0)
     await expect(archiveToggle).not.toHaveAttribute('title')
     await page.waitForLoadState('networkidle')
     await archiveToggle.hover()
     await expectTooltip(page, 'Show archived')
-    await page.goto(`/clients/${client.id}`)
+    await page.goto('/projects')
+    const projectsTitle = page.getByRole('heading', { name: 'Projects', exact: true })
+    await expect(projectsTitle).toBeVisible()
+    expect((await projectsTitle.boundingBox())?.height).toBeGreaterThan(20)
+    const projectCard = page.locator(`[data-project-card-id="${project.id}"]`)
+    await expect(projectCard.getByText('M2 Project')).toBeVisible()
+    await expect(projectCard.getByRole('link', { name: 'M2 Client' })).toBeVisible()
+    await expect(projectCard.getByText('1 release')).toBeVisible()
+    await expect(projectCard.getByText('0 tickets')).toBeVisible()
+    await expectLeftAlignedProjectSummary(projectCard)
+    await projectCard.getByRole('link', { name: 'M2 Client' }).click()
+    await expect(page).toHaveURL(`/clients/${client.id}`)
     const clientHeading = page.getByRole('heading', { name: 'M2 Client' })
     await expect(clientHeading).toBeVisible()
+    await expect(
+      page.getByText('Projects and releases for this client.', { exact: true }),
+    ).toHaveCount(0)
     const clientsCrumb = page.getByRole('main').getByRole('link', { name: 'Clients' })
     expect(
       await clientsCrumb.evaluate((link) => {
@@ -146,8 +200,23 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
         )
       }),
     ).toBe(true)
-    await expect(page.getByText('M2 Project')).toBeVisible()
-    await page.goto(`/projects/${project.id}`)
+    await expectEditBeforeNew(page, 'Edit client', 'New project')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expectEditBeforeNew(page, 'Edit client', 'New project')
+    const clientProjectCard = page.locator(`[data-project-card-id="${project.id}"]`)
+    await expect(clientProjectCard.getByText('M2 Project')).toBeVisible()
+    await expect(clientProjectCard.getByRole('link', { name: 'M2 Client' })).toBeVisible()
+    await expect(clientProjectCard.getByText('1 release')).toBeVisible()
+    await expect(clientProjectCard.getByText('0 tickets')).toBeVisible()
+    await expect(page.getByText('View releases', { exact: true })).toHaveCount(0)
+    await expectLeftAlignedProjectSummary(clientProjectCard)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await clientProjectCard.getByRole('link', { name: 'Open project M2 Project' }).click()
+    await expect(page).toHaveURL(`/projects/${project.id}`)
+    await expectEditBeforeNew(page, 'Edit project', 'New release')
+    await page.setViewportSize({ width: 1280, height: 844 })
+    await expectEditBeforeNew(page, 'Edit project', 'New release')
+    await page.setViewportSize({ width: 390, height: 844 })
     await expect(page.getByText('M2 Release')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Show archived' })).toBeVisible()
     const markDone = page.getByRole('button', { name: 'Mark release as done' })
@@ -156,6 +225,24 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await page.waitForLoadState('networkidle')
     await markDone.hover()
     await expectTooltip(page, 'Mark done')
+    await page.goto(`/releases/${release.id}`)
+    await page.waitForLoadState('networkidle')
+    await expectEditBeforeNew(page, 'Edit release', 'New ticket')
+    await page.setViewportSize({ width: 1280, height: 844 })
+    await expectEditBeforeNew(page, 'Edit release', 'New ticket')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: 'Mark release as done' }).click()
+    const emptyReleaseWarning = page.getByRole('dialog', { name: 'Mark release as done?' })
+    await expect(
+      emptyReleaseWarning.getByText('This release has no tickets', { exact: true }),
+    ).toBeVisible()
+    await expect(
+      emptyReleaseWarning.getByText('Marking this release as done will archive it.', {
+        exact: true,
+      }),
+    ).toBeVisible()
+    await emptyReleaseWarning.getByRole('button', { name: 'Cancel' }).click()
+    await page.goto(`/projects/${project.id}`)
     expect(
       (await page.request.patch(`/api/releases/${release.id}`, { data: { archived: true } })).ok(),
     ).toBeTruthy()

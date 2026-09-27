@@ -8,7 +8,7 @@ type BoardTicket = Pick<
   archivedAt: string | null
 }
 
-defineProps<{
+const props = defineProps<{
   item: {
     ticket: BoardTicket
     trackedMinutes: number
@@ -18,13 +18,33 @@ defineProps<{
     projectName: string
     releaseName: string
     relatedTickets: { id: string; title: string }[]
-    externalLinks: { id: string; label: string; url: string }[]
+    externalLinks: { id: string; label: string | null; url: string }[]
   }
   changing: boolean
   busy: boolean
   canDrag: boolean
   highlighted: boolean
 }>()
+const hierarchyItems = computed(() => [
+  {
+    kind: 'client' as const,
+    id: props.item.clientId,
+    name: props.item.clientName,
+    to: `/clients/${props.item.clientId}`,
+  },
+  {
+    kind: 'project' as const,
+    id: props.item.projectId,
+    name: props.item.projectName,
+    to: `/projects/${props.item.projectId}`,
+  },
+  {
+    kind: 'release' as const,
+    id: props.item.ticket.releaseId,
+    name: props.item.releaseName,
+    to: `/releases/${props.item.ticket.releaseId}`,
+  },
+])
 const emit = defineEmits<{
   'drag-start': [event: DragEvent]
   'drag-end': []
@@ -66,62 +86,40 @@ function dragEnd() {
     @dragstart="dragStart"
     @dragend="dragEnd"
   >
-    <div
-      class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
-      aria-label="Ticket main information"
+    <TicketWorkItem
+      mode="ticket-summary"
+      :to="`/tickets/${item.ticket.id}${item.ticket.archivedAt ? '?archived=true' : ''}`"
+      :title="item.ticket.title"
+      :title-hint="item.ticket.title"
+      :tracked-minutes="item.trackedMinutes"
+      :estimate-minutes="item.ticket.estimateMinutes"
+      :show-percentage="false"
+      usage-placement="header"
+      header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
+      title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
+      title-text-class="truncate"
+      header-usage-class="shrink-0"
     >
-      <NuxtLink
-        :to="`/tickets/${item.ticket.id}${item.ticket.archivedAt ? '?archived=true' : ''}`"
-        data-ticket-title-link
-        class="inline-flex shrink-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
-        ><EntityIcon kind="tickets" /><span class="max-w-36 truncate" :title="item.ticket.title">{{
-          item.ticket.title
-        }}</span></NuxtLink
-      >
+      <template #title-trailing>
+        <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
+        <UBadge v-else-if="changing" color="primary" variant="subtle">Moving…</UBadge>
+      </template>
+    </TicketWorkItem>
+    <div class="mt-2 flex min-w-0 items-center gap-1 overflow-x-auto" aria-label="Ticket context">
+      <TicketHierarchyBadges
+        mode="links"
+        truncate-labels
+        :items="hierarchyItems"
+        class="w-max shrink-0"
+        aria-label="Ticket hierarchy"
+      />
       <TicketContextPopovers
+        class="shrink-0"
         :related-tickets="item.relatedTickets"
         :external-links="item.externalLinks"
         @related-hover="emit('related-hover', $event)"
         @related-click="(event, id) => emit('related-click', event, id)"
       />
-      <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
-      <UBadge v-else-if="changing" color="primary" variant="subtle">Moving…</UBadge>
-    </div>
-    <div class="mt-1 flex min-w-0 items-center" aria-label="Ticket usage">
-      <TicketTrackedUsage
-        :minutes="item.trackedMinutes"
-        :estimate-minutes="item.ticket.estimateMinutes"
-      />
-    </div>
-    <p
-      v-if="item.ticket.description"
-      class="mt-2 flex min-w-0 items-center gap-1 text-sm text-muted"
-      :title="item.ticket.description"
-    >
-      <UIcon name="lucide:align-left" class="size-4 shrink-0" aria-hidden="true" /><span
-        class="truncate"
-        >{{ item.ticket.description }}</span
-      >
-    </p>
-    <div
-      class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted"
-      aria-label="Ticket parent relations"
-    >
-      <NuxtLink
-        :to="`/clients/${item.clientId}`"
-        class="inline-flex items-center gap-1 hover:text-primary"
-        ><EntityIcon kind="clients" />{{ item.clientName }}</NuxtLink
-      >
-      <NuxtLink
-        :to="`/projects/${item.projectId}`"
-        class="inline-flex items-center gap-1 hover:text-primary"
-        ><EntityIcon kind="projects" />{{ item.projectName }}</NuxtLink
-      >
-      <NuxtLink
-        :to="`/releases/${item.ticket.releaseId}`"
-        class="inline-flex items-center gap-1 hover:text-primary"
-        ><EntityIcon kind="releases" />{{ item.releaseName }}</NuxtLink
-      >
     </div>
   </div>
 </template>

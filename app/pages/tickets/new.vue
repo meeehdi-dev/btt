@@ -50,7 +50,10 @@ async function submit() {
         title: title.value,
         description: description.value,
         estimateMinutes: parseTicketEstimate(estimate.value),
-        links: links.value,
+        links: links.value.map(({ label, url }) => ({
+          ...(label.trim() ? { label: label.trim() } : {}),
+          url,
+        })),
         relatedTicketIds: relatedTicketIds.value,
       },
     })
@@ -111,7 +114,7 @@ async function submit() {
             :key="index"
             class="flex flex-col gap-2 rounded-lg border border-default bg-elevated/50 p-3 sm:flex-row sm:items-end"
           >
-            <UFormField :label="`Link ${index + 1} label`" required class="flex-1"
+            <UFormField :label="`Link ${index + 1} label`" hint="Optional" class="flex-1"
               ><UInput v-model="link.label" class="w-full" placeholder="PR"
             /></UFormField>
             <UFormField :label="`Link ${index + 1} URL`" required class="flex-[2]"

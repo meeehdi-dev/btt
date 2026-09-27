@@ -38,7 +38,6 @@ if (clientError.value || !client.value) {
             <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
           </div>
         </div>
-        <p class="mt-2 text-muted">Projects and releases for this client.</p>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row">
         <UButton
@@ -46,7 +45,7 @@ if (clientError.value || !client.value) {
           color="neutral"
           variant="outline"
           icon="lucide:pencil"
-          label="Edit"
+          label="Edit client"
         />
         <UButton :to="`/projects/new?client=${id}`" icon="lucide:plus" label="New project" />
       </div>
@@ -56,23 +55,7 @@ if (clientError.value || !client.value) {
       <p class="mt-2 text-muted">Add a project to start planning releases.</p>
     </UCard>
     <div v-else class="grid gap-4 sm:grid-cols-2">
-      <NuxtLink
-        v-for="item in projects"
-        :key="item.project.id"
-        :to="`/projects/${item.project.id}${item.project.archivedAt ? '?archived=true' : ''}`"
-        class="rounded-lg border border-default bg-elevated p-5 transition hover:border-primary"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <span class="size-3 rounded-full" :style="{ backgroundColor: item.project.color }" />
-            <h2 class="inline-flex items-center gap-1 font-medium text-highlighted">
-              <EntityIcon kind="projects" />{{ item.project.name }}
-            </h2>
-          </div>
-          <UBadge v-if="item.project.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
-        </div>
-        <p class="mt-2 text-sm text-muted">View releases</p>
-      </NuxtLink>
+      <ProjectCard v-for="item in projects" :key="item.project.id" :item="item" />
     </div>
   </div>
 </template>
