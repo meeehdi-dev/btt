@@ -9,7 +9,7 @@ import {
 } from '../../server/domain/schemas'
 import { nextStatus, ticketStatuses } from '../../shared/ticket-status'
 import { ticketStatus } from '../../server/db/schema'
-import { externalUrl } from '../../app/utils/ticket-url'
+import { externalUrl } from '../../shared/ticket-url'
 import { ticketLinkLabel } from '../../app/utils/ticket-link-label'
 
 const decode = <S extends Schema.ConstraintDecoder<unknown>>(schema: S, input: unknown) =>

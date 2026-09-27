@@ -85,7 +85,7 @@ The exact component API, Nuxt Effect adapter, and endpoint/component migration l
 - Shared presentation: `TicketWorkItem.vue`, `TicketHierarchyBadges.vue`, `TicketTrackedUsage.vue`, `TicketContextPopovers.vue`, `ProjectCard.vue`, and `HierarchyCounts.vue`.
 - Existing card examples: inline client cards in `app/pages/clients/index.vue`, `ProjectCard.vue`, release cards in `app/pages/projects/[id]/index.vue`, release ticket cards in `app/pages/releases/[id]/index.vue`, and `TicketBoardCard.vue`.
 - Existing filter tests: `tests/e2e/filter-search.test.ts`, `tests/e2e/agenda.test.ts`, and ticket-board tests.
-- Existing Effect schemas/errors and tests: `server/domain/schemas.ts`, `server/domain/errors.ts`, `server/domain/decode.ts`, `tests/unit/domain-schemas.test.ts`, and `tests/unit/domain-validation.test.ts`.
+- Existing Effect schemas/errors and tests: `server/domain/schemas.ts`, `server/domain/errors.ts`, `server/domain/decode.ts`, `tests/unit/domain-schemas.test.ts`, `tests/unit/server-effect-handler.test.ts`, and `tests/unit/time-entry.test.ts`.
 
 ## Decisions and ADR links
 
@@ -105,5 +105,6 @@ The exact component API, Nuxt Effect adapter, and endpoint/component migration l
 
 - Plannotator review: Approved (2026-09-27); the human's requested card-composition and Effect-scope clarifications were incorporated.
 - M9 milestone plan: approved via Plannotator (2026-09-27), `docs/milestones/m9-shared-card-composition.md`.
-- M9 implementation and closeout are complete within the approved scope. The updated diff received Plannotator review with no changes requested, and the human completion declaration was recorded in the milestone file (2026-09-27). M10/M11 still require separate plans and approval.
+- M9 implementation and closeout are complete within the approved scope. The updated diff received Plannotator review with no changes requested, and the human completion declaration was recorded in the milestone file (2026-09-27).
+- M10 implementation and closeout are complete within its separately approved scope; Plannotator code review and the human completion declaration are recorded in `docs/milestones/m10-server-effect-reliability.md` (2026-09-27). M11 remains a separate phase requiring its own plan and approval.
 - Phase-specific open questions: the card-shell API is defined by M9; Nuxt/Effect integration and migration details will be researched and reviewed in the separate M10/M11 plans before implementation.

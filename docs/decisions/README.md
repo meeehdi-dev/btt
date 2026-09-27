@@ -57,3 +57,4 @@ NNNN-short-descriptive-slug.md
 | [0020](0020-m8-polish-decisions.md)                            | Accepted   | M8 polish and shared-work decisions                     |
 | [0021](0021-effect-for-fallible-operations.md)                 | Accepted   | Effect for meaningful fallible operations               |
 | [0022](0022-shared-entity-card-presentation.md)                | Accepted   | Shared entity-card presentation shell                   |
+| [0023](0023-server-effect-http-boundary.md)                    | Accepted   | Server Effect boundary and HTTP failure mapping         |

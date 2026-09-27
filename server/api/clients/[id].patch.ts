@@ -1,32 +1,35 @@
-import { createError } from 'h3'
+import { Effect } from 'effect'
 import { and, eq } from 'drizzle-orm'
 import { db } from '../../db'
 import { client } from '../../db/schema'
-import { ClientUpdate } from '../../domain/schemas'
 import { decodeBody } from '../../domain/decode'
-import { idParam, now, notFound, requireUserId } from '../../utils/domain'
+import { ClientUpdate } from '../../domain/schemas'
+import { idParam, now, notFound, requireUserId, validation } from '../../utils/domain'
+import { promiseEffect } from '../../utils/effect'
+import { defineEffectHandler } from '../../utils/effect-handler'
 
-export default defineEventHandler(async (event) => {
-  const userId = await requireUserId(event)
-  const id = idParam(event, 'id')
-  const body = await decodeBody(event, ClientUpdate)
-  const name = body.name
-  const color = body.color
-  const archived = body.archived
-  if (name === undefined && color === undefined && archived === undefined) {
-    throw createError({ status: 400, statusText: 'At least one field is required' })
-  }
-  const [updated] = await db
-    .update(client)
-    .set({
-      ...(name === undefined ? {} : { name }),
-      ...(color === undefined ? {} : { color }),
-      ...(archived === undefined ? {} : { archivedAt: archived ? now() : null }),
-      updatedAt: now(),
-    })
-    .where(and(eq(client.id, id), eq(client.userId, userId)))
-    .returning()
+export default defineEffectHandler((event) =>
+  Effect.gen(function* () {
+    const userId = yield* requireUserId(event)
+    const id = yield* idParam(event, 'id')
+    const body = yield* decodeBody(event, ClientUpdate)
+    const { name, color, archived } = body
+    if (name === undefined && color === undefined && archived === undefined)
+      return yield* validation('At least one field is required')
 
-  if (!updated) notFound('Client not found')
-  return updated
-})
+    const [updated] = yield* promiseEffect('update client', () =>
+      db
+        .update(client)
+        .set({
+          ...(name === undefined ? {} : { name }),
+          ...(color === undefined ? {} : { color }),
+          ...(archived === undefined ? {} : { archivedAt: archived ? now() : null }),
+          updatedAt: now(),
+        })
+        .where(and(eq(client.id, id), eq(client.userId, userId)))
+        .returning(),
+    )
+    if (!updated) return yield* notFound('Client not found')
+    return updated
+  }),
+)

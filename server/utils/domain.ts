@@ -1,92 +1,55 @@
+import { Effect, Schema } from 'effect'
+import { getQuery, getRequestHeaders, getRouterParam, isError, type H3Event } from 'h3'
 import {
-  createError,
-  getQuery,
-  getRequestHeaders,
-  getRouterParam,
-  readBody,
-  type H3Event,
-} from 'h3'
+  NotFoundError,
+  ConflictError,
+  InfrastructureError,
+  ValidationError,
+} from '../domain/errors'
+import { sessionUserId } from '../domain/session'
 import { auth } from './auth'
-import { ConflictError, NotFoundError, UnauthenticatedError } from '../domain/errors'
-import {
-  validateHexColor,
-  validateOptionalArchived,
-  validateOptionalName,
-  validateOptionalTargetDate,
-  validateRequiredName,
-} from './domain-validation'
+import { promiseEffect } from './effect'
 
-export async function requireUserId(event: H3Event) {
-  const session = await auth.api.getSession({
-    headers: new Headers(getRequestHeaders(event) as Record<string, string>),
+export function requireUserId(event: H3Event) {
+  return promiseEffect('load authenticated session', () =>
+    auth.api.getSession({
+      headers: new Headers(getRequestHeaders(event) as Record<string, string>),
+    }),
+  ).pipe(Effect.flatMap(sessionUserId))
+}
+
+export function queryOf(event: H3Event) {
+  return Effect.try({
+    try: () => getQuery(event),
+    catch: (cause) =>
+      isError(cause) ? cause : new InfrastructureError({ operation: 'parse request query', cause }),
   })
-
-  if (!session) {
-    const failure = new UnauthenticatedError()
-    throw createError({ status: 401, statusText: failure.constructor.name })
-  }
-
-  return session.user.id
-}
-
-export async function bodyOf<T>(event: H3Event) {
-  const body = await readBody<unknown>(event)
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    throw createError({ status: 400, statusText: 'A JSON object is required' })
-  }
-  return body as T
-}
-
-function asBadRequest<T>(validate: () => T) {
-  try {
-    return validate()
-  } catch (error) {
-    throw createError({
-      status: 400,
-      statusText: error instanceof Error ? error.message : 'Invalid request',
-    })
-  }
-}
-
-export function requiredName(value: unknown) {
-  return asBadRequest(() => validateRequiredName(value))
-}
-
-export function optionalName(value: unknown) {
-  return asBadRequest(() => validateOptionalName(value))
-}
-
-export function hexColor(value: unknown) {
-  return asBadRequest(() => validateHexColor(value))
-}
-
-export function optionalArchived(value: unknown) {
-  return asBadRequest(() => validateOptionalArchived(value))
-}
-
-export function optionalTargetDate(value: unknown) {
-  return asBadRequest(() => validateOptionalTargetDate(value))
 }
 
 export function includeArchived(event: H3Event) {
-  const value = getQuery(event).archived
-  return value === 'true' || value === 'all'
+  return queryOf(event).pipe(
+    Effect.map((query) => query.archived === 'true' || query.archived === 'all'),
+  )
 }
 
 export function idParam(event: H3Event, name: string) {
   const value = getRouterParam(event, name)
-  if (!value) throw createError({ status: 400, statusText: `${name} is required` })
-  return value
+  if (!value) return Effect.fail(new ValidationError({ message: `${name} is required` }))
+  return Schema.decodeUnknownEffect(Schema.String.check(Schema.isMinLength(1)))(value).pipe(
+    Effect.mapError(() => new ValidationError({ message: `${name} is required` })),
+  )
 }
 
-export function notFound(message = 'Record not found'): never {
-  const failure = new NotFoundError({ message })
-  throw createError({ status: 404, statusText: failure.message })
+export function notFound(message = 'Record not found') {
+  return Effect.fail(new NotFoundError({ message }))
 }
 
-export function conflict(message: string): never {
-  const failure = new ConflictError({ message })
-  throw createError({ status: 409, statusText: failure.message })
+export function conflict(message: string) {
+  return Effect.fail(new ConflictError({ message }))
+}
+
+export function validation(message: string) {
+  return Effect.fail(new ValidationError({ message }))
 }
 
 export function now() {
