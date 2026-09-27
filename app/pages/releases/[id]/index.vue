@@ -168,75 +168,86 @@ async function markDone() {
       </p></UCard
     >
     <div v-else class="grid gap-3 sm:grid-cols-2">
-      <article
+      <EntityCard
         v-for="item in tickets"
         :key="item.ticket.id"
+        as="article"
         :data-release-ticket-id="item.ticket.id"
-        class="group relative rounded-lg border border-default bg-elevated p-4 transition hover:border-primary focus-within:border-primary"
       >
-        <NuxtLink
-          :to="`/tickets/${item.ticket.id}`"
-          :aria-label="`Open ticket ${item.ticket.title}`"
-          class="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
-        />
-        <div data-release-ticket-header class="pointer-events-none">
-          <TicketWorkItem
-            mode="ticket-summary"
-            :title="item.ticket.title"
-            :title-hint="item.ticket.title"
-            :tracked-minutes="item.trackedMinutes"
-            :estimate-minutes="item.ticket.estimateMinutes"
-            heading-tag="h2"
-            usage-placement="header"
-            :show-percentage="false"
-            header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
-            title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted"
-            title-text-class="truncate"
-            header-usage-class="shrink-0"
+        <template #navigation>
+          <NuxtLink
+            :to="`/tickets/${item.ticket.id}`"
+            :aria-label="`Open ticket ${item.ticket.title}`"
+            class="absolute inset-0 z-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
           />
-        </div>
-        <div
-          data-release-ticket-context
-          class="pointer-events-auto relative z-10 mt-2 flex min-w-0 items-center gap-1 overflow-x-auto"
-          aria-label="Ticket context"
-        >
-          <TicketHierarchyBadges
-            mode="links"
-            truncate-labels
-            class="w-max shrink-0"
-            :items="[
-              {
-                kind: 'client',
-                id: item.clientId,
-                name: item.clientName,
-                to: `/clients/${item.clientId}`,
-              },
-              {
-                kind: 'project',
-                id: item.projectId,
-                name: item.projectName,
-                to: `/projects/${item.projectId}`,
-              },
-              {
-                kind: 'release',
-                id: item.ticket.releaseId,
-                name: item.releaseName,
-                to: `/releases/${item.ticket.releaseId}`,
-              },
-            ]"
-            aria-label="Ticket hierarchy"
-          />
-          <UBadge size="md" color="neutral" variant="soft" class="shrink-0 !text-muted">
-            <UIcon name="lucide:circle-dot" class="size-4" aria-hidden="true" />
-            {{ item.ticket.status }}
-          </UBadge>
-          <TicketContextPopovers
-            class="shrink-0"
-            :related-tickets="item.relatedTickets"
-            :external-links="item.externalLinks"
-          />
-        </div>
-      </article>
+        </template>
+        <template #heading>
+          <div data-release-ticket-header class="min-w-0">
+            <TicketWorkItem
+              mode="ticket-summary"
+              :title="item.ticket.title"
+              :title-hint="item.ticket.title"
+              :tracked-minutes="item.trackedMinutes"
+              :estimate-minutes="item.ticket.estimateMinutes"
+              heading-tag="h2"
+              usage-placement="header"
+              :show-percentage="false"
+              header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
+              title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted"
+              title-text-class="truncate"
+              header-usage-class="shrink-0"
+            />
+          </div>
+        </template>
+        <template #context>
+          <div
+            data-release-ticket-context
+            class="pointer-events-auto relative z-10 flex min-w-0 items-center gap-1 overflow-x-auto"
+            aria-label="Ticket context"
+          >
+            <TicketHierarchyBadges
+              mode="links"
+              truncate-labels
+              class="w-max shrink-0"
+              :items="[
+                {
+                  kind: 'client',
+                  id: item.clientId,
+                  name: item.clientName,
+                  to: `/clients/${item.clientId}`,
+                },
+                {
+                  kind: 'project',
+                  id: item.projectId,
+                  name: item.projectName,
+                  to: `/projects/${item.projectId}`,
+                },
+                {
+                  kind: 'release',
+                  id: item.ticket.releaseId,
+                  name: item.releaseName,
+                  to: `/releases/${item.ticket.releaseId}`,
+                },
+              ]"
+              aria-label="Ticket hierarchy"
+            />
+            <UBadge
+              size="md"
+              color="neutral"
+              variant="soft"
+              class="shrink-0 !bg-default !text-muted"
+            >
+              <UIcon name="lucide:circle-dot" class="size-4" aria-hidden="true" />
+              {{ item.ticket.status }}
+            </UBadge>
+            <TicketContextPopovers
+              class="shrink-0"
+              :related-tickets="item.relatedTickets"
+              :external-links="item.externalLinks"
+            />
+          </div>
+        </template>
+      </EntityCard>
     </div>
   </div>
 </template>

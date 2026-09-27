@@ -1,8 +1,21 @@
-import { expect, test, type Locator } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { eq, inArray } from 'drizzle-orm'
 import { db } from '../../server/db'
 import { client, project, release, ticket } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+
+async function expectBorderOnlyHover(page: Page, card: Locator, title: Locator) {
+  await page.mouse.move(0, 0)
+  const borderBefore = await card.evaluate((element) => getComputedStyle(element).borderTopColor)
+  const titleBefore = await title.evaluate((element) => getComputedStyle(element).color)
+  await card.hover()
+  await expect
+    .poll(() => card.evaluate((element) => getComputedStyle(element).borderTopColor))
+    .not.toBe(borderBefore)
+  await expect
+    .poll(() => title.evaluate((element) => getComputedStyle(element).color))
+    .toBe(titleBefore)
+}
 
 async function cleanup(userId: string) {
   const clients = await db.select({ id: client.id }).from(client).where(eq(client.userId, userId))
@@ -24,33 +37,39 @@ async function cleanup(userId: string) {
   if (clientIds.length) await db.delete(client).where(inArray(client.id, clientIds))
 }
 
-async function expectCompactReleaseCard(
-  card: Locator,
-  name: string,
-  count: string,
-  percent: string,
-) {
+async function expectCompactReleaseCard(card: Locator, name: string, count: string) {
   const heading = card.locator('[data-release-card-heading]')
   const title = heading.getByRole('heading', { name })
   const button = heading.getByRole('button', { name: 'Mark release as done' })
   const summary = card.locator('[data-release-card-summary]')
   const hierarchy = summary.getByLabel('Release hierarchy')
+  const metrics = card.locator('[data-release-card-metrics]')
+  const ticketIcon = card.locator('[data-release-card-ticket-icon]')
   const counts = card.locator('[data-release-card-counts]')
   const progress = card.locator('[data-release-card-progress]')
-  const bar = progress.getByRole('progressbar', { name: `${name} completion` })
-  const percentage = progress.getByText(percent, { exact: true })
   await expect(counts).toHaveText(count)
+  await expect(card.locator('[data-release-card-percent]')).toHaveCount(0)
   await expect(hierarchy.getByRole('link')).toHaveCount(2)
+  await expect(hierarchy.getByRole('link').first()).toHaveClass(/bg-default/)
+  await expect(hierarchy.getByRole('link').first()).toHaveClass(/px-1\.5/)
   await expect(hierarchy.getByRole('link').first()).toHaveClass(/text-muted/)
-  await expect(counts).toHaveClass(/text-muted/)
-  await expect(counts.locator('[aria-hidden="true"]')).toBeVisible()
-  expect(await counts.evaluate((element) => getComputedStyle(element).color)).toBe(
+  await expect(metrics).toHaveClass(/bg-default/)
+  await expect(metrics).toHaveClass(/px-1\.5/)
+  await expect(metrics).toHaveClass(/text-muted/)
+  const [cardSurface, metricsSurface] = await Promise.all([
+    card.evaluate((element) => getComputedStyle(element).backgroundColor),
+    metrics.evaluate((element) => getComputedStyle(element).backgroundColor),
+  ])
+  expect(metricsSurface).not.toBe(cardSurface)
+  await expect(ticketIcon).toBeVisible()
+  await expect(progress).toHaveRole('progressbar')
+  await expect(progress).toHaveAccessibleName(`${name} completion`)
+  expect(await metrics.evaluate((element) => getComputedStyle(element).color)).toBe(
     await hierarchy
       .getByRole('link')
       .first()
       .evaluate((element) => getComputedStyle(element).color),
   )
-  await expect(percentage).toBeVisible()
   await expect(card.getByRole('list')).toHaveCount(0)
   await expect(card.getByLabel(/Target date/)).toHaveCount(0)
   const [
@@ -59,20 +78,20 @@ async function expectCompactReleaseCard(
     buttonBox,
     summaryBox,
     hierarchyBox,
+    metricsBox,
+    ticketIconBox,
     countsBox,
-    progressBox,
-    barBox,
-    percentageBox,
+    ringBox,
   ] = await Promise.all([
     card.boundingBox(),
     title.boundingBox(),
     button.boundingBox(),
     summary.boundingBox(),
     hierarchy.boundingBox(),
+    metrics.boundingBox(),
+    ticketIcon.boundingBox(),
     counts.boundingBox(),
     progress.boundingBox(),
-    bar.boundingBox(),
-    percentage.boundingBox(),
   ])
   if (
     !cardBox ||
@@ -80,10 +99,10 @@ async function expectCompactReleaseCard(
     !buttonBox ||
     !summaryBox ||
     !hierarchyBox ||
+    !metricsBox ||
+    !ticketIconBox ||
     !countsBox ||
-    !progressBox ||
-    !barBox ||
-    !percentageBox
+    !ringBox
   )
     throw new Error('Release card rows must be visible')
   expect(buttonBox.x - (titleBox.x + titleBox.width)).toBeLessThanOrEqual(16)
@@ -92,20 +111,20 @@ async function expectCompactReleaseCard(
     Math.abs(buttonBox.y + buttonBox.height / 2 - (titleBox.y + titleBox.height / 2)),
   ).toBeLessThan(4)
   expect(summaryBox.y).toBeGreaterThanOrEqual(buttonBox.y + buttonBox.height)
-  expect(progressBox.y).toBeGreaterThanOrEqual(summaryBox.y + summaryBox.height)
   expect(Math.abs(hierarchyBox.x - titleBox.x)).toBeLessThan(2)
-  expect(countsBox.x).toBeGreaterThanOrEqual(hierarchyBox.x + hierarchyBox.width)
+  expect(metricsBox.x).toBeGreaterThanOrEqual(hierarchyBox.x + hierarchyBox.width)
   expect(
-    Math.abs(countsBox.y + countsBox.height / 2 - (hierarchyBox.y + hierarchyBox.height / 2)),
+    Math.abs(metricsBox.y + metricsBox.height / 2 - (hierarchyBox.y + hierarchyBox.height / 2)),
   ).toBeLessThan(4)
-  expect(Math.abs(barBox.x - titleBox.x)).toBeLessThan(2)
-  expect(barBox.width).toBeGreaterThan(cardBox.width * 0.65)
-  expect(percentageBox.x - (barBox.x + barBox.width)).toBeLessThanOrEqual(12)
-  expect(
-    Math.abs(percentageBox.x + percentageBox.width - (progressBox.x + progressBox.width)),
-  ).toBeLessThan(2)
-  expect(barBox.height).toBeLessThanOrEqual(6)
-  expect(cardBox.height).toBeLessThan(130)
+  expect(countsBox.x).toBeGreaterThanOrEqual(ticketIconBox.x + ticketIconBox.width)
+  expect(ringBox.x).toBeGreaterThanOrEqual(countsBox.x + countsBox.width)
+  const metricsRightPadding = metricsBox.x + metricsBox.width - (ringBox.x + ringBox.width)
+  expect(metricsRightPadding).toBeGreaterThanOrEqual(4)
+  expect(metricsRightPadding).toBeLessThanOrEqual(8)
+  expect(ringBox.width).toBeLessThanOrEqual(20)
+  expect(ringBox.height).toBeLessThanOrEqual(20)
+  expect(metricsBox.height).toBeLessThanOrEqual(24)
+  expect(cardBox.height).toBeLessThan(120)
 }
 
 test('hierarchy cards show active counts and accessible release completion progress', async ({
@@ -227,23 +246,43 @@ test('hierarchy cards show active counts and accessible release completion progr
     await page.goto('/clients')
     await page.waitForLoadState('networkidle')
     const clientCard = page.locator(`[data-client-card-id="${clientRecord.id}"]`)
+    const clientTitle = clientCard.locator('[data-client-card-title]')
     const clientCounts = clientCard.getByRole('list', { name: 'Active client contents' })
+    await expect(clientTitle.getByRole('heading', { name: 'Metrics client' })).toBeVisible()
+    await expect(clientTitle.locator(':scope > span').first()).not.toHaveClass(/border/)
     await expect(clientCounts).toContainText('1 project')
     await expect(clientCounts).toContainText('2 releases')
     await expect(clientCounts).toContainText('2 tickets')
+    const [clientTitleBox, clientCountsBox] = await Promise.all([
+      clientCard.locator('[data-client-card-title]').boundingBox(),
+      clientCounts.boundingBox(),
+    ])
+    if (!clientTitleBox || !clientCountsBox) throw new Error('Client card rows must be visible')
+    expect(clientCountsBox.y).toBeGreaterThan(clientTitleBox.y)
+    expect(Math.abs(clientCountsBox.x - clientTitleBox.x)).toBeLessThan(2)
+    expect(clientCountsBox.height).toBeLessThanOrEqual(24)
+    await expectBorderOnlyHover(page, clientCard, clientTitle.getByRole('heading'))
 
     await page.goto('/projects')
     await page.waitForLoadState('networkidle')
     const projectCard = page.locator(`[data-project-card-id="${projectRecord.id}"]`)
+    const projectTitle = projectCard.locator('[data-project-card-title]')
     const projectCounts = projectCard.getByRole('list', { name: 'Active project contents' })
+    await expect(projectTitle.getByRole('heading', { name: 'Metrics project' })).toBeVisible()
+    await expect(projectTitle.locator(':scope > span').first()).not.toHaveClass(/border/)
     await expect(projectCounts).toContainText('2 releases')
     await expect(projectCounts).toContainText('2 tickets')
+    await expectBorderOnlyHover(
+      page,
+      projectCard,
+      projectTitle.getByRole('heading', { name: 'Metrics project' }),
+    )
 
     await page.goto(`/projects/${projectRecord.id}`)
     await page.waitForLoadState('networkidle')
     const activeReleaseCard = page.locator(`[data-release-card-id="${activeRelease.id}"]`)
     const releaseHierarchy = activeReleaseCard.getByLabel('Release hierarchy')
-    await expectCompactReleaseCard(activeReleaseCard, 'Metrics release', '1 / 2 done', '50%')
+    await expectCompactReleaseCard(activeReleaseCard, 'Metrics release', '1 / 2')
     await expect(releaseHierarchy.getByRole('link', { name: 'Metrics client' })).toHaveAttribute(
       'href',
       `/clients/${clientRecord.id}`,
@@ -266,7 +305,7 @@ test('hierarchy cards show active counts and accessible release completion progr
     const emptyProgress = emptyReleaseCard.getByRole('progressbar', {
       name: 'Empty release completion',
     })
-    await expectCompactReleaseCard(emptyReleaseCard, 'Empty release', '0 / 0 done', '0%')
+    await expectCompactReleaseCard(emptyReleaseCard, 'Empty release', '0 / 0')
     await expect(emptyProgress).toHaveAttribute('aria-valuenow', '0')
     await expect(emptyProgress).toHaveAttribute('aria-valuemax', '1')
     await expect(emptyProgress).toHaveAttribute(
@@ -315,8 +354,7 @@ test('hierarchy cards show active counts and accessible release completion progr
     await expectCompactReleaseCard(
       mobilePage.locator(`[data-release-card-id="${activeRelease.id}"]`),
       'Metrics release',
-      '1 / 2 done',
-      '50%',
+      '1 / 2',
     )
     expect(
       await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),

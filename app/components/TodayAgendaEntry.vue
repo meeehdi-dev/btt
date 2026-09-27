@@ -147,7 +147,7 @@ const statusMenuItems = computed(() => [
           :disabled="statusBusy"
           :aria-busy="statusBusy || undefined"
           :aria-label="`status: ${row.status}; actions`"
-          class="!text-muted hover:!text-default"
+          class="!bg-default !text-muted hover:!text-default"
         >
           <UIcon name="lucide:circle-dot" class="size-4" aria-hidden="true" />{{ row.status }}
         </UButton>

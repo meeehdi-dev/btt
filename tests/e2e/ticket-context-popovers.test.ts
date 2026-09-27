@@ -14,6 +14,7 @@ import { testAuth } from '../../server/utils/auth-test'
 
 async function expectPlainIconTrigger(trigger: Locator) {
   await expect(trigger).toBeVisible()
+  await expect(trigger).toHaveClass(/bg-default/)
   await expect(trigger.locator('[aria-hidden="true"]').first()).toBeVisible()
   await expect(trigger.locator('xpath=following-sibling::span[@data-slot="base"]')).toHaveCount(0)
 }
@@ -32,10 +33,11 @@ async function expectTwoRowReleaseTicketCard(card: Locator, title: string) {
   await expect(usage.getByLabel(/Estimate usage:/)).toHaveCount(0)
   await expect(context.getByRole('link')).toHaveCount(3)
   await expect(status.locator('[aria-hidden="true"]')).toBeVisible()
-  await expect(status).toHaveClass(/bg-elevated/)
+  await expect(status).toHaveClass(/bg-default/)
   await expect(status).toHaveClass(/text-muted/)
   await expect(hierarchy.getByRole('link').first()).toHaveClass(/text-muted/)
   await expect(status).not.toHaveClass(/\bring\b/)
+  await expect(hierarchy.getByRole('link').first()).toHaveClass(/bg-default/)
   const [
     cardBox,
     headerBox,
@@ -99,6 +101,7 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
   await expect(usage.getByLabel(/Estimate usage:/)).toHaveCount(0)
   await expect(hierarchy.getByRole('link').first()).toHaveClass(/text-muted/)
   await expect(related).toHaveClass(/text-muted/)
+  await expect(related).toHaveClass(/bg-default/)
   const [headerBox, titleBox, usageBox, contextBox, hierarchyBox, relatedBox] = await Promise.all([
     header.boundingBox(),
     titleLink.boundingBox(),
@@ -360,6 +363,13 @@ test('ticket context popovers show one or many relations and native external lin
     await mobilePage.goto('/today')
     await mobilePage.waitForLoadState('networkidle')
     const agendaCard = mobilePage.locator(`[data-agenda-ticket-id="${many.id}"]`)
+    const agendaClientButton = agendaCard.getByRole('button', {
+      name: `client: Context ${suffix}; actions`,
+    })
+    const agendaStatusButton = agendaCard.getByRole('button', { name: 'status: Idea; actions' })
+    await expect(agendaClientButton).toHaveClass(/bg-default/)
+    await expect(agendaClientButton).toHaveClass(/px-1\.5/)
+    await expect(agendaStatusButton).toHaveClass(/bg-default/)
     await expect(agendaCard.getByRole('link', { name: manyTitle })).toHaveAttribute(
       'title',
       manyTitle,

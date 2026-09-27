@@ -33,8 +33,8 @@ const emit = defineEmits<{
           size="xs"
           square
           color="neutral"
-          variant="ghost"
-          class="!text-muted hover:!text-default"
+          variant="soft"
+          class="!bg-default !text-muted hover:!text-default"
           aria-label="Related tickets"
           @focus="relatedOpen = true"
           @click="relatedOpen = true"
@@ -74,8 +74,8 @@ const emit = defineEmits<{
           size="xs"
           square
           color="neutral"
-          variant="ghost"
-          class="!text-muted hover:!text-default"
+          variant="soft"
+          class="!bg-default !text-muted hover:!text-default"
           aria-label="External links"
           @focus="externalOpen = true"
           @click="externalOpen = true"

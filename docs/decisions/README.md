@@ -55,3 +55,5 @@ NNNN-short-descriptive-slug.md
 | [0018](0018-ticket-context-and-application-ui-consistency.md)  | Accepted   | Ticket context and application UI consistency           |
 | [0019](0019-ticket-usage-contrast-and-context-count-badges.md) | Accepted   | Ticket usage contrast and context count badges          |
 | [0020](0020-m8-polish-decisions.md)                            | Accepted   | M8 polish and shared-work decisions                     |
+| [0021](0021-effect-for-fallible-operations.md)                 | Accepted   | Effect for meaningful fallible operations               |
+| [0022](0022-shared-entity-card-presentation.md)                | Accepted   | Shared entity-card presentation shell                   |

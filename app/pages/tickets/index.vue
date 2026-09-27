@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ticketStatuses } from '#shared/ticket-status'
+import { useHierarchyFilters, type HierarchyFilterSource } from '~/composables/useHierarchyFilters'
 import { entityIcons } from '~/utils/entity-icons'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
@@ -15,100 +16,25 @@ const { data, pending, error, refresh } = await useFetch('/api/tickets', {
   })),
 })
 const tickets = computed(() => data.value?.tickets ?? [])
-type FilterKind = 'client' | 'project' | 'release' | 'ticket'
-const isTouchDevice = ref(false)
-onMounted(() => {
-  isTouchDevice.value = window.matchMedia('(pointer: coarse)').matches
-})
-const filterSearchInputs = computed<
-  Record<FilterKind, { placeholder: string; icon: string; autofocus: boolean }>
->(() => ({
-  client: {
-    placeholder: 'Search clients…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-  project: {
-    placeholder: 'Search projects…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-  release: {
-    placeholder: 'Search releases…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-  ticket: {
-    placeholder: 'Search tickets…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-}))
-const filters = reactive<Record<FilterKind, string>>({
-  client: '',
-  project: '',
-  release: '',
-  ticket: '',
-})
-function filterOptions(kind: FilterKind) {
-  const seen = new Map<string, string>()
-  for (const item of tickets.value) {
-    if (kind !== 'client' && filters.client && item.clientId !== filters.client) continue
-    if (
-      ['release', 'ticket'].includes(kind) &&
-      filters.project &&
-      item.projectId !== filters.project
-    )
-      continue
-    if (kind === 'ticket' && filters.release && item.ticket.releaseId !== filters.release) continue
-    const id =
-      kind === 'ticket'
-        ? item.ticket.id
-        : kind === 'release'
-          ? item.ticket.releaseId
-          : kind === 'project'
-            ? item.projectId
-            : item.clientId
-    const name =
-      kind === 'ticket'
-        ? item.ticket.title
-        : kind === 'release'
-          ? item.releaseName
-          : kind === 'project'
-            ? item.projectName
-            : item.clientName
-    seen.set(id, name)
-  }
-  return [...seen].map(([value, label]) => ({ value, label }))
-}
-function applyFilter(kind: FilterKind, id: string) {
-  const item = tickets.value.find((entry) =>
-    kind === 'client'
-      ? entry.clientId === id
-      : kind === 'project'
-        ? entry.projectId === id
-        : kind === 'release'
-          ? entry.ticket.releaseId === id
-          : entry.ticket.id === id,
-  )
-  if (item && kind !== 'client') filters.client = item.clientId
-  if (item && (kind === 'release' || kind === 'ticket')) filters.project = item.projectId
-  if (item && kind === 'ticket') filters.release = item.ticket.releaseId
-  filters[kind] = id
-  if (kind === 'client') {
-    filters.project = ''
-    filters.release = ''
-    filters.ticket = ''
-  }
-  if (kind === 'project') {
-    filters.release = ''
-    filters.ticket = ''
-  }
-  if (kind === 'release') filters.ticket = ''
-}
-function clearFilters() {
-  for (const kind of Object.keys(filters) as FilterKind[]) filters[kind] = ''
-}
+const filterSources = computed<HierarchyFilterSource[]>(() =>
+  tickets.value.map((item) => ({
+    clientId: item.clientId,
+    clientName: item.clientName,
+    projectId: item.projectId,
+    projectName: item.projectName,
+    releaseId: item.ticket.releaseId,
+    releaseName: item.releaseName,
+    ticketId: item.ticket.id,
+    ticketName: item.ticket.title,
+  })),
+)
+const {
+  filters,
+  options: filterOptions,
+  applyFilter,
+  clearFilters,
+  searchInputs: filterSearchInputs,
+} = useHierarchyFilters(filterSources)
 const visibleTickets = computed(() =>
   tickets.value.filter(
     (item) =>

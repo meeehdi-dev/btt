@@ -71,13 +71,13 @@ function dragEnd() {
 </script>
 
 <template>
-  <div
+  <EntityCard
     :data-board-ticket-id="item.ticket.id"
     :aria-busy="changing"
     :draggable="canDrag && !item.ticket.archivedAt && !busy"
-    class="rounded-lg border bg-elevated p-4 transition-colors"
+    content-interactive
     :class="[
-      highlighted ? 'border-primary' : 'border-default',
+      highlighted ? 'border-primary' : '',
       canDrag && !item.ticket.archivedAt && !busy ? 'cursor-grab active:cursor-grabbing' : '',
     ]"
     @pointerdown="pointerDown"
@@ -86,40 +86,47 @@ function dragEnd() {
     @dragstart="dragStart"
     @dragend="dragEnd"
   >
-    <TicketWorkItem
-      mode="ticket-summary"
-      :to="`/tickets/${item.ticket.id}${item.ticket.archivedAt ? '?archived=true' : ''}`"
-      :title="item.ticket.title"
-      :title-hint="item.ticket.title"
-      :tracked-minutes="item.trackedMinutes"
-      :estimate-minutes="item.ticket.estimateMinutes"
-      :show-percentage="false"
-      usage-placement="header"
-      header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
-      title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
-      title-text-class="truncate"
-      header-usage-class="shrink-0"
-    >
-      <template #title-trailing>
-        <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
-        <UBadge v-else-if="changing" color="primary" variant="subtle">Moving…</UBadge>
-      </template>
-    </TicketWorkItem>
-    <div class="mt-2 flex min-w-0 items-center gap-1 overflow-x-auto" aria-label="Ticket context">
-      <TicketHierarchyBadges
-        mode="links"
-        truncate-labels
-        :items="hierarchyItems"
-        class="w-max shrink-0"
-        aria-label="Ticket hierarchy"
-      />
-      <TicketContextPopovers
-        class="shrink-0"
-        :related-tickets="item.relatedTickets"
-        :external-links="item.externalLinks"
-        @related-hover="emit('related-hover', $event)"
-        @related-click="(event, id) => emit('related-click', event, id)"
-      />
-    </div>
-  </div>
+    <template #heading>
+      <TicketWorkItem
+        mode="ticket-summary"
+        :to="`/tickets/${item.ticket.id}${item.ticket.archivedAt ? '?archived=true' : ''}`"
+        :title="item.ticket.title"
+        :title-hint="item.ticket.title"
+        :tracked-minutes="item.trackedMinutes"
+        :estimate-minutes="item.ticket.estimateMinutes"
+        :show-percentage="false"
+        usage-placement="header"
+        header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
+        title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
+        title-text-class="truncate"
+        header-usage-class="shrink-0"
+      >
+        <template #title-trailing>
+          <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
+          <UBadge v-else-if="changing" color="primary" variant="subtle">Moving…</UBadge>
+        </template>
+      </TicketWorkItem>
+    </template>
+    <template #context>
+      <div
+        class="flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap"
+        aria-label="Ticket context"
+      >
+        <TicketHierarchyBadges
+          mode="links"
+          truncate-labels
+          :items="hierarchyItems"
+          class="w-max shrink-0"
+          aria-label="Ticket hierarchy"
+        />
+        <TicketContextPopovers
+          class="shrink-0"
+          :related-tickets="item.relatedTickets"
+          :external-links="item.externalLinks"
+          @related-hover="emit('related-hover', $event)"
+          @related-click="(event, id) => emit('related-click', event, id)"
+        />
+      </div>
+    </template>
+  </EntityCard>
 </template>

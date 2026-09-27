@@ -28,10 +28,14 @@ const labels: Record<CountKind, string> = {
 
 <template>
   <ul
-    class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted"
+    class="flex w-fit min-w-0 max-w-full flex-wrap items-center gap-1 text-xs text-muted"
     :aria-label="ariaLabel ?? 'Active hierarchy counts'"
   >
-    <li v-for="item in countItems" :key="item.kind" class="inline-flex items-center gap-1">
+    <li
+      v-for="item in countItems"
+      :key="item.kind"
+      class="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-default px-1.5 text-muted"
+    >
       <EntityIcon :kind="icons[item.kind]" />
       <span>{{ item.count }} {{ labels[item.kind] }}{{ item.count === 1 ? '' : 's' }}</span>
     </li>

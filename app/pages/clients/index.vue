@@ -33,36 +33,7 @@ const clients = computed(() => data.value?.clients ?? [])
       <p class="mt-2 text-muted">Create a client to start organizing work.</p>
     </UCard>
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <NuxtLink
-        v-for="client in clients"
-        :key="client.id"
-        :data-client-card-id="client.id"
-        :to="`/clients/${client.id}${client.archivedAt ? '?archived=true' : ''}`"
-        class="rounded-lg border border-default bg-elevated p-5 transition hover:border-primary"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <span
-              class="size-3 rounded-full border border-default"
-              :style="{ backgroundColor: client.color }"
-            />
-            <h2 class="inline-flex items-center gap-1 font-medium text-highlighted">
-              <EntityIcon kind="clients" />{{ client.name }}
-            </h2>
-          </div>
-          <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
-        </div>
-        <HierarchyCounts
-          v-if="!client.archivedAt"
-          class="mt-3"
-          :counts="{
-            projects: client.projectCount,
-            releases: client.releaseCount,
-            tickets: client.ticketCount,
-          }"
-          aria-label="Active client contents"
-        />
-      </NuxtLink>
+      <ClientCard v-for="item in clients" :key="item.id" :item="item" />
     </div>
   </div>
 </template>

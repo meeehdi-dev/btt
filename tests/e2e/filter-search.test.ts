@@ -84,6 +84,7 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
       await page.getByRole('button', { name: `Filter ${kind}` }).click()
       const search = page.getByPlaceholder(placeholder)
       await expect(search).toBeVisible()
+      await expect(search).toBeFocused()
       await search.fill(query)
       await expect(page.getByRole('option', { name: match, exact: true })).toBeVisible()
       await expect(page.getByRole('option', { name: miss, exact: true })).toHaveCount(0)
@@ -129,6 +130,22 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
     await expect(page.getByRole('button', { name: 'Filter ticket' })).toContainText(
       `Searchable ticket ${suffix}`,
     )
+    await expect(page.getByRole('button', { name: 'Filter client' })).toContainText(
+      `Searchable client ${suffix}`,
+    )
+    await expect(page.getByRole('button', { name: 'Filter project' })).toContainText(
+      `Searchable project ${suffix}`,
+    )
+    await expect(page.getByRole('button', { name: 'Filter release' })).toContainText(
+      `Searchable release ${suffix}`,
+    )
+    await page.getByRole('button', { name: 'Filter client' }).click()
+    await page.getByRole('option', { name: `Other client ${suffix}`, exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Filter project' })).toContainText('All projects')
+    await expect(page.getByRole('button', { name: 'Filter release' })).toContainText('All releases')
+    await expect(page.getByRole('button', { name: 'Filter ticket' })).toContainText('All tickets')
+    await page.getByRole('button', { name: 'Clear filters' }).click()
+    await expect(page.getByRole('button', { name: 'Filter client' })).toContainText('All clients')
 
     await page.goto('/today')
     await page.waitForLoadState('networkidle')
@@ -170,6 +187,30 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
       },
     ])
       await searchFilter(filter.kind, filter.placeholder, filter.query, filter.match, filter.miss)
+
+    await page.getByRole('button', { name: 'Filter ticket' }).click()
+    await page.getByPlaceholder('Search tickets…').fill('Searchable')
+    await page.getByRole('option', { name: `Searchable ticket ${suffix}`, exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Filter client' })).toContainText(
+      `Searchable client ${suffix}`,
+    )
+    await expect(page.getByRole('button', { name: 'Filter project' })).toContainText(
+      `Searchable project ${suffix}`,
+    )
+    await expect(page.getByRole('button', { name: 'Filter release' })).toContainText(
+      `Searchable release ${suffix}`,
+    )
+    await page.getByRole('button', { name: 'Filter status' }).click()
+    await page.getByPlaceholder('Search statuses…').fill('Develop')
+    await page.getByRole('option', { name: 'Develop', exact: true }).click()
+    await page.getByRole('button', { name: 'Filter client' }).click()
+    await page.getByRole('option', { name: `Other client ${suffix}`, exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Filter status' })).toContainText('Develop')
+    await expect(page.getByRole('button', { name: 'Filter project' })).toContainText('All projects')
+    await expect(page.getByRole('button', { name: 'Filter release' })).toContainText('All releases')
+    await expect(page.getByRole('button', { name: 'Filter ticket' })).toContainText('All tickets')
+    await page.getByRole('button', { name: 'Clear filters' }).click()
+    await expect(page.getByRole('button', { name: 'Filter status' })).toContainText('All statuses')
 
     mobileContext = await browser.newContext({
       viewport: { width: 390, height: 844 },

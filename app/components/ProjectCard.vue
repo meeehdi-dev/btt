@@ -18,30 +18,31 @@ defineProps<{ item: ProjectCardItem }>()
 </script>
 
 <template>
-  <div
-    :data-project-card-id="item.project.id"
-    class="group relative rounded-lg border border-default bg-elevated p-5 transition hover:border-primary focus-within:border-primary"
-  >
-    <NuxtLink
-      :to="`/projects/${item.project.id}${item.project.archivedAt ? '?archived=true' : ''}`"
-      :aria-label="`Open project ${item.project.name}`"
-      class="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
-    />
-    <div class="pointer-events-none relative z-10 space-y-3">
-      <div data-project-card-title class="flex min-w-0 items-start justify-between gap-3">
+  <EntityCard :data-project-card-id="item.project.id">
+    <template #navigation>
+      <NuxtLink
+        :to="`/projects/${item.project.id}${item.project.archivedAt ? '?archived=true' : ''}`"
+        :aria-label="`Open project ${item.project.name}`"
+        class="absolute inset-0 z-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
+      />
+    </template>
+    <template #heading>
+      <div data-project-card-title class="flex min-w-0 items-center gap-2">
         <span
-          class="inline-flex min-w-0 items-center gap-2 font-medium text-highlighted group-hover:text-primary"
+          class="size-3 shrink-0 rounded-full"
+          :style="{ backgroundColor: item.project.color }"
+        />
+        <h2
+          class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted"
           :title="item.project.name"
         >
-          <span
-            class="size-3 shrink-0 rounded-full"
-            :style="{ backgroundColor: item.project.color }"
-          />
           <EntityIcon kind="projects" /><span class="truncate">{{ item.project.name }}</span>
-        </span>
-        <UBadge v-if="item.project.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
+        </h2>
       </div>
-      <div data-project-card-summary class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+      <UBadge v-if="item.project.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
+    </template>
+    <template #context>
+      <div data-project-card-summary class="flex min-w-0 flex-wrap items-center gap-2">
         <TicketHierarchyBadges
           mode="links"
           truncate-labels
@@ -58,11 +59,10 @@ defineProps<{ item: ProjectCardItem }>()
         />
         <HierarchyCounts
           v-if="!item.project.archivedAt && !item.clientArchivedAt"
-          class="max-w-full shrink-0"
           :counts="{ releases: item.releaseCount, tickets: item.ticketCount }"
           aria-label="Active project contents"
         />
       </div>
-    </div>
-  </div>
+    </template>
+  </EntityCard>
 </template>

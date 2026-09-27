@@ -16,16 +16,26 @@ async function expectTooltip(page: Page, text: string) {
 
 async function expectLeftAlignedProjectSummary(card: Locator) {
   const clientButton = card.getByRole('link', { name: 'M2 Client' })
-  await expect(clientButton).toHaveClass(/bg-elevated/)
+  const countsList = card.getByRole('list', { name: 'Active project contents' })
+  const countPill = countsList.locator('li').first()
+  await expect(clientButton).toHaveClass(/bg-default/)
+  await expect(clientButton).toHaveClass(/px-1\.5/)
   await expect(clientButton).toHaveClass(/text-muted/)
-  await expect(card.getByRole('list', { name: 'Active project contents' })).toHaveClass(
-    /text-muted/,
-  )
+  await expect(countsList).toHaveClass(/text-muted/)
+  await expect(countPill).toHaveClass(/bg-default/)
+  await expect(countPill).toHaveClass(/px-1\.5/)
   await expect(clientButton.locator('[aria-hidden="true"]')).toBeVisible()
+  const [cardSurface, linkSurface, countSurface] = await Promise.all([
+    card.evaluate((element) => getComputedStyle(element).backgroundColor),
+    clientButton.evaluate((element) => getComputedStyle(element).backgroundColor),
+    countPill.evaluate((element) => getComputedStyle(element).backgroundColor),
+  ])
+  expect(linkSurface).not.toBe(cardSurface)
+  expect(countSurface).not.toBe(cardSurface)
   const title = await card.locator('[data-project-card-title]').boundingBox()
   const summary = await card.locator('[data-project-card-summary]').boundingBox()
-  const clientLink = await card.getByRole('link', { name: 'M2 Client' }).boundingBox()
-  const counts = await card.getByRole('list', { name: 'Active project contents' }).boundingBox()
+  const clientLink = await clientButton.boundingBox()
+  const counts = await countsList.boundingBox()
   if (!title || !summary || !clientLink || !counts) throw new Error('Project card must be visible')
   expect(summary.y).toBeGreaterThan(title.y)
   expect(summary.height).toBeLessThanOrEqual(24)

@@ -41,7 +41,7 @@ const icons: Record<HierarchyKind, EntityKind> = {
           size="xs"
           color="neutral"
           variant="soft"
-          class="!text-muted hover:!text-default"
+          class="!bg-default !px-1.5 !text-muted hover:!text-default"
           :aria-label="`${item.kind}: ${item.name}; actions`"
         >
           <EntityIcon :kind="icons[item.kind]" />{{ item.name }}
@@ -75,7 +75,7 @@ const icons: Record<HierarchyKind, EntityKind> = {
         variant="soft"
         :title="truncateLabels ? item.name : undefined"
         :class="[
-          '!text-muted hover:!text-default',
+          '!bg-default !px-1.5 !text-muted hover:!text-default',
           truncateLabels ? 'max-w-32 shrink-0' : 'shrink-0',
         ]"
       >

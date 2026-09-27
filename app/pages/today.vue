@@ -3,6 +3,12 @@ import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@interna
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
 import { entityIcons } from '~/utils/entity-icons'
 import { ticketStatuses } from '#shared/ticket-status'
+import {
+  useHierarchyFilters,
+  type FilterSearchInput,
+  type HierarchyFilterKind,
+  type HierarchyFilterSource,
+} from '~/composables/useHierarchyFilters'
 import { usageColor, validDate } from '#shared/time-entry'
 
 type TicketStatus = (typeof ticketStatuses)[number]
@@ -32,40 +38,7 @@ const {
 } = await useFetch('/api/tickets')
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
 const entries = computed(() => agenda.value?.entries ?? [])
-type FilterKind = 'client' | 'project' | 'release' | 'ticket' | 'status'
-const isTouchDevice = ref(false)
-onMounted(() => {
-  isTouchDevice.value = window.matchMedia('(pointer: coarse)').matches
-})
-const filterSearchInputs = computed<
-  Record<FilterKind, { placeholder: string; icon: string; autofocus: boolean }>
->(() => ({
-  client: {
-    placeholder: 'Search clients…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-  project: {
-    placeholder: 'Search projects…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-  release: {
-    placeholder: 'Search releases…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-  ticket: {
-    placeholder: 'Search tickets…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-  status: {
-    placeholder: 'Search statuses…',
-    icon: 'lucide:search',
-    autofocus: !isTouchDevice.value,
-  },
-}))
+type FilterKind = HierarchyFilterKind | 'status'
 const filters = reactive<Record<FilterKind, string>>({
   client: '',
   project: '',
@@ -73,7 +46,7 @@ const filters = reactive<Record<FilterKind, string>>({
   ticket: '',
   status: '',
 })
-const filterSources = computed(() => [
+const filterSources = computed<HierarchyFilterSource[]>(() => [
   ...entries.value.map((row) => ({
     clientId: row.clientId,
     clientName: row.clientName,
@@ -97,52 +70,36 @@ const filterSources = computed(() => [
     status: item.ticket.status,
   })),
 ])
+const {
+  options: hierarchyOptions,
+  applyFilter: applyHierarchyFilter,
+  clearFilters: clearHierarchyFilters,
+  searchInputs: hierarchySearchInputs,
+} = useHierarchyFilters(filterSources, filters)
+const filterSearchInputs = computed<Record<FilterKind, FilterSearchInput>>(() => ({
+  ...hierarchySearchInputs.value,
+  status: {
+    placeholder: 'Search statuses…',
+    icon: 'lucide:search',
+    autofocus: hierarchySearchInputs.value.client.autofocus,
+  },
+}))
 function options(kind: FilterKind) {
+  if (kind !== 'status') return hierarchyOptions(kind)
   const seen = new Map<string, string>()
   for (const row of filterSources.value) {
-    if (kind !== 'client' && filters.client && row.clientId !== filters.client) continue
-    if (
-      ['release', 'ticket'].includes(kind) &&
-      filters.project &&
-      row.projectId !== filters.project
-    )
-      continue
-    if (kind === 'ticket' && filters.release && row.releaseId !== filters.release) continue
-    const id = kind === 'status' ? row.status : row[`${kind}Id`]
-    const label = kind === 'status' ? row.status : row[`${kind}Name`]
-    seen.set(id, label)
+    if (filters.client && row.clientId !== filters.client) continue
+    if (row.status) seen.set(row.status, row.status)
   }
   return [...seen].map(([value, label]) => ({ value, label }))
 }
 function applyFilter(kind: FilterKind, id: string) {
-  if (kind !== 'status') {
-    const row = filterSources.value.find((item) =>
-      kind === 'client'
-        ? item.clientId === id
-        : kind === 'project'
-          ? item.projectId === id
-          : kind === 'release'
-            ? item.releaseId === id
-            : item.ticketId === id,
-    )
-    if (row && kind !== 'client') filters.client = row.clientId
-    if (row && (kind === 'release' || kind === 'ticket')) filters.project = row.projectId
-    if (row && kind === 'ticket') filters.release = row.releaseId
-  }
-  filters[kind] = id
-  if (kind === 'client') {
-    filters.project = ''
-    filters.release = ''
-    filters.ticket = ''
-  }
-  if (kind === 'project') {
-    filters.release = ''
-    filters.ticket = ''
-  }
-  if (kind === 'release') filters.ticket = ''
+  if (kind === 'status') filters.status = id
+  else applyHierarchyFilter(kind, id)
 }
 function clearFilters() {
-  for (const key of Object.keys(filters) as FilterKind[]) filters[key] = ''
+  clearHierarchyFilters()
+  filters.status = ''
 }
 const filtered = computed(() =>
   entries.value.filter(
