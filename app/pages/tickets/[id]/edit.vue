@@ -4,37 +4,54 @@ import { formatTicketEstimate, parseTicketEstimate } from '~/utils/ticket-estima
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
-const { data } = await useFetch(`/api/tickets/${id}`, { query: { archived: 'true' } })
-if (!data.value) throw createError({ status: 404, statusText: 'Ticket not found' })
-const { data: releasesData, error: releasesError } = await useFetch('/api/releases')
-const title = ref(data.value.ticket.title)
-const description = ref(data.value.ticket.description)
-const releaseId = ref(data.value.ticket.releaseId)
-const status = ref(data.value.ticket.status)
+const endpoint: string = '/api/tickets/' + id
+const {
+  data,
+  error: ticketError,
+  refresh: refreshTicket,
+} = await useApiFetch(`/api/tickets/${id}`, { query: { archived: 'true' } })
+if (ticketError.value && clientFailureStatus(ticketError.value) === 404)
+  throw createError({ statusCode: 404, statusMessage: 'Ticket not found' })
+if (!data.value && !ticketError.value)
+  throw createError({ statusCode: 404, statusMessage: 'Ticket not found' })
+const {
+  data: releasesData,
+  error: releasesError,
+  refresh: refreshReleases,
+} = await useApiFetch('/api/releases')
+const title = ref(data.value?.ticket.title ?? '')
+const description = ref(data.value?.ticket.description ?? '')
+const releaseId = ref(data.value?.ticket.releaseId ?? '')
+const status = ref(data.value?.ticket.status ?? ticketStatuses[0])
 const estimate = ref(
-  data.value.ticket.estimateMinutes ? formatTicketEstimate(data.value.ticket.estimateMinutes) : '',
+  data.value?.ticket.estimateMinutes ? formatTicketEstimate(data.value.ticket.estimateMinutes) : '',
 )
-const archived = ref(Boolean(data.value.ticket.archivedAt))
+const archived = ref(Boolean(data.value?.ticket.archivedAt))
 const pending = ref(false)
 const errorMessage = ref('')
 async function save() {
   pending.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/tickets/${id}`, {
-      method: 'PATCH',
-      body: {
-        releaseId: releaseId.value,
-        title: title.value,
-        description: description.value,
-        status: status.value,
-        estimateMinutes: parseTicketEstimate(estimate.value),
-        archived: archived.value,
-      },
-    })
+    const result = await runClientRequest((signal) =>
+      $fetch<unknown>(endpoint, {
+        method: 'PATCH',
+        body: {
+          releaseId: releaseId.value,
+          title: title.value,
+          description: description.value,
+          status: status.value,
+          estimateMinutes: parseTicketEstimate(estimate.value),
+          archived: archived.value,
+        },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      errorMessage.value = result.failure.userMessage
+      return
+    }
     await navigateTo(`/tickets/${id}${archived.value ? '?archived=true' : ''}`)
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to save ticket.'
   } finally {
     pending.value = false
   }
@@ -49,17 +66,21 @@ async function remove() {
   pending.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/tickets/${id}`, { method: 'DELETE' })
+    const result = await runClientRequest((signal) =>
+      $fetch<unknown>(endpoint, { method: 'DELETE', signal }),
+    )
+    if (result._tag === 'Failure') {
+      errorMessage.value = result.failure.userMessage
+      return
+    }
     await navigateTo('/tickets')
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to delete ticket.'
   } finally {
     pending.value = false
   }
 }
 </script>
 <template>
-  <div class="w-full space-y-6">
+  <div v-if="data" class="w-full space-y-6">
     <div>
       <NuxtLink
         :to="`/tickets/${id}${archived ? '?archived=true' : ''}`"
@@ -70,11 +91,38 @@ async function remove() {
         <EntityIcon kind="tickets" />Edit ticket
       </h1>
     </div>
+    <div v-if="ticketError" class="space-y-3">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not refresh ticket"
+        :description="clientFailureMessage(ticketError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading ticket"
+        @click="refreshTicket()"
+      />
+    </div>
     <UCard
       ><form class="space-y-5" @submit.prevent="save">
-        <UAlert v-if="releasesError" color="error" title="Could not load releases"
-          >You can retry this page before changing release.</UAlert
-        >
+        <div v-if="releasesError" class="space-y-2">
+          <UAlert
+            role="alert"
+            color="error"
+            title="Could not load releases"
+            :description="clientFailureMessage(releasesError)"
+          />
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="lucide:refresh-cw"
+            label="Retry loading releases"
+            @click="refreshReleases()"
+          />
+        </div>
         <UFormField label="Release" required
           ><USelect
             v-model="releaseId"
@@ -101,7 +149,7 @@ async function remove() {
           ><UInput v-model="estimate" type="text" class="w-full" placeholder="1hr 30m"
         /></UFormField>
         <UCheckbox v-model="archived" label="Archived" />
-        <UAlert v-if="errorMessage" color="error" title="Could not save changes">{{
+        <UAlert v-if="errorMessage" role="alert" color="error" title="Could not save changes">{{
           errorMessage
         }}</UAlert>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -135,4 +183,19 @@ async function remove() {
         </div></form
     ></UCard>
   </div>
+  <UCard v-else-if="ticketError" class="space-y-3">
+    <UAlert
+      role="alert"
+      color="error"
+      title="Could not load ticket"
+      :description="clientFailureMessage(ticketError)"
+    />
+    <UButton
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading ticket"
+      @click="refreshTicket()"
+    />
+  </UCard>
 </template>

@@ -4,6 +4,9 @@
     "correctness": "error",
     "suspicious": "warn"
   },
+  "rules": {
+    "no-underscore-dangle": ["warn", { "allow": ["_tag"] }]
+  },
   "ignorePatterns": [
     ".nuxt/**",
     ".output/**",

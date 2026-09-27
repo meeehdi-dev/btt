@@ -2,13 +2,22 @@
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
+const endpoint: string = '/api/releases/' + id
 const archived = route.query.archived === 'true'
-const { data: releaseData, error } = await useFetch(`/api/releases/${id}`, {
+const {
+  data: releaseData,
+  error,
+  refresh: refreshRelease,
+} = await useApiFetch(`/api/releases/${id}`, {
   query: { archived: archived ? 'true' : undefined },
 })
 const release = computed(() => releaseData.value?.release)
 const projectName = computed(() => releaseData.value?.projectName ?? '')
-const { data: ticketData, error: ticketsError } = await useFetch('/api/tickets', {
+const {
+  data: ticketData,
+  error: ticketsError,
+  refresh: refreshTickets,
+} = await useApiFetch('/api/tickets', {
   query: { releaseId: id },
 })
 const tickets = computed(() => ticketData.value?.tickets ?? [])
@@ -18,8 +27,10 @@ const doneTicketCount = computed(
 const doneConfirmationOpen = ref(false)
 const donePending = ref(false)
 const doneError = ref('')
-if (error.value || !releaseData.value)
-  throw createError({ status: 404, statusText: 'Release not found' })
+if (error.value && clientFailureStatus(error.value) === 404)
+  throw createError({ statusCode: 404, statusMessage: 'Release not found' })
+if (!releaseData.value && !error.value)
+  throw createError({ statusCode: 404, statusMessage: 'Release not found' })
 
 async function requestMarkDone() {
   doneError.value = ''
@@ -35,10 +46,14 @@ async function markDone() {
   donePending.value = true
   doneError.value = ''
   try {
-    await $fetch(`/api/releases/${id}`, { method: 'PATCH', body: { archived: true } })
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(endpoint, { method: 'PATCH', body: { archived: true }, signal }),
+    )
+    if (result._tag === 'Failure') {
+      doneError.value = result.failure.userMessage
+      return
+    }
     await navigateTo(`/projects/${release.value.projectId}`)
-  } catch (cause) {
-    doneError.value = cause instanceof Error ? cause.message : 'Unable to mark release as done.'
   } finally {
     donePending.value = false
   }
@@ -97,6 +112,21 @@ async function markDone() {
         />
       </div>
     </div>
+    <div v-if="error" class="space-y-3">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not refresh release"
+        :description="clientFailureMessage(error)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading release"
+        @click="refreshRelease()"
+      />
+    </div>
     <UModal
       v-model:open="doneConfirmationOpen"
       title="Mark release as done?"
@@ -110,6 +140,7 @@ async function markDone() {
         <div class="space-y-4">
           <UAlert
             v-if="doneError"
+            role="alert"
             color="error"
             title="Could not mark release as done"
             :description="doneError"
@@ -149,14 +180,27 @@ async function markDone() {
     </UModal>
     <UAlert
       v-if="doneError && !doneConfirmationOpen"
+      role="alert"
       color="error"
       title="Could not mark release as done"
     >
       {{ doneError }}
     </UAlert>
-    <UAlert v-if="ticketsError" color="error" title="Could not load tickets"
-      >Refresh the page to try again.</UAlert
-    >
+    <div v-if="ticketsError" class="space-y-3">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not load tickets"
+        :description="clientFailureMessage(ticketsError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading tickets"
+        @click="refreshTickets()"
+      />
+    </div>
     <UCard v-if="!tickets.length && !ticketsError"
       ><h2 class="font-medium text-highlighted">No tickets yet</h2>
       <p class="mt-2 text-muted">
@@ -167,7 +211,7 @@ async function markDone() {
         }}
       </p></UCard
     >
-    <div v-else class="grid gap-3 sm:grid-cols-2">
+    <div v-else-if="!ticketsError" class="grid gap-3 sm:grid-cols-2">
       <EntityCard
         v-for="item in tickets"
         :key="item.ticket.id"
@@ -250,4 +294,19 @@ async function markDone() {
       </EntityCard>
     </div>
   </div>
+  <UCard v-else-if="error" class="space-y-3">
+    <UAlert
+      role="alert"
+      color="error"
+      title="Could not load release"
+      :description="clientFailureMessage(error)"
+    />
+    <UButton
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading release"
+      @click="refreshRelease()"
+    />
+  </UCard>
 </template>

@@ -3,9 +3,18 @@ import { parseTicketEstimate } from '~/utils/ticket-estimate'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
-const { data, pending: releasesPending, error: releasesError } = await useFetch('/api/releases')
+const {
+  data,
+  pending: releasesPending,
+  error: releasesError,
+  refresh: refreshReleases,
+} = await useApiFetch('/api/releases')
 const releases = computed(() => data.value?.releases ?? [])
-const { data: ticketsData, error: ticketsError } = await useFetch('/api/tickets')
+const {
+  data: ticketsData,
+  error: ticketsError,
+  refresh: refreshTickets,
+} = await useApiFetch('/api/tickets')
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
 const releaseId = ref(typeof route.query.release === 'string' ? route.query.release : '')
 watch(
@@ -43,23 +52,28 @@ async function submit() {
   pending.value = true
   errorMessage.value = ''
   try {
-    const created = await $fetch<{ id: string }>('/api/tickets', {
-      method: 'POST',
-      body: {
-        releaseId: releaseId.value,
-        title: title.value,
-        description: description.value,
-        estimateMinutes: parseTicketEstimate(estimate.value),
-        links: links.value.map(({ label, url }) => ({
-          ...(label.trim() ? { label: label.trim() } : {}),
-          url,
-        })),
-        relatedTicketIds: relatedTicketIds.value,
-      },
-    })
-    await navigateTo(`/tickets/${created.id}`)
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to create ticket.'
+    const result = await runClientRequest((signal) =>
+      $fetch<{ id: string }>('/api/tickets', {
+        method: 'POST',
+        body: {
+          releaseId: releaseId.value,
+          title: title.value,
+          description: description.value,
+          estimateMinutes: parseTicketEstimate(estimate.value),
+          links: links.value.map(({ label, url }) => ({
+            ...(label.trim() ? { label: label.trim() } : {}),
+            url,
+          })),
+          relatedTicketIds: relatedTicketIds.value,
+        },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      errorMessage.value = result.failure.userMessage
+      return
+    }
+    await navigateTo(`/tickets/${result.value.id}`)
   } finally {
     pending.value = false
   }
@@ -75,9 +89,21 @@ async function submit() {
         <EntityIcon kind="tickets" />New ticket
       </h1>
     </div>
-    <UAlert v-if="releasesError" color="error" title="Could not load releases"
-      >Try again before creating a ticket.</UAlert
-    >
+    <div v-if="releasesError" class="space-y-2">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not load releases"
+        :description="clientFailureMessage(releasesError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading releases"
+        @click="refreshReleases()"
+      />
+    </div>
     <UCard v-else-if="releasesPending"><p class="text-muted">Loading releases…</p></UCard>
     <UCard v-else-if="!releases.length"
       ><h2 class="font-medium text-highlighted">Create a release first</h2>
@@ -143,9 +169,21 @@ async function submit() {
         </div>
         <div class="space-y-3 border-t border-muted pt-5">
           <h2 class="font-medium text-highlighted">Related tickets</h2>
-          <UAlert v-if="ticketsError" color="error" title="Could not load related tickets"
-            >You can still create this ticket without a relation.</UAlert
-          >
+          <div v-if="ticketsError" class="space-y-2">
+            <UAlert
+              role="alert"
+              color="error"
+              title="Could not load related tickets"
+              :description="`${clientFailureMessage(ticketsError)} You can still create this ticket without a relation.`"
+            />
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="lucide:refresh-cw"
+              label="Retry loading related tickets"
+              @click="refreshTickets()"
+            />
+          </div>
           <div
             v-for="relatedId in relatedTicketIds"
             :key="relatedId"
@@ -190,7 +228,7 @@ async function submit() {
             No other active tickets available.
           </p>
         </div>
-        <UAlert v-if="errorMessage" color="error" title="Could not create ticket">{{
+        <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create ticket">{{
           errorMessage
         }}</UAlert>
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

@@ -6,7 +6,8 @@ const {
   data: projectData,
   pending: projectsPending,
   error: projectsError,
-} = await useFetch('/api/projects')
+  refresh: refreshProjects,
+} = await useApiFetch('/api/projects')
 const projects = computed(() => projectData.value?.projects ?? [])
 const projectId = ref(typeof route.query.project === 'string' ? route.query.project : '')
 const name = ref('')
@@ -30,13 +31,22 @@ async function submit() {
   pending.value = true
   errorMessage.value = ''
   try {
-    const release = await $fetch<{ id: string }>('/api/releases', {
-      method: 'POST',
-      body: { projectId: projectId.value, name: name.value, targetDate: targetDate.value || null },
-    })
-    await navigateTo(`/releases/${release.id}`)
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to create release.'
+    const result = await runClientRequest((signal) =>
+      $fetch<{ id: string }>('/api/releases', {
+        method: 'POST',
+        body: {
+          projectId: projectId.value,
+          name: name.value,
+          targetDate: targetDate.value || null,
+        },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      errorMessage.value = result.failure.userMessage
+      return
+    }
+    await navigateTo(`/releases/${result.value.id}`)
   } finally {
     pending.value = false
   }
@@ -53,9 +63,21 @@ async function submit() {
         <EntityIcon kind="releases" />New release
       </h1>
     </div>
-    <UAlert v-if="projectsError" color="error" title="Could not load projects">
-      Try again or return to the projects page before creating a release.
-    </UAlert>
+    <div v-if="projectsError" class="space-y-2">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not load projects"
+        :description="clientFailureMessage(projectsError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading projects"
+        @click="refreshProjects()"
+      />
+    </div>
     <UCard v-else-if="projectsPending">
       <p class="text-muted">Loading available projects…</p>
     </UCard>
@@ -85,7 +107,7 @@ async function submit() {
         <UFormField label="Target date" hint="Optional">
           <UInput v-model="targetDate" type="date" class="w-full" />
         </UFormField>
-        <UAlert v-if="errorMessage" color="error" title="Could not create release">{{
+        <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create release">{{
           errorMessage
         }}</UAlert>
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

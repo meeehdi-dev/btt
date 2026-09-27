@@ -1,6 +1,20 @@
 <script setup lang="ts">
 import { entityIcons } from '~/utils/entity-icons'
 
+type SearchResponse = {
+  clients: { id: string; label: string }[]
+  projects: { id: string; label: string; clientName: string }[]
+  releases: { id: string; label: string; projectName: string }[]
+  tickets: { id: string; label: string; releaseName: string }[]
+  timeEntries: {
+    id: string
+    label: string | null
+    date: string
+    startMinute: number
+    ticketTitle: string
+  }[]
+}
+
 const emit = defineEmits<{ select: [] }>()
 const input = ref<HTMLInputElement | null>(null)
 const resultsId = useId()
@@ -13,9 +27,12 @@ type Hit = { id: string; label: string; detail: string; to: string; icon: string
 const hits = ref<Hit[]>([])
 let request = 0
 let timer: ReturnType<typeof setTimeout> | undefined
+let activeController: AbortController | undefined
 const items = computed(() => hits.value)
 watch(query, (value) => {
   clearTimeout(timer)
+  activeController?.abort()
+  activeController = undefined
   const current = ++request
   hits.value = []
   selected.value = 0
@@ -24,61 +41,71 @@ watch(query, (value) => {
   if (value.trim().length < 2) return
   loading.value = true
   timer = setTimeout(async () => {
-    try {
-      const results = await $fetch('/api/search', { query: { q: value.trim() } })
-      if (current !== request) return
-      hits.value = [
-        ...results.clients.map((item) => ({
-          id: item.id,
-          label: item.label,
-          detail: '',
-          to: `/clients/${item.id}`,
-          icon: entityIcons.clients,
-          category: 'Clients',
-        })),
-        ...results.projects.map((item) => ({
-          id: item.id,
-          label: item.label,
-          detail: item.clientName,
-          to: `/projects/${item.id}`,
-          icon: entityIcons.projects,
-          category: 'Projects',
-        })),
-        ...results.releases.map((item) => ({
-          id: item.id,
-          label: item.label,
-          detail: item.projectName,
-          to: `/releases/${item.id}`,
-          icon: entityIcons.releases,
-          category: 'Releases',
-        })),
-        ...results.tickets.map((item) => ({
-          id: item.id,
-          label: item.label,
-          detail: item.releaseName,
-          to: `/tickets/${item.id}`,
-          icon: entityIcons.tickets,
-          category: 'Tickets',
-        })),
-        ...results.timeEntries.map((item) => ({
-          id: item.id,
-          label: item.label || item.ticketTitle,
-          detail: `${item.ticketTitle} · ${item.date} ${String(Math.floor(item.startMinute / 60)).padStart(2, '0')}:${String(item.startMinute % 60).padStart(2, '0')}`,
-          to: `/today?date=${item.date}`,
-          icon: 'lucide:clock-3',
-          category: 'Time entries',
-        })),
-      ]
-      open.value = true
-    } catch {
-      if (current === request) failed.value = true
-    } finally {
-      if (current === request) loading.value = false
+    const controller = new AbortController()
+    activeController = controller
+    const searchEndpoint: string = '/api/search'
+    const result = await runClientRequest<SearchResponse>(() =>
+      $fetch<SearchResponse>(searchEndpoint, {
+        query: { q: value.trim() },
+        signal: controller.signal,
+      }),
+    )
+    if (current !== request) return
+    if (result._tag === 'Failure') {
+      failed.value = true
+      loading.value = false
+      return
     }
+    const results = result.value
+    hits.value = [
+      ...results.clients.map((item) => ({
+        id: item.id,
+        label: item.label,
+        detail: '',
+        to: `/clients/${item.id}`,
+        icon: entityIcons.clients,
+        category: 'Clients',
+      })),
+      ...results.projects.map((item) => ({
+        id: item.id,
+        label: item.label,
+        detail: item.clientName,
+        to: `/projects/${item.id}`,
+        icon: entityIcons.projects,
+        category: 'Projects',
+      })),
+      ...results.releases.map((item) => ({
+        id: item.id,
+        label: item.label,
+        detail: item.projectName,
+        to: `/releases/${item.id}`,
+        icon: entityIcons.releases,
+        category: 'Releases',
+      })),
+      ...results.tickets.map((item) => ({
+        id: item.id,
+        label: item.label,
+        detail: item.releaseName,
+        to: `/tickets/${item.id}`,
+        icon: entityIcons.tickets,
+        category: 'Tickets',
+      })),
+      ...results.timeEntries.map((item) => ({
+        id: item.id,
+        label: item.label || item.ticketTitle,
+        detail: `${item.ticketTitle} · ${item.date} ${String(Math.floor(item.startMinute / 60)).padStart(2, '0')}:${String(item.startMinute % 60).padStart(2, '0')}`,
+        to: `/today?date=${item.date}`,
+        icon: 'lucide:clock-3',
+        category: 'Time entries',
+      })),
+    ]
+    open.value = true
+    loading.value = false
   }, 250)
 })
 onBeforeUnmount(() => {
   clearTimeout(timer)
+  activeController?.abort()
   request++
 })
 function focus() {

@@ -6,7 +6,8 @@ const {
   data: clientData,
   pending: clientsPending,
   error: clientsError,
-} = await useFetch('/api/clients')
+  refresh: refreshClients,
+} = await useApiFetch('/api/clients')
 const clients = computed(() => clientData.value?.clients ?? [])
 const clientId = ref(typeof route.query.client === 'string' ? route.query.client : '')
 const name = ref('')
@@ -28,13 +29,18 @@ async function submit() {
   pending.value = true
   errorMessage.value = ''
   try {
-    const project = await $fetch<{ id: string }>('/api/projects', {
-      method: 'POST',
-      body: { clientId: clientId.value, name: name.value, color: color.value },
-    })
-    await navigateTo(`/projects/${project.id}`)
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to create project.'
+    const result = await runClientRequest((signal) =>
+      $fetch<{ id: string }>('/api/projects', {
+        method: 'POST',
+        body: { clientId: clientId.value, name: name.value, color: color.value },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      errorMessage.value = result.failure.userMessage
+      return
+    }
+    await navigateTo(`/projects/${result.value.id}`)
   } finally {
     pending.value = false
   }
@@ -51,9 +57,21 @@ async function submit() {
         <EntityIcon kind="projects" />New project
       </h1>
     </div>
-    <UAlert v-if="clientsError" color="error" title="Could not load clients">
-      Try again or return to the clients page before creating a project.
-    </UAlert>
+    <div v-if="clientsError" class="space-y-2">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not load clients"
+        :description="clientFailureMessage(clientsError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading clients"
+        @click="refreshClients()"
+      />
+    </div>
     <UCard v-else-if="clientsPending">
       <p class="text-muted">Loading available clients…</p>
     </UCard>
@@ -78,7 +96,7 @@ async function submit() {
         <UFormField label="Color" required>
           <ColorSelector v-model="color" />
         </UFormField>
-        <UAlert v-if="errorMessage" color="error" title="Could not create project">{{
+        <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create project">{{
           errorMessage
         }}</UAlert>
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

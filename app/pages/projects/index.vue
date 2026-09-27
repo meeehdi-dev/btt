@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
 const showArchived = ref(false)
-const { data, pending, error, refresh } = await useFetch('/api/projects', {
+const { data, pending, error, refresh } = await useApiFetch('/api/projects', {
   query: computed(() => ({ archived: showArchived.value ? 'true' : undefined })),
 })
 const projects = computed(() => data.value?.projects ?? [])
@@ -17,6 +17,13 @@ const projects = computed(() => data.value?.projects ?? [])
         <UButton to="/projects/new" icon="lucide:plus" label="New project" />
       </div>
     </div>
+    <UAlert
+      v-if="error"
+      role="alert"
+      color="error"
+      title="Could not load projects"
+      :description="clientFailureMessage(error)"
+    />
     <UButton
       v-if="error"
       color="error"
@@ -26,13 +33,13 @@ const projects = computed(() => data.value?.projects ?? [])
       @click="refresh()"
     />
     <UCard v-if="pending"><p class="text-muted">Loading projects…</p></UCard>
-    <UCard v-else-if="!projects.length"
+    <UCard v-else-if="!error && !projects.length"
       ><h2 class="font-medium text-highlighted">
         No {{ showArchived ? '' : 'active ' }}projects yet
       </h2>
       <p class="mt-2 text-muted">Create a project from a client.</p></UCard
     >
-    <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-else-if="!error" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <ProjectCard v-for="item in projects" :key="item.project.id" :item="item" />
     </div>
   </div>

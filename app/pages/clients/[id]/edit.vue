@@ -3,11 +3,19 @@ definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
 const route = useRoute()
 const id = route.params.id as string
-const { data: client } = await useFetch(`/api/clients/${id}`, { query: { archived: 'true' } })
-if (!client.value) throw createError({ status: 404, statusText: 'Client not found' })
-const name = ref(client.value.name)
-const color = ref(client.value.color)
-const archived = ref(Boolean(client.value.archivedAt))
+const endpoint: string = '/api/clients/' + id
+const {
+  data: client,
+  error: clientError,
+  refresh: refreshClient,
+} = await useApiFetch(`/api/clients/${id}`, { query: { archived: 'true' } })
+if (clientError.value && clientFailureStatus(clientError.value) === 404)
+  throw createError({ statusCode: 404, statusMessage: 'Client not found' })
+if (!client.value && !clientError.value)
+  throw createError({ statusCode: 404, statusMessage: 'Client not found' })
+const name = ref(client.value?.name ?? '')
+const color = ref(client.value?.color ?? '#64748b')
+const archived = ref(Boolean(client.value?.archivedAt))
 const pending = ref(false)
 const errorMessage = ref('')
 
@@ -15,31 +23,45 @@ async function save() {
   pending.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/clients/${id}`, {
-      method: 'PATCH',
-      body: { name: name.value, color: color.value, archived: archived.value },
-    })
+    const result = await runClientRequest<unknown>(
+      (signal) =>
+        $fetch<unknown>(endpoint, {
+          method: 'PATCH',
+          body: { name: name.value, color: color.value, archived: archived.value },
+          signal,
+        }) as Promise<unknown>,
+    )
+    if (result._tag === 'Failure') {
+      errorMessage.value = result.failure.userMessage
+      return
+    }
     await navigateTo(`/clients/${id}${archived.value ? '?archived=true' : ''}`)
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to save client.'
   } finally {
     pending.value = false
   }
 }
 
 async function remove() {
-  if (!confirm('Permanently delete this archived client?')) return
+  if (pending.value || !confirm('Permanently delete this archived client?')) return
+  pending.value = true
+  errorMessage.value = ''
   try {
-    await $fetch(`/api/clients/${id}`, { method: 'DELETE' })
+    const result = await runClientRequest((signal) =>
+      $fetch<unknown>(endpoint, { method: 'DELETE', signal }),
+    )
+    if (result._tag === 'Failure') {
+      errorMessage.value = result.failure.userMessage
+      return
+    }
     await navigateTo('/clients')
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to delete client.'
+  } finally {
+    pending.value = false
   }
 }
 </script>
 
 <template>
-  <div class="w-full space-y-6">
+  <div v-if="client" class="w-full space-y-6">
     <div>
       <NuxtLink
         :to="`/clients/${id}${archived ? '?archived=true' : ''}`"
@@ -50,6 +72,21 @@ async function remove() {
         <EntityIcon kind="clients" />Edit client
       </h1>
     </div>
+    <div v-if="clientError" class="space-y-3">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not refresh client"
+        :description="clientFailureMessage(clientError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading client"
+        @click="refreshClient()"
+      />
+    </div>
     <UCard>
       <form class="space-y-5" @submit.prevent="save">
         <UFormField label="Name" required
@@ -59,7 +96,7 @@ async function remove() {
           <ColorSelector v-model="color" />
         </UFormField>
         <UCheckbox v-model="archived" label="Archived" />
-        <UAlert v-if="errorMessage" color="error" title="Could not save changes">{{
+        <UAlert v-if="errorMessage" role="alert" color="error" title="Could not save changes">{{
           errorMessage
         }}</UAlert>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -92,4 +129,19 @@ async function remove() {
       </form>
     </UCard>
   </div>
+  <UCard v-else-if="clientError" class="space-y-3">
+    <UAlert
+      role="alert"
+      color="error"
+      title="Could not load client"
+      :description="clientFailureMessage(clientError)"
+    />
+    <UButton
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading client"
+      @click="refreshClient()"
+    />
+  </UCard>
 </template>

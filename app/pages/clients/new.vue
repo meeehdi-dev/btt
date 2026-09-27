@@ -10,13 +10,18 @@ async function submit() {
   pending.value = true
   errorMessage.value = ''
   try {
-    const client = await $fetch<{ id: string }>('/api/clients', {
-      method: 'POST',
-      body: { name: name.value, color: color.value },
-    })
-    await navigateTo(`/clients/${client.id}`)
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to create client.'
+    const result = await runClientRequest((signal) =>
+      $fetch<{ id: string }>('/api/clients', {
+        method: 'POST',
+        body: { name: name.value, color: color.value },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      errorMessage.value = result.failure.userMessage
+      return
+    }
+    await navigateTo(`/clients/${result.value.id}`)
   } finally {
     pending.value = false
   }
@@ -41,7 +46,7 @@ async function submit() {
         <UFormField label="Color" required>
           <ColorSelector v-model="color" />
         </UFormField>
-        <UAlert v-if="errorMessage" color="error" title="Could not create client">{{
+        <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create client">{{
           errorMessage
         }}</UAlert>
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

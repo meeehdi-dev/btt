@@ -6,53 +6,86 @@ const route = useRoute()
 const id = route.params.id as string
 const endpoint: string = '/api/tickets/' + id
 const showArchived = route.query.archived === 'true'
-const { data, error, refresh } = await useFetch(`/api/tickets/${id}`, {
+const { data, error, refresh } = await useApiFetch(`/api/tickets/${id}`, {
   query: { archived: showArchived ? 'true' : undefined },
 })
-if (error.value || !data.value) throw createError({ status: 404, statusText: 'Ticket not found' })
+if (error.value && clientFailureStatus(error.value) === 404)
+  throw createError({ statusCode: 404, statusMessage: 'Ticket not found' })
+if (!data.value && !error.value)
+  throw createError({ statusCode: 404, statusMessage: 'Ticket not found' })
 const record = computed(() => data.value!.ticket)
-const { data: choices } = await useFetch('/api/tickets')
+const {
+  data: choices,
+  error: choicesError,
+  refresh: refreshChoices,
+} = await useApiFetch('/api/tickets')
 const relatedId = ref('')
 const label = ref('')
 const url = ref('')
 const pending = ref(false)
 const actionError = ref('')
-async function action(run: () => Promise<unknown>) {
+const actionNeedsRefresh = ref(false)
+const actionErrorTitle = ref('Could not update ticket')
+async function action(run: (signal: AbortSignal) => Promise<unknown>) {
+  if (pending.value || actionNeedsRefresh.value) return
   pending.value = true
   actionError.value = ''
+  actionErrorTitle.value = 'Could not update ticket'
   try {
-    await run()
-    await refresh()
-  } catch (cause) {
-    actionError.value = cause instanceof Error ? cause.message : 'Unable to update ticket.'
+    const result = await runClientRequest(run)
+    if (result._tag === 'Failure') {
+      actionError.value = result.failure.userMessage
+      return
+    }
+    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    if (refreshed._tag === 'Failure') {
+      actionNeedsRefresh.value = true
+      actionErrorTitle.value = 'Ticket updated; refresh failed'
+      actionError.value = `The ticket was updated, but its details could not be refreshed. ${refreshed.failure.userMessage}`
+    }
   } finally {
     pending.value = false
   }
 }
+async function retryTicket() {
+  const result = await runClientEffect(refreshEffect(refresh, () => error.value))
+  if (result._tag === 'Success' && actionNeedsRefresh.value) {
+    actionNeedsRefresh.value = false
+    actionError.value = ''
+    actionErrorTitle.value = 'Could not update ticket'
+  }
+}
 async function addLink() {
-  await action(async () => {
-    const normalizedLabel = label.value.trim()
-    await $fetch<unknown>(endpoint + '/links', {
+  const normalizedLabel = label.value.trim()
+  await action((signal) =>
+    $fetch<unknown>(endpoint + '/links', {
       method: 'POST',
       body: { ...(normalizedLabel ? { label: normalizedLabel } : {}), url: url.value },
-    })
-    label.value = ''
-    url.value = ''
-  })
+      signal,
+    }).then((result) => {
+      label.value = ''
+      url.value = ''
+      return result
+    }),
+  )
 }
 async function addRelation() {
   if (!relatedId.value) return
-  await action(async () => {
-    await $fetch<unknown>(endpoint + '/relations', {
+  const ticketId = relatedId.value
+  await action((signal) =>
+    $fetch<unknown>(endpoint + '/relations', {
       method: 'POST',
-      body: { ticketId: relatedId.value },
-    })
-    relatedId.value = ''
-  })
+      body: { ticketId },
+      signal,
+    }).then((result) => {
+      relatedId.value = ''
+      return result
+    }),
+  )
 }
 </script>
 <template>
-  <div class="space-y-6">
+  <div v-if="data" class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <NuxtLink to="/tickets" class="inline-flex items-center gap-1 text-sm text-primary"
@@ -102,9 +135,32 @@ async function addRelation() {
         label="Edit ticket"
       />
     </div>
-    <UAlert v-if="actionError" color="error" title="Could not update ticket">{{
+    <div v-if="error" class="space-y-3">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not refresh ticket"
+        :description="clientFailureMessage(error)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading ticket details"
+        @click="retryTicket()"
+      />
+    </div>
+    <UAlert v-if="actionError" role="alert" color="error" :title="actionErrorTitle">{{
       actionError
     }}</UAlert>
+    <UButton
+      v-if="actionNeedsRefresh && !error"
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading ticket details"
+      @click="retryTicket()"
+    />
     <UCard
       ><h2 class="font-medium text-highlighted">Description</h2>
       <p class="mt-2 whitespace-pre-wrap text-muted">
@@ -139,14 +195,17 @@ async function addRelation() {
               >{{ ticketLinkLabel(link.label, link.url) }}</a
             ><UTooltip :text="`Remove ${ticketLinkLabel(link.label, link.url)}`">
               <UButton
-                :disabled="pending"
+                :disabled="pending || actionNeedsRefresh"
                 color="error"
                 variant="ghost"
                 icon="lucide:x"
                 :aria-label="`Remove ${ticketLinkLabel(link.label, link.url)}`"
                 @click="
-                  action(() =>
-                    $fetch<unknown>(endpoint + '/links/' + link.id, { method: 'DELETE' }),
+                  action((signal) =>
+                    $fetch<unknown>(endpoint + '/links/' + link.id, {
+                      method: 'DELETE',
+                      signal,
+                    }),
                   )
                 "
               />
@@ -163,10 +222,31 @@ async function addRelation() {
               type="url"
               class="w-full"
               placeholder="https://example.com" /></UFormField
-          ><UButton type="submit" :loading="pending" icon="lucide:plus" label="Add link" /></form
+          ><UButton
+            type="submit"
+            :loading="pending"
+            :disabled="actionNeedsRefresh"
+            icon="lucide:plus"
+            label="Add link"
+          /></form
       ></UCard>
       <UCard
         ><h2 class="font-medium text-highlighted">Related tickets</h2>
+        <UAlert
+          v-if="choicesError"
+          class="mt-3"
+          role="alert"
+          color="error"
+          title="Could not load ticket choices"
+          :description="clientFailureMessage(choicesError)" />
+        <UButton
+          v-if="choicesError"
+          class="mt-2"
+          color="neutral"
+          variant="outline"
+          icon="lucide:refresh-cw"
+          label="Retry loading ticket choices"
+          @click="refreshChoices()" />
         <ul v-if="data?.related.length" class="mt-3 space-y-2">
           <li
             v-for="other in data.related"
@@ -180,15 +260,16 @@ async function addRelation() {
             >
             <UTooltip :text="`Unlink ${other.title}`">
               <UButton
-                :disabled="pending"
+                :disabled="pending || actionNeedsRefresh"
                 color="error"
                 variant="ghost"
                 icon="lucide:x"
                 :aria-label="`Unlink ${other.title}`"
                 @click="
-                  action(() =>
+                  action((signal) =>
                     $fetch<unknown>(endpoint + '/relations/' + other.relationId, {
                       method: 'DELETE',
+                      signal,
                     }),
                   )
                 "
@@ -201,6 +282,7 @@ async function addRelation() {
           <UFormField label="Link a ticket"
             ><USelect
               v-model="relatedId"
+              :disabled="!!choicesError || pending || actionNeedsRefresh"
               :items="
                 (choices?.tickets ?? [])
                   .filter(
@@ -217,7 +299,7 @@ async function addRelation() {
               placeholder="Choose ticket" /></UFormField
           ><UButton
             type="submit"
-            :disabled="!relatedId"
+            :disabled="!relatedId || !!choicesError || pending || actionNeedsRefresh"
             :loading="pending"
             icon="lucide:link-2"
             label="Link ticket"
@@ -225,4 +307,19 @@ async function addRelation() {
       ></UCard>
     </div>
   </div>
+  <UCard v-else-if="error" class="space-y-3">
+    <UAlert
+      role="alert"
+      color="error"
+      title="Could not load ticket"
+      :description="clientFailureMessage(error)"
+    />
+    <UButton
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading ticket"
+      @click="refresh()"
+    />
+  </UCard>
 </template>

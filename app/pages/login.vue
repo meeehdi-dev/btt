@@ -5,9 +5,9 @@ const route = useRoute()
 const pending = ref(false)
 const errorMessage = ref('')
 const redirectPath = safeRedirect(route.query.redirect)
-const { data: session } = await authClient.useSession(useFetch)
+const { data: session, error: sessionError } = await authClient.useSession(useApiFetch)
 
-if (session.value) {
+if (!sessionError.value && session.value) {
   await navigateTo(redirectPath)
 }
 
@@ -15,14 +15,23 @@ async function signInWithGitHub() {
   pending.value = true
   errorMessage.value = ''
 
-  const result = await authClient.signIn.social({
-    provider: 'github',
-    callbackURL: redirectPath,
-  })
+  const result = await runClientRequest(() =>
+    authClient.signIn.social({
+      provider: 'github',
+      callbackURL: redirectPath,
+    }),
+  )
 
-  if (result.error) {
+  if (result._tag === 'Failure') {
     pending.value = false
-    errorMessage.value = result.error.message ?? 'Unable to start GitHub sign-in.'
+    errorMessage.value = result.failure.userMessage
+    return
+  }
+  if (result.value.error) {
+    pending.value = false
+    errorMessage.value = toClientApiFailure({
+      statusCode: result.value.error.status,
+    }).userMessage
   }
 }
 
@@ -44,7 +53,24 @@ function safeRedirect(value: unknown) {
       </div>
     </template>
     <p class="text-muted">Sign in to continue to your workday.</p>
-    <UAlert v-if="errorMessage" class="mt-6" color="error" title="Sign-in failed">
+    <UAlert
+      v-if="sessionError"
+      role="alert"
+      class="mt-6"
+      color="error"
+      title="Could not verify your session"
+      :description="clientFailureMessage(sessionError)"
+    />
+    <UButton
+      v-if="sessionError"
+      class="mt-3"
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry session verification"
+      @click="refreshNuxtData()"
+    />
+    <UAlert v-if="errorMessage" role="alert" class="mt-6" color="error" title="Sign-in failed">
       {{ errorMessage }}
     </UAlert>
     <UButton

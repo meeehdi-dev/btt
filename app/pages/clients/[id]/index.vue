@@ -4,22 +4,31 @@ definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
 const archived = route.query.archived === 'true'
-const { data: clientData, error: clientError } = await useFetch(`/api/clients/${id}`, {
+const {
+  data: clientData,
+  error: clientError,
+  refresh: refreshClient,
+} = await useApiFetch(`/api/clients/${id}`, {
   query: { archived: archived ? 'true' : undefined },
 })
-const client = computed(() => clientData.value!)
-const { data: projectData } = await useFetch('/api/projects', { query: { archived: 'true' } })
+const client = computed(() => clientData.value)
+const {
+  data: projectData,
+  error: projectsError,
+  refresh: refreshProjects,
+} = await useApiFetch('/api/projects', { query: { archived: 'true' } })
 const projects = computed(() =>
   (projectData.value?.projects ?? []).filter((item) => item.project.clientId === id),
 )
 
-if (clientError.value || !client.value) {
-  throw createError({ status: 404, statusText: 'Client not found' })
-}
+if (clientError.value && clientFailureStatus(clientError.value) === 404)
+  throw createError({ statusCode: 404, statusMessage: 'Client not found' })
+if (!client.value && !clientError.value)
+  throw createError({ statusCode: 404, statusMessage: 'Client not found' })
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div v-if="client" class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -50,7 +59,37 @@ if (clientError.value || !client.value) {
         <UButton :to="`/projects/new?client=${id}`" icon="lucide:plus" label="New project" />
       </div>
     </div>
-    <UCard v-if="!projects.length">
+    <div v-if="clientError" class="space-y-3">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not refresh client"
+        :description="clientFailureMessage(clientError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading client"
+        @click="refreshClient()"
+      />
+    </div>
+    <div v-if="projectsError" class="space-y-3">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not load projects"
+        :description="clientFailureMessage(projectsError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading projects"
+        @click="refreshProjects()"
+      />
+    </div>
+    <UCard v-else-if="!projects.length">
       <h2 class="font-medium text-highlighted">No projects yet</h2>
       <p class="mt-2 text-muted">Add a project to start planning releases.</p>
     </UCard>
@@ -58,4 +97,19 @@ if (clientError.value || !client.value) {
       <ProjectCard v-for="item in projects" :key="item.project.id" :item="item" />
     </div>
   </div>
+  <UCard v-else-if="clientError" class="space-y-3">
+    <UAlert
+      role="alert"
+      color="error"
+      title="Could not load client"
+      :description="clientFailureMessage(clientError)"
+    />
+    <UButton
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading client"
+      @click="refreshClient()"
+    />
+  </UCard>
 </template>

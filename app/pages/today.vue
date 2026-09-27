@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Effect } from 'effect'
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
 import { entityIcons } from '~/utils/entity-icons'
@@ -25,17 +26,21 @@ const {
   pending,
   error,
   refresh,
-} = await useFetch('/api/agenda', {
+} = await useApiFetch('/api/agenda', {
   query: computed(() => ({ date: day.value })),
   immediate: false,
   watch: false,
 })
-const { data: settings, error: settingsError } = await useFetch('/api/settings')
+const {
+  data: settings,
+  error: settingsError,
+  refresh: refreshSettings,
+} = await useApiFetch('/api/settings')
 const {
   data: ticketsData,
   error: ticketsError,
   refresh: refreshTickets,
-} = await useFetch('/api/tickets')
+} = await useApiFetch('/api/tickets')
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
 const entries = computed(() => agenda.value?.entries ?? [])
 type FilterKind = HierarchyFilterKind | 'status'
@@ -117,9 +122,18 @@ const duration = ref(30)
 const description = ref('')
 const busy = ref(false)
 const actionError = ref('')
+const actionErrorTitle = ref('Could not add work')
+const pageActionError = ref('')
+const pageActionNeedsRefresh = ref(false)
+const pageActionErrorTitle = ref('Could not complete action')
 const dragError = ref('')
+const dragErrorBase = ref('')
+const dragErrorTitle = ref('Could not update time entry')
 const statusChangingId = ref<string | null>(null)
 const statusError = ref('')
+const statusErrorBase = ref('')
+const statusErrorNeedsRefresh = ref(false)
+const statusWriteNeedsRefresh = ref(false)
 const statusMessage = ref('')
 const editingId = ref<string | null>(null)
 const editingOpen = ref(false)
@@ -127,7 +141,35 @@ const editingTime = shallowRef(new Time(9, 0))
 const editingDuration = ref(30)
 const editingDescription = ref('')
 const editingError = ref('')
+const editingErrorTitle = ref('Could not update time entry')
 const deletingEdit = ref(false)
+async function retryTodayReads() {
+  const result = await runClientEffect(
+    Effect.all([
+      refreshEffect(refresh, () => error.value),
+      refreshEffect(refreshSettings, () => settingsError.value),
+      refreshEffect(refreshTickets, () => ticketsError.value),
+    ]),
+  )
+  if (result._tag === 'Success') {
+    pageActionNeedsRefresh.value = false
+    pageActionError.value = ''
+    if (dragErrorBase.value) {
+      dragError.value = dragErrorBase.value
+      dragErrorBase.value = ''
+    } else if (dragErrorTitle.value === 'Time entry moved; refresh failed') {
+      dragError.value = ''
+      dragErrorTitle.value = 'Could not update time entry'
+    }
+    if (statusWriteNeedsRefresh.value) {
+      statusError.value = ''
+      statusWriteNeedsRefresh.value = false
+    } else if (statusErrorNeedsRefresh.value) {
+      statusError.value = statusErrorBase.value
+      statusErrorNeedsRefresh.value = false
+    }
+  }
+}
 watch(day, () => {
   editingOpen.value = false
   addOpen.value = false
@@ -144,62 +186,110 @@ function beginEdit(id: string) {
   editingOpen.value = true
 }
 async function saveEdit() {
-  if (!editingId.value || busy.value) return
+  if (!editingId.value || busy.value || pageActionNeedsRefresh.value) return
   busy.value = true
   editingError.value = ''
+  editingErrorTitle.value = 'Could not update time entry'
   try {
-    await $fetch(`/api/time-entries/${editingId.value}`, {
-      method: 'PATCH',
-      body: {
-        startMinute: editingTime.value.hour * 60 + editingTime.value.minute,
-        durationMinutes: editingDuration.value,
-        description: editingDescription.value,
-      },
-    })
-    await refresh()
+    const endpoint: string = '/api/time-entries/' + editingId.value
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(endpoint, {
+        method: 'PATCH',
+        body: {
+          startMinute: editingTime.value.hour * 60 + editingTime.value.minute,
+          durationMinutes: editingDuration.value,
+          description: editingDescription.value,
+        },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      editingError.value = result.failure.userMessage
+      return
+    }
     editingOpen.value = false
-  } catch (cause) {
-    editingError.value = cause instanceof Error ? cause.message : 'Could not correct time entry.'
-    await refresh()
+    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    if (refreshed._tag === 'Failure') {
+      pageActionNeedsRefresh.value = true
+      pageActionErrorTitle.value = 'Time entry corrected; refresh failed'
+      pageActionError.value = `Your correction was saved, but the agenda could not be refreshed. ${refreshed.failure.userMessage}`
+    }
   } finally {
     busy.value = false
   }
 }
 async function deleteEdit() {
-  if (!editingId.value || busy.value || !confirm('Delete this time entry?')) return
+  if (
+    !editingId.value ||
+    busy.value ||
+    pageActionNeedsRefresh.value ||
+    !confirm('Delete this time entry?')
+  )
+    return
   busy.value = true
   deletingEdit.value = true
   editingError.value = ''
+  editingErrorTitle.value = 'Could not delete time entry'
   try {
-    await $fetch(`/api/time-entries/${editingId.value}`, { method: 'DELETE' })
-    await refresh()
+    const endpoint: string = '/api/time-entries/' + editingId.value
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(endpoint, { method: 'DELETE', signal }),
+    )
+    if (result._tag === 'Failure') {
+      editingError.value = result.failure.userMessage
+      return
+    }
     editingOpen.value = false
     editingId.value = null
-  } catch (cause) {
-    editingError.value = cause instanceof Error ? cause.message : 'Could not delete time entry.'
+    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    if (refreshed._tag === 'Failure') {
+      pageActionNeedsRefresh.value = true
+      pageActionErrorTitle.value = 'Time entry deleted; refresh failed'
+      pageActionError.value = `The time entry was deleted, but the agenda could not be refreshed. ${refreshed.failure.userMessage}`
+    }
   } finally {
     deletingEdit.value = false
     busy.value = false
   }
 }
 function beginDragCreate(startMinute: number, durationMinutes: number) {
+  if (pageActionNeedsRefresh.value) return
   startTime.value = new Time(Math.floor(startMinute / 60), startMinute % 60)
   duration.value = durationMinutes
   actionError.value = ''
   addOpen.value = true
 }
 async function changeEntry(id: string, startMinute: number, durationMinutes: number) {
+  if (busy.value || pageActionNeedsRefresh.value) return
   busy.value = true
   dragError.value = ''
+  dragErrorBase.value = ''
+  dragErrorTitle.value = 'Could not update time entry'
   try {
-    await $fetch(`/api/time-entries/${id}`, {
-      method: 'PATCH',
-      body: { startMinute, durationMinutes },
-    })
-    await refresh()
-  } catch (cause) {
-    dragError.value = cause instanceof Error ? cause.message : 'Could not move time entry.'
-    await refresh()
+    const endpoint: string = '/api/time-entries/' + id
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(endpoint, {
+        method: 'PATCH',
+        body: { startMinute, durationMinutes },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      dragErrorBase.value = result.failure.userMessage
+      dragError.value = dragErrorBase.value
+      const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+      if (refreshed._tag === 'Failure') {
+        pageActionNeedsRefresh.value = true
+        dragError.value += ` The agenda also could not be refreshed. ${refreshed.failure.userMessage}`
+      }
+      return
+    }
+    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    if (refreshed._tag === 'Failure') {
+      pageActionNeedsRefresh.value = true
+      dragErrorTitle.value = 'Time entry moved; refresh failed'
+      dragError.value = `The time entry was moved, but the agenda could not be refreshed. ${refreshed.failure.userMessage}`
+    }
   } finally {
     busy.value = false
   }
@@ -227,7 +317,7 @@ function resetToday() {
   date.value = today(getLocalTimeZone())
 }
 async function changeTicketStatus(id: string, destination: TicketStatus) {
-  if (statusChangingId.value) return
+  if (statusChangingId.value || pageActionNeedsRefresh.value) return
   const source = tickets.value.find(({ ticket }) => ticket.id === id)
   if (
     !source ||
@@ -238,43 +328,83 @@ async function changeTicketStatus(id: string, destination: TicketStatus) {
     return
   statusChangingId.value = id
   statusError.value = ''
+  statusErrorBase.value = ''
+  statusErrorNeedsRefresh.value = false
+  statusWriteNeedsRefresh.value = false
   statusMessage.value = `Changing ${source.ticket.title} to ${destination}.`
-  let saved = false
+  const refreshTodayData = () =>
+    runClientEffect(
+      Effect.all([
+        refreshEffect(refresh, () => error.value),
+        refreshEffect(refreshTickets, () => ticketsError.value),
+      ]),
+    )
   try {
-    await $fetch(`/api/tickets/${id}`, { method: 'PATCH', body: { status: destination } })
-    saved = true
-    await Promise.all([refresh(), refreshTickets()])
-    if (error.value || ticketsError.value)
-      throw new Error('Ticket was updated, but Today could not refresh its agenda or ticket data.')
+    const endpoint: string = '/api/tickets/' + id
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(endpoint, { method: 'PATCH', body: { status: destination }, signal }),
+    )
+    if (result._tag === 'Failure') {
+      statusMessage.value = ''
+      statusErrorBase.value = result.failure.userMessage
+      statusError.value = statusErrorBase.value
+      const refreshed = await refreshTodayData()
+      if (refreshed._tag === 'Failure') {
+        pageActionNeedsRefresh.value = true
+        statusErrorNeedsRefresh.value = true
+        statusError.value += ` Today could not refresh its agenda or ticket data. ${refreshed.failure.userMessage}`
+      }
+      return
+    }
+    const refreshed = await refreshTodayData()
+    if (refreshed._tag === 'Failure') {
+      pageActionNeedsRefresh.value = true
+      statusWriteNeedsRefresh.value = true
+      statusMessage.value = ''
+      statusError.value = `Ticket updated, but Today could not refresh its agenda or ticket data. ${refreshed.failure.userMessage}`
+      return
+    }
     statusMessage.value = `Changed ${source.ticket.title} to ${destination}.`
-  } catch (cause) {
-    statusMessage.value = ''
-    statusError.value = cause instanceof Error ? cause.message : 'Could not change ticket status.'
-    if (!saved) await Promise.allSettled([refresh(), refreshTickets()])
   } finally {
     statusChangingId.value = null
   }
 }
 async function add() {
-  if (!day.value || !tickets.value.some(({ ticket }) => ticket.id === ticketId.value)) return
+  if (
+    pageActionNeedsRefresh.value ||
+    !day.value ||
+    !tickets.value.some(({ ticket }) => ticket.id === ticketId.value)
+  )
+    return
   busy.value = true
   actionError.value = ''
+  actionErrorTitle.value = 'Could not add work'
   try {
-    await $fetch('/api/time-entries', {
-      method: 'POST',
-      body: {
-        ticketId: ticketId.value,
-        date: day.value,
-        startMinute: startTime.value.hour * 60 + startTime.value.minute,
-        durationMinutes: duration.value,
-        description: description.value,
-      },
-    })
-    await refresh()
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>('/api/time-entries', {
+        method: 'POST',
+        body: {
+          ticketId: ticketId.value,
+          date: day.value,
+          startMinute: startTime.value.hour * 60 + startTime.value.minute,
+          durationMinutes: duration.value,
+          description: description.value,
+        },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      actionError.value = result.failure.userMessage
+      return
+    }
     description.value = ''
     addOpen.value = false
-  } catch (cause) {
-    actionError.value = cause instanceof Error ? cause.message : 'Could not add completed work.'
+    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    if (refreshed._tag === 'Failure') {
+      pageActionNeedsRefresh.value = true
+      pageActionErrorTitle.value = 'Work added; agenda refresh failed'
+      pageActionError.value = `Your time entry was saved, but the agenda could not be refreshed. ${refreshed.failure.userMessage}`
+    }
   } finally {
     busy.value = false
   }
@@ -357,6 +487,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         />
       </div>
       <div
+        v-if="!error && !settingsError && agenda"
         class="flex min-w-44 w-full items-center gap-3 text-sm text-muted md:flex-1 lg:max-w-[50%]"
         aria-label="Workday summary"
       >
@@ -389,11 +520,25 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         description="Record completed work in 30-minute slots without overlapping other entries."
         scrollable
       >
-        <UButton icon="lucide:plus" label="Add time entry" />
+        <UButton icon="lucide:plus" label="Add time entry" :disabled="pageActionNeedsRefresh" />
         <template #body>
           <form class="space-y-4" @submit.prevent="add">
             <p class="text-sm text-muted">Work date: {{ day }}</p>
-            <UAlert v-if="ticketsError" color="error" title="Could not load tickets" />
+            <UAlert
+              v-if="ticketsError"
+              role="alert"
+              color="error"
+              title="Could not load tickets"
+              :description="clientFailureMessage(ticketsError)"
+            />
+            <UButton
+              v-if="ticketsError"
+              color="neutral"
+              variant="outline"
+              icon="lucide:refresh-cw"
+              label="Retry loading tickets"
+              @click="retryTodayReads()"
+            />
             <template v-else-if="tickets.length">
               <UFormField label="Ticket" required
                 ><USelect
@@ -426,8 +571,9 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
               /></UFormField>
               <UAlert
                 v-if="actionError"
+                role="alert"
                 color="error"
-                title="Could not add work"
+                :title="actionErrorTitle"
                 :description="actionError"
               />
               <div class="flex flex-col gap-2 sm:flex-row">
@@ -436,7 +582,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
                   icon="lucide:save"
                   label="Save time entry"
                   :loading="busy"
-                  :disabled="!day || !ticketId"
+                  :disabled="!day || !ticketId || pageActionNeedsRefresh"
                   class="w-full sm:w-auto"
                 /><UButton
                   color="neutral"
@@ -485,8 +631,9 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
             </UFormField>
             <UAlert
               v-if="editingError"
+              role="alert"
               color="error"
-              title="Could not update time entry"
+              :title="editingErrorTitle"
               :description="editingError"
             />
             <div class="flex flex-col gap-2 sm:flex-row">
@@ -524,7 +671,20 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         </template>
       </UModal>
     </div>
-    <UAlert v-if="error || settingsError" color="error" title="Could not load your agenda" />
+    <UAlert
+      v-if="error || settingsError"
+      role="alert"
+      color="error"
+      title="Could not load all Today data"
+      :description="clientFailureMessage(error || settingsError)"
+    />
+    <UAlert
+      v-if="pageActionError"
+      role="alert"
+      color="error"
+      :title="pageActionErrorTitle"
+      :description="pageActionError"
+    />
     <UAlert
       v-if="statusError"
       role="alert"
@@ -534,12 +694,36 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
     />
     <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
     <UButton
-      v-if="error"
+      v-if="error && !pageActionNeedsRefresh"
       color="neutral"
       variant="outline"
       icon="lucide:refresh-cw"
-      label="Retry loading"
-      @click="refresh()"
+      label="Retry loading agenda"
+      @click="retryTodayReads()"
+    />
+    <UButton
+      v-if="settingsError && !pageActionNeedsRefresh"
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading settings"
+      @click="retryTodayReads()"
+    />
+    <UButton
+      v-if="ticketsError && !addOpen && !pageActionNeedsRefresh"
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading tickets"
+      @click="retryTodayReads()"
+    />
+    <UButton
+      v-if="pageActionNeedsRefresh"
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry refreshing Today data"
+      @click="retryTodayReads()"
     />
     <UCard v-if="!day || (pending && !agenda)"><p class="text-muted">Loading agenda…</p></UCard>
     <template v-else-if="!error">
@@ -597,7 +781,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         <UAlert
           v-if="dragError"
           color="error"
-          title="Could not update time entry"
+          :title="dragErrorTitle"
           :description="dragError"
           role="alert"
           class="mb-3"
@@ -613,7 +797,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
           :occupied="entries"
           :start="settings?.visibleStartMinute ?? 480"
           :end="settings?.visibleEndMinute ?? 1200"
-          :busy="busy || pending"
+          :busy="busy || pending || pageActionNeedsRefresh"
           :status-changing-id="statusChangingId"
           @filter="applyFilter"
           @create="beginDragCreate"

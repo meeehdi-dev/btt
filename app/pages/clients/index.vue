@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
 const showArchived = ref(false)
-const { data, pending, error, refresh } = await useFetch('/api/clients', {
+const { data, pending, error, refresh } = await useApiFetch('/api/clients', {
   query: computed(() => ({ archived: showArchived.value ? 'true' : undefined })),
 })
 const clients = computed(() => data.value?.clients ?? [])
@@ -17,6 +17,13 @@ const clients = computed(() => data.value?.clients ?? [])
         <UButton to="/clients/new" icon="lucide:plus" label="New client" />
       </div>
     </div>
+    <UAlert
+      v-if="error"
+      role="alert"
+      color="error"
+      title="Could not load clients"
+      :description="clientFailureMessage(error)"
+    />
     <UButton
       v-if="error"
       variant="ghost"
@@ -26,13 +33,13 @@ const clients = computed(() => data.value?.clients ?? [])
       @click="refresh()"
     />
     <UCard v-if="pending"><p class="text-muted">Loading clients…</p></UCard>
-    <UCard v-else-if="!clients.length">
+    <UCard v-else-if="!error && !clients.length">
       <h2 class="font-medium text-highlighted">
         No {{ showArchived ? '' : 'active ' }}clients yet
       </h2>
       <p class="mt-2 text-muted">Create a client to start organizing work.</p>
     </UCard>
-    <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-else-if="!error" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <ClientCard v-for="item in clients" :key="item.id" :item="item" />
     </div>
   </div>

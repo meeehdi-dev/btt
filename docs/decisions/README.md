@@ -58,3 +58,4 @@ NNNN-short-descriptive-slug.md
 | [0021](0021-effect-for-fallible-operations.md)                 | Accepted   | Effect for meaningful fallible operations               |
 | [0022](0022-shared-entity-card-presentation.md)                | Accepted   | Shared entity-card presentation shell                   |
 | [0023](0023-server-effect-http-boundary.md)                    | Accepted   | Server Effect boundary and HTTP failure mapping         |
+| [0024](0024-effect-aware-client-fetch-boundary.md)             | Accepted   | Effect-aware client fetch boundary                      |

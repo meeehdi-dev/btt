@@ -10,11 +10,21 @@ const showArchived = ref(route.query.archived === 'true')
 const donePending = ref<string | null>(null)
 const doneReleaseIds = ref(new Set<string>())
 const doneError = ref('')
-const { data: projectData, error: projectError } = await useFetch(`/api/projects/${id}`, {
+const doneErrorTitle = ref('Could not mark release as done')
+const releasesNeedRefresh = ref(false)
+const {
+  data: projectData,
+  error: projectError,
+  refresh: refreshProject,
+} = await useApiFetch(`/api/projects/${id}`, {
   query: { archived: archived ? 'true' : undefined },
 })
-const project = computed(() => projectData.value!)
-const { data: releaseData, error: releaseError } = await useFetch('/api/releases', {
+const project = computed(() => projectData.value)
+const {
+  data: releaseData,
+  error: releaseError,
+  refresh: refreshReleases,
+} = await useApiFetch('/api/releases', {
   query: computed(() => ({
     archived: showArchived.value ? 'true' : undefined,
   })),
@@ -26,8 +36,19 @@ const releases = computed(() =>
     .toSorted((a, b) => compareReleases(a.release, b.release)),
 )
 
-if (projectError.value || !project.value)
-  throw createError({ status: 404, statusText: 'Project not found' })
+if (projectError.value && clientFailureStatus(projectError.value) === 404)
+  throw createError({ statusCode: 404, statusMessage: 'Project not found' })
+if (!project.value && !projectError.value)
+  throw createError({ statusCode: 404, statusMessage: 'Project not found' })
+
+async function retryReleases() {
+  const result = await runClientEffect(refreshEffect(refreshReleases, () => releaseError.value))
+  if (result._tag === 'Success') {
+    releasesNeedRefresh.value = false
+    if (doneErrorTitle.value === 'Release marked done; refresh failed') doneError.value = ''
+    doneErrorTitle.value = 'Could not mark release as done'
+  }
+}
 
 function releaseProgressPercent(doneTicketCount: number, ticketCount: number) {
   return ticketCount ? Math.round((doneTicketCount / ticketCount) * 100) : 0
@@ -40,18 +61,28 @@ function releaseProgressText(releaseName: string, doneTicketCount: number, ticke
 async function markDone(releaseId: string) {
   donePending.value = releaseId
   doneError.value = ''
+  doneErrorTitle.value = 'Could not mark release as done'
   try {
-    await $fetch(`/api/releases/${releaseId}`, {
-      method: 'PATCH',
-      body: { archived: true },
-    })
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(`/api/releases/${releaseId}`, {
+        method: 'PATCH',
+        body: { archived: true },
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      doneError.value = result.failure.userMessage
+      return
+    }
     doneReleaseIds.value = new Set([...doneReleaseIds.value, releaseId])
-    const refreshed = await $fetch('/api/releases', {
-      query: { archived: showArchived.value ? 'true' : undefined },
-    })
-    releaseData.value = refreshed
-  } catch (error) {
-    doneError.value = error instanceof Error ? error.message : 'Unable to mark release as done.'
+    const refreshed = await runClientEffect(
+      refreshEffect(refreshReleases, () => releaseError.value),
+    )
+    if (refreshed._tag === 'Failure') {
+      releasesNeedRefresh.value = true
+      doneErrorTitle.value = 'Release marked done; refresh failed'
+      doneError.value = `The release was marked done, but the release list could not be refreshed. ${refreshed.failure.userMessage}`
+    }
   } finally {
     donePending.value = null
   }
@@ -59,7 +90,7 @@ async function markDone(releaseId: string) {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div v-if="project" class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -101,13 +132,41 @@ async function markDone(releaseId: string) {
         />
       </div>
     </div>
-    <UAlert v-if="releaseError" color="error" title="Could not load releases">
-      Refresh the page to try again.
-    </UAlert>
-    <UAlert v-if="doneError" color="error" title="Could not mark release as done">
+    <div v-if="projectError" class="space-y-3">
+      <UAlert
+        role="alert"
+        color="error"
+        title="Could not refresh project"
+        :description="clientFailureMessage(projectError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading project"
+        @click="refreshProject()"
+      />
+    </div>
+    <div v-if="releaseError || releasesNeedRefresh" class="space-y-3">
+      <UAlert
+        v-if="releaseError"
+        role="alert"
+        color="error"
+        title="Could not load releases"
+        :description="clientFailureMessage(releaseError)"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry loading releases"
+        @click="retryReleases()"
+      />
+    </div>
+    <UAlert v-if="doneError" role="alert" color="error" :title="doneErrorTitle">
       {{ doneError }}
     </UAlert>
-    <UCard v-if="!releases.length && !releaseError">
+    <UCard v-if="!releases.length && !releaseError && !releasesNeedRefresh">
       <h2 class="font-medium text-highlighted">
         No {{ showArchived ? '' : 'active ' }}releases yet
       </h2>
@@ -203,4 +262,19 @@ async function markDone(releaseId: string) {
       </EntityCard>
     </div>
   </div>
+  <UCard v-else-if="projectError" class="space-y-3">
+    <UAlert
+      role="alert"
+      color="error"
+      title="Could not load project"
+      :description="clientFailureMessage(projectError)"
+    />
+    <UButton
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading project"
+      @click="refreshProject()"
+    />
+  </UCard>
 </template>

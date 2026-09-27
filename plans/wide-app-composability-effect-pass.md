@@ -1,6 +1,6 @@
 # Wide-app composability and Effect reliability pass
 
-> **Status:** Planning proposal; no implementation is authorized by this umbrella document. Each implementation phase must have its own template-based milestone plan and Plannotator approval.
+> **Status:** Phased plan complete (2026-09-27). Each phase was implemented only under its own approved milestone plan and human review.
 
 ## Context
 
@@ -57,7 +57,9 @@ Proposed direction, requiring a separate approved M10 milestone plan:
 
 ### Phase 3 — M11: Effect for client-side fallible workflows
 
-Proposed direction, requiring a separate approved M11 milestone plan:
+Status: Complete (2026-09-27); implementation, verification, review, ADR acceptance, and human completion declaration are recorded in `docs/milestones/m11-client-effect-workflows.md` and ADR 0024.
+
+Delivered scope:
 
 - Model meaningful client-side API reads/actions and Better Auth operations with Effect and typed failures, using a Nuxt integration that preserves SSR/hydration, request deduplication/cancellation, loading state, retry behavior, and accessible page feedback.
 - Keep pure view transformations and infallible local state in ordinary Vue code. Do not hide failed refreshes, clear errors as success, or let rejected operations become unhandled UI failures.
@@ -106,5 +108,6 @@ The exact component API, Nuxt Effect adapter, and endpoint/component migration l
 - Plannotator review: Approved (2026-09-27); the human's requested card-composition and Effect-scope clarifications were incorporated.
 - M9 milestone plan: approved via Plannotator (2026-09-27), `docs/milestones/m9-shared-card-composition.md`.
 - M9 implementation and closeout are complete within the approved scope. The updated diff received Plannotator review with no changes requested, and the human completion declaration was recorded in the milestone file (2026-09-27).
-- M10 implementation and closeout are complete within its separately approved scope; Plannotator code review and the human completion declaration are recorded in `docs/milestones/m10-server-effect-reliability.md` (2026-09-27). M11 remains a separate phase requiring its own plan and approval.
-- Phase-specific open questions: the card-shell API is defined by M9; Nuxt/Effect integration and migration details will be researched and reviewed in the separate M10/M11 plans before implementation.
+- M10 implementation and closeout are complete within its separately approved scope; Plannotator code review and the human completion declaration are recorded in `docs/milestones/m10-server-effect-reliability.md` (2026-09-27).
+- M11 implementation and closeout are complete within its separately approved scope; no-change code review, ADR 0024 acceptance, and the human completion declaration are recorded in `docs/milestones/m11-client-effect-workflows.md` (2026-09-27).
+- Phase-specific research and open questions are recorded in their respective milestone plans; the M9–M11 sequence is complete.

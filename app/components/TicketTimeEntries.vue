@@ -9,7 +9,7 @@ const props = defineProps<{
   estimateMinutes: number | null
   canCreate: boolean
 }>()
-const { data, refresh, error } = await useFetch('/api/time-entries', {
+const { data, refresh, error } = await useApiFetch('/api/time-entries', {
   query: { ticketId: props.ticketId },
 })
 const date = shallowRef<CalendarDate | null>(null)
@@ -23,6 +23,8 @@ const description = ref('')
 const editingId = ref<string | null>(null)
 const busy = ref(false)
 const actionError = ref('')
+const actionNeedsRefresh = ref(false)
+const actionErrorTitle = ref('Could not save time entry')
 const minutes = computed(() => data.value?.trackedMinutes ?? 0)
 const percentage = computed(() =>
   props.estimateMinutes ? Math.floor((minutes.value / props.estimateMinutes) * 100) : null,
@@ -55,11 +57,25 @@ function reset() {
   duration.value = 30
   description.value = ''
 }
+async function retryEntries() {
+  const result = await runClientEffect(refreshEffect(refresh, () => error.value))
+  if (result._tag === 'Success' && actionNeedsRefresh.value) {
+    actionNeedsRefresh.value = false
+    actionError.value = ''
+    actionErrorTitle.value = 'Could not save time entry'
+  }
+}
 async function save() {
+  if (actionNeedsRefresh.value) return
+  if (!date.value) {
+    actionErrorTitle.value = 'Choose a work date'
+    actionError.value = 'Choose a work date.'
+    return
+  }
   busy.value = true
   actionError.value = ''
+  actionErrorTitle.value = 'Could not save time entry'
   try {
-    if (!date.value) throw new Error('Choose a work date.')
     const body = {
       ticketId: props.ticketId,
       date: date.value.toString(),
@@ -67,27 +83,52 @@ async function save() {
       durationMinutes: duration.value,
       description: description.value,
     }
-    if (editingId.value)
-      await $fetch(`/api/time-entries/${editingId.value}`, { method: 'PATCH', body })
-    else await $fetch('/api/time-entries', { method: 'POST', body })
-    await refresh()
+    const endpoint: string = editingId.value
+      ? '/api/time-entries/' + editingId.value
+      : '/api/time-entries'
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(endpoint, {
+        method: editingId.value ? 'PATCH' : 'POST',
+        body,
+        signal,
+      }),
+    )
+    if (result._tag === 'Failure') {
+      actionError.value = result.failure.userMessage
+      return
+    }
     reset()
-  } catch (cause) {
-    actionError.value = cause instanceof Error ? cause.message : 'Could not save time entry.'
+    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    if (refreshed._tag === 'Failure') {
+      actionNeedsRefresh.value = true
+      actionErrorTitle.value = 'Time entry saved; refresh failed'
+      actionError.value = `The time entry was saved, but tracked time could not be refreshed. ${refreshed.failure.userMessage}`
+    }
   } finally {
     busy.value = false
   }
 }
 async function remove(id: string) {
-  if (!confirm('Delete this time entry?')) return
+  if (busy.value || actionNeedsRefresh.value || !confirm('Delete this time entry?')) return
   busy.value = true
   actionError.value = ''
+  actionErrorTitle.value = 'Could not delete time entry'
   try {
-    await $fetch(`/api/time-entries/${id}`, { method: 'DELETE' })
-    await refresh()
+    const endpoint: string = '/api/time-entries/' + id
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(endpoint, { method: 'DELETE', signal }),
+    )
+    if (result._tag === 'Failure') {
+      actionError.value = result.failure.userMessage
+      return
+    }
     if (editingId.value === id) reset()
-  } catch (cause) {
-    actionError.value = cause instanceof Error ? cause.message : 'Could not delete time entry.'
+    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    if (refreshed._tag === 'Failure') {
+      actionNeedsRefresh.value = true
+      actionErrorTitle.value = 'Time entry deleted; refresh failed'
+      actionError.value = `The time entry was deleted, but tracked time could not be refreshed. ${refreshed.failure.userMessage}`
+    }
   } finally {
     busy.value = false
   }
@@ -95,7 +136,10 @@ async function remove(id: string) {
 </script>
 <template>
   <UCard>
-    <div class="flex flex-wrap items-center justify-between gap-3">
+    <div
+      v-if="data && !error && !actionNeedsRefresh"
+      class="flex flex-wrap items-center justify-between gap-3"
+    >
       <h2 class="font-medium text-highlighted">Tracked time</h2>
       <div class="flex flex-wrap items-center gap-2">
         <span :aria-label="`Tracked: ${formatTicketEstimate(minutes)}`">{{
@@ -109,7 +153,23 @@ async function remove(id: string) {
         >
       </div>
     </div>
-    <UAlert v-if="error" class="mt-3" color="error" title="Could not load time entries" />
+    <UAlert
+      v-if="error"
+      class="mt-3"
+      role="alert"
+      color="error"
+      title="Could not load time entries"
+      :description="clientFailureMessage(error)"
+    />
+    <UButton
+      v-if="error || actionNeedsRefresh"
+      class="mt-2"
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry loading time entries"
+      @click="retryEntries()"
+    />
     <ul v-else-if="data?.entries.length" class="mt-4 space-y-3">
       <li
         v-for="entry in data.entries"
@@ -156,8 +216,14 @@ async function remove(id: string) {
         </div>
       </li>
     </ul>
-    <p v-else class="mt-3 text-muted">No tracked time yet.</p>
-    <form v-if="canCreate || editingId" class="mt-5 space-y-3" @submit.prevent="save">
+    <p v-else-if="!error && !actionNeedsRefresh && data" class="mt-3 text-muted">
+      No tracked time yet.
+    </p>
+    <form
+      v-if="(canCreate || editingId) && !actionNeedsRefresh"
+      class="mt-5 space-y-3"
+      @submit.prevent="save"
+    >
       <h3 class="font-medium">{{ editingId ? 'Correct time entry' : 'Add completed work' }}</h3>
       <p class="text-sm text-muted">
         30-minute slots; entries may end at midnight but cannot overlap your other work.
@@ -202,8 +268,9 @@ async function remove(id: string) {
       /></UFormField>
       <UAlert
         v-if="actionError"
+        role="alert"
         color="error"
-        title="Could not save time entry"
+        :title="actionErrorTitle"
         :description="actionError"
       />
       <div class="flex flex-col gap-2 sm:flex-row">
@@ -227,8 +294,9 @@ async function remove(id: string) {
     <UAlert
       v-else-if="actionError"
       class="mt-3"
+      role="alert"
       color="error"
-      title="Could not delete time entry"
+      :title="actionErrorTitle"
       :description="actionError"
     />
   </UCard>

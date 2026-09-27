@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { authClient } from '~/lib/auth-client'
+import { toClientApiFailure } from '~/utils/client-effect'
 import { entityIcons } from '~/utils/entity-icons'
 
 const navigation = [
@@ -8,7 +9,10 @@ const navigation = [
   { label: 'Projects', to: '/projects', icon: entityIcons.projects, shortcut: 'p' },
   { label: 'Tickets', to: '/tickets', icon: entityIcons.tickets, shortcut: 'b' },
 ]
-const { data: session } = await authClient.useSession(useFetch)
+const { data: session, error: sessionError } = await authClient.useSession(useApiFetch)
+const sessionErrorMessage = computed(() =>
+  sessionError.value ? toClientApiFailure(sessionError.value).userMessage : '',
+)
 const expanded = ref(false)
 const menuOpen = ref(false)
 const desktopSearch = ref<{ focus: () => void } | null>(null)
@@ -135,7 +139,25 @@ onBeforeUnmount(() => {
           </UTooltip>
         </div>
       </header>
-      <main class="w-full px-4 py-4 sm:px-6"><slot /></main>
+      <main class="w-full px-4 py-4 sm:px-6">
+        <div v-if="sessionError" class="mx-auto max-w-xl space-y-3">
+          <UAlert
+            role="alert"
+            color="error"
+            title="Could not verify your session"
+            :description="sessionErrorMessage"
+          />
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="lucide:refresh-cw"
+            label="Retry session verification"
+            @click="refreshNuxtData()"
+          />
+          <UButton to="/login" color="neutral" variant="ghost" label="Return to sign in" />
+        </div>
+        <slot v-else />
+      </main>
     </div>
     <UModal v-model:open="menuOpen" fullscreen title="Menu" :ui="{ body: 'flex flex-col gap-4' }">
       <template #body>

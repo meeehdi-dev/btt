@@ -9,7 +9,7 @@ const showArchived = ref(false)
 const releaseId = computed(() =>
   typeof route.query.release === 'string' ? route.query.release : undefined,
 )
-const { data, pending, error, refresh } = await useFetch('/api/tickets', {
+const { data, pending, error, refresh } = await useApiFetch('/api/tickets', {
   query: computed(() => ({
     releaseId: releaseId.value,
     archived: showArchived.value ? 'true' : undefined,
@@ -53,6 +53,8 @@ const groups = computed(() =>
 type TicketStatus = (typeof ticketStatuses)[number]
 const changing = ref<string | null>(null)
 const actionError = ref('')
+const actionNeedsRefresh = ref(false)
+const actionErrorTitle = ref('Could not update ticket')
 const statusMessage = ref('')
 const failedMove = ref<{ id: string; status: TicketStatus } | null>(null)
 const board = ref<HTMLElement | null>(null)
@@ -98,6 +100,15 @@ onBeforeUnmount(() => {
   dragBreakpoint?.removeEventListener('change', syncDragBreakpoint)
   clearDrag()
 })
+
+async function retryTickets() {
+  const result = await runClientEffect(refreshEffect(refresh, () => error.value))
+  if (result._tag === 'Success' && actionNeedsRefresh.value) {
+    actionNeedsRefresh.value = false
+    actionError.value = ''
+    actionErrorTitle.value = 'Could not update ticket'
+  }
+}
 
 function scrollBoard() {
   if (!board.value || !draggingId.value || !scrollDirection.value) {
@@ -254,21 +265,29 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
     return
   changing.value = id
   actionError.value = ''
+  actionErrorTitle.value = 'Could not update ticket'
   statusMessage.value = ''
   failedMove.value = null
-  let saved = false
   let refreshed = false
   try {
-    await $fetch(`/api/tickets/${id}`, { method: 'PATCH', body: { status: destination } })
-    saved = true
-    await refresh()
-    if (error.value)
-      throw new Error('Ticket saved, but the board could not refresh. Retry loading the tickets.')
+    const endpoint: string = '/api/tickets/' + id
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(endpoint, { method: 'PATCH', body: { status: destination }, signal }),
+    )
+    if (result._tag === 'Failure') {
+      actionError.value = result.failure.userMessage
+      failedMove.value = { id, status: destination }
+      return
+    }
+    const refreshResult = await runClientEffect(refreshEffect(refresh, () => error.value))
+    if (refreshResult._tag === 'Failure') {
+      actionNeedsRefresh.value = true
+      actionErrorTitle.value = 'Ticket updated; board refresh failed'
+      actionError.value = `Ticket saved, but the board could not refresh. ${refreshResult.failure.userMessage}`
+      return
+    }
     statusMessage.value = `Moved ${source.ticket.title} to ${destination}.`
     refreshed = true
-  } catch (cause) {
-    actionError.value = cause instanceof Error ? cause.message : 'Unable to change ticket status.'
-    if (!saved) failedMove.value = { id, status: destination }
   } finally {
     changing.value = null
   }
@@ -343,16 +362,16 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       v-if="error || actionError"
       role="alert"
       color="error"
-      title="Could not load or update tickets"
-      :description="actionError || 'Retry loading the tickets.'"
+      :title="actionError ? actionErrorTitle : 'Could not load tickets'"
+      :description="actionError || clientFailureMessage(error)"
     />
     <UButton
-      v-if="error"
+      v-if="error || actionNeedsRefresh"
       color="neutral"
       variant="outline"
       icon="lucide:refresh-cw"
-      label="Retry loading"
-      @click="refresh()"
+      label="Retry loading tickets"
+      @click="retryTickets()"
     />
     <UButton
       v-else-if="failedMove"
@@ -364,7 +383,7 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
     />
     <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
     <UCard v-if="pending && !data"><p class="text-muted">Loading tickets…</p></UCard>
-    <template v-else-if="!error || data">
+    <template v-else-if="!error && !actionNeedsRefresh">
       <UCard v-if="!visibleTickets.length">
         <h2 class="font-medium text-highlighted">
           {{
