@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { ticketStatuses } from '#shared/ticket-status'
+
+type TicketStatus = (typeof ticketStatuses)[number]
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
@@ -26,12 +30,88 @@ const doneTicketCount = computed(
 const doneConfirmationOpen = ref(false)
 const donePending = ref(false)
 const doneError = ref('')
+const ticketStatusChangingId = ref<string | null>(null)
+const ticketStatusNeedsRefresh = ref(false)
+const ticketStatusRefreshBusy = ref(false)
+const ticketStatusError = ref('')
+const ticketStatusErrorTitle = ref('Could not change ticket status')
+const ticketStatusMessage = ref('')
 if (error.value && clientFailureStatus(error.value) === 404)
   throw createError({ statusCode: 404, statusMessage: 'Release not found' })
 if (!releaseData.value && !error.value)
   throw createError({ statusCode: 404, statusMessage: 'Release not found' })
 
+async function refreshTicketStatusData() {
+  return runClientEffect(refreshEffect(refreshTickets, () => ticketsError.value))
+}
+
+async function retryTicketStatusRefresh() {
+  if (!ticketStatusNeedsRefresh.value || ticketStatusRefreshBusy.value) return
+  ticketStatusRefreshBusy.value = true
+  try {
+    const result = await refreshTicketStatusData()
+    if (result._tag === 'Failure') {
+      ticketStatusError.value = `Release ticket data is still unavailable. ${result.failure.userMessage}`
+      return
+    }
+    ticketStatusNeedsRefresh.value = false
+    ticketStatusError.value = ''
+    ticketStatusErrorTitle.value = 'Could not change ticket status'
+    ticketStatusMessage.value = 'Release ticket data refreshed.'
+  } finally {
+    ticketStatusRefreshBusy.value = false
+  }
+}
+
+async function changeTicketStatus(ticketId: string, destination: unknown) {
+  const status = ticketStatuses.find((value) => value === destination)
+  if (
+    !status ||
+    ticketStatusChangingId.value ||
+    donePending.value ||
+    ticketStatusNeedsRefresh.value ||
+    ticketsError.value
+  )
+    return
+  const source = tickets.value.find((item) => item.ticket.id === ticketId)
+  if (!source || source.ticket.archivedAt || source.ticket.status === status) return
+
+  ticketStatusChangingId.value = ticketId
+  ticketStatusError.value = ''
+  ticketStatusErrorTitle.value = 'Could not change ticket status'
+  ticketStatusMessage.value = `Changing ${source.ticket.title} to ${status}.`
+  try {
+    const statusEndpoint: string = '/api/tickets/' + ticketId
+    const result = await runClientRequest<unknown>((signal) =>
+      $fetch<unknown>(statusEndpoint, { method: 'PATCH', body: { status }, signal }),
+    )
+    if (result._tag === 'Failure') {
+      ticketStatusMessage.value = ''
+      ticketStatusError.value = result.failure.userMessage
+      const refreshed = await refreshTicketStatusData()
+      if (refreshed._tag === 'Failure') {
+        ticketStatusNeedsRefresh.value = true
+        ticketStatusError.value += ` Release ticket data could not be refreshed. ${refreshed.failure.userMessage}`
+      }
+      return
+    }
+
+    const refreshed = await refreshTicketStatusData()
+    if (refreshed._tag === 'Failure') {
+      ticketStatusNeedsRefresh.value = true
+      ticketStatusErrorTitle.value = 'Ticket updated; release refresh failed'
+      ticketStatusMessage.value = ''
+      ticketStatusError.value = `Ticket status changed to ${status}, but the release ticket data could not be refreshed. ${refreshed.failure.userMessage}`
+      return
+    }
+    ticketStatusMessage.value = `Changed ${source.ticket.title} to ${status}.`
+  } finally {
+    ticketStatusChangingId.value = null
+  }
+}
+
 async function requestMarkDone() {
+  if (ticketStatusChangingId.value || ticketStatusNeedsRefresh.value) return
   doneError.value = ''
   if (tickets.value.length === 0 || doneTicketCount.value < tickets.value.length) {
     doneConfirmationOpen.value = true
@@ -41,7 +121,13 @@ async function requestMarkDone() {
 }
 
 async function markDone() {
-  if (!release.value || donePending.value) return
+  if (
+    !release.value ||
+    donePending.value ||
+    ticketStatusChangingId.value ||
+    ticketStatusNeedsRefresh.value
+  )
+    return
   donePending.value = true
   doneError.value = ''
   try {
@@ -103,7 +189,7 @@ async function markDone() {
           icon="lucide:check"
           label="Mark release as done"
           :loading="donePending"
-          :disabled="!!ticketsError"
+          :disabled="!!ticketsError || !!ticketStatusChangingId || ticketStatusNeedsRefresh"
           @click="requestMarkDone"
         />
         <UButton
@@ -190,7 +276,26 @@ async function markDone() {
     >
       {{ doneError }}
     </UAlert>
-    <div v-if="ticketsError" class="space-y-3">
+    <p class="sr-only" role="status" aria-live="polite">{{ ticketStatusMessage }}</p>
+    <div v-if="ticketStatusError" class="space-y-2">
+      <UAlert
+        role="alert"
+        color="error"
+        :title="ticketStatusErrorTitle"
+        :description="ticketStatusError"
+      />
+      <UButton
+        v-if="ticketStatusNeedsRefresh"
+        color="neutral"
+        variant="outline"
+        icon="lucide:refresh-cw"
+        label="Retry release ticket refresh"
+        :loading="ticketStatusRefreshBusy"
+        :disabled="ticketStatusRefreshBusy"
+        @click="retryTicketStatusRefresh"
+      />
+    </div>
+    <div v-if="ticketsError && !ticketStatusNeedsRefresh" class="space-y-3">
       <UAlert
         role="alert"
         color="error"
@@ -220,6 +325,7 @@ async function markDone() {
         v-for="item in tickets"
         :key="item.ticket.id"
         as="article"
+        class="min-w-0"
         :data-release-ticket-id="item.ticket.id"
       >
         <template #navigation>
@@ -279,15 +385,31 @@ async function markDone() {
               ]"
               aria-label="Ticket hierarchy"
             />
-            <UBadge
-              size="md"
+            <USelect
+              :model-value="item.ticket.status"
+              :items="[...ticketStatuses]"
+              size="xs"
               color="neutral"
               variant="soft"
-              class="shrink-0 !bg-default !text-muted"
+              :trailing="true"
+              :trailing-icon="''"
+              :ui="{ content: 'min-w-28' }"
+              class="w-max shrink-0 !bg-default !text-muted !text-xs"
+              :aria-label="`Ticket status for ${item.ticket.title}`"
+              :aria-busy="ticketStatusChangingId === item.ticket.id || undefined"
+              :disabled="
+                !!ticketStatusChangingId ||
+                donePending ||
+                ticketStatusNeedsRefresh ||
+                !!ticketsError
+              "
+              :loading="ticketStatusChangingId === item.ticket.id"
+              @update:model-value="changeTicketStatus(item.ticket.id, $event)"
             >
-              <UIcon name="lucide:circle-dot" class="size-4" aria-hidden="true" />
-              {{ item.ticket.status }}
-            </UBadge>
+              <template #leading>
+                <UIcon name="lucide:circle-dot" class="size-4 text-muted" aria-hidden="true" />
+              </template>
+            </USelect>
             <TicketContextPopovers
               class="shrink-0"
               :related-tickets="item.relatedTickets"

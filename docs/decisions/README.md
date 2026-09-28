@@ -61,3 +61,4 @@ NNNN-short-descriptive-slug.md
 | [0024](0024-effect-aware-client-fetch-boundary.md)             | Accepted   | Effect-aware client fetch boundary                      |
 | [0025](0025-ticket-board-hierarchy-actions.md)                 | Accepted   | Ticket board hierarchy badge actions                    |
 | [0026](0026-hierarchical-breadcrumb-navigation.md)             | Accepted   | Hierarchical breadcrumb navigation                      |
+| [0027](0027-release-ticket-status-actions.md)                  | Accepted   | Release ticket status badge actions                     |

@@ -133,7 +133,7 @@ Relevant `tt` references:
   - `id`, `projectId`, `name`, optional `targetDate`, timestamps
 - `Ticket`
   - `id`, `releaseId`, `title`, `description`, `status`, optional `estimateMinutes`, timestamps
-  - Status changes are available through the ticket edit form and desktop board drag-and-drop; no ticket-detail next-status action.
+  - Status changes are available through the ticket edit form, Today status badge, Release detail status selector, and desktop board drag-and-drop; no dedicated next-status action is added to ticket detail, and the board control policy remains unchanged.
 - `TicketLink`
   - `id`, `ticketId`, optional `label`, `url`
 - `TicketRelation`
@@ -330,7 +330,7 @@ Goal: polish Today, board, and release ticket/time presentations without changin
 
 - Reuse ticket/time-entry presentation across Today, the board, and release cards while preserving wrapper interactions. Following human-approved code-review feedback, align Today/board card content order, placement, spacing, colors, and hierarchy-badge appearance while retaining per-entry versus aggregate time semantics. At M8 completion, board client/project/release badges were direct links; M12 later revised them to offer filter/open actions (ADR 0025). Board status changes remain absent per ADR 0013. On ticket board and release detail, show tracked time/estimate without a visible percentage badge; keep hierarchy/status/links below the release ticket title.
 - Color tracked-time values with the existing usage ratio bands; distinguish Today progress from its target and show capped orange overtime without a separate suffix.
-- Add a Today-only status-change submenu while retaining status filtering and existing status rules.
+- M8 added a Today-only status-change submenu while retaining status filtering and existing status rules. M14 extends status changes to Release detail ticket badges through a direct selector; the board status policy remains unchanged (ADR 0013).
 - Make all existing Today/Tickets board select-menu filters searchable. Keep archive toggles and form selects unchanged.
 - Show active project/release/ticket counts on client cards, active release/ticket counts on project cards, and active ticket count plus accessible Done/total progress on release cards. Exclude archived descendants and descendants under archived ancestors; archived parent cards omit child metrics. Reuse one two-row ProjectCard on the Projects list and client detail, with project color/title above and client link plus release/ticket counts below.
 - Keep relation/link popover triggers as accessible icons without count chips, even when there are multiple items. Show release client/project/release quick links and visible Clients/Projects headings; remove redundant explanatory subtitles from client list cards, client detail, and client-page project cards.
@@ -388,7 +388,7 @@ Acceptance:
 - [ ] Project list under clients with color and basic metadata.
 - [ ] Release/milestone list under projects with optional target date.
 - [ ] Ticket board/list with fixed MVP statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
-- [ ] Change ticket status via edit form or desktop board drag-and-drop; no ticket-detail next-status button.
+- [ ] Change ticket status via edit form, Today status badge, Release detail ticket selector, or desktop board drag-and-drop; no dedicated ticket-detail next-status action.
 - [ ] Ticket fields: title, description, client, project, release, status, estimate, external links, linked items.
 - [ ] Generic external links field: required URL with an optional custom label; display the hostname when no label is set.
 - [ ] Time estimate field only; no complexity or target date.
