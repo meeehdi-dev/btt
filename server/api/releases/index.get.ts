@@ -14,6 +14,8 @@ export default defineEffectHandler((event) =>
       db
         .select({
           release,
+          clientId: client.id,
+          clientName: client.name,
           projectName: project.name,
           projectColor: project.color,
           projectArchivedAt: project.archivedAt,
@@ -41,7 +43,14 @@ export default defineEffectHandler((event) =>
             archived ? undefined : isNull(release.archivedAt),
           ),
         )
-        .groupBy(release.id, project.name, project.color, project.archivedAt)
+        .groupBy(
+          release.id,
+          project.name,
+          project.color,
+          project.archivedAt,
+          client.id,
+          client.name,
+        )
         .orderBy(desc(release.updatedAt)),
     )
     return { releases }

@@ -93,26 +93,28 @@ async function markDone(releaseId: string) {
   <div v-if="project" class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <NuxtLink
-            :to="`/clients/${project.project.clientId}${project.clientArchivedAt ? '?archived=true' : ''}`"
-            class="inline-flex items-center gap-1 text-sm text-primary"
-            ><EntityIcon kind="clients" />{{ project.clientName }}</NuxtLink
-          >
-          <UIcon name="lucide:chevron-right" class="size-4 text-muted" aria-hidden="true" />
-          <div class="flex min-w-0 flex-wrap items-center gap-3">
+        <HierarchyBreadcrumbs
+          :ancestors="[
+            {
+              kind: 'clients',
+              label: project.clientName,
+              to: `/clients/${project.project.clientId}${project.clientArchivedAt ? '?archived=true' : ''}`,
+            },
+          ]"
+          :current="{ kind: 'projects', label: project.project.name }"
+        >
+          <template #current-prefix>
             <span
               class="size-4 shrink-0 rounded-full"
               :style="{ backgroundColor: project.project.color }"
             />
-            <h1 class="flex items-center gap-2 text-3xl font-semibold text-highlighted">
-              <EntityIcon kind="projects" />{{ project.project.name }}
-            </h1>
+          </template>
+          <template #current-suffix>
             <UBadge v-if="project.project.archivedAt" color="neutral" variant="subtle"
               >Archived</UBadge
             >
-          </div>
-        </div>
+          </template>
+        </HierarchyBreadcrumbs>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row">
         <ArchiveFilterButton v-model="showArchived" />

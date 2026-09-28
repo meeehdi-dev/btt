@@ -60,3 +60,4 @@ NNNN-short-descriptive-slug.md
 | [0023](0023-server-effect-http-boundary.md)                    | Accepted   | Server Effect boundary and HTTP failure mapping         |
 | [0024](0024-effect-aware-client-fetch-boundary.md)             | Accepted   | Effect-aware client fetch boundary                      |
 | [0025](0025-ticket-board-hierarchy-actions.md)                 | Accepted   | Ticket board hierarchy badge actions                    |
+| [0026](0026-hierarchical-breadcrumb-navigation.md)             | Accepted   | Hierarchical breadcrumb navigation                      |

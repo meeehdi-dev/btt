@@ -81,16 +81,31 @@ async function remove() {
 </script>
 <template>
   <div v-if="data" class="w-full space-y-6">
-    <div>
-      <NuxtLink
-        :to="`/tickets/${id}${archived ? '?archived=true' : ''}`"
-        class="inline-flex items-center gap-1 text-sm text-primary"
-        >← <EntityIcon kind="tickets" />Ticket</NuxtLink
-      >
-      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-        <EntityIcon kind="tickets" />Edit ticket
-      </h1>
-    </div>
+    <HierarchyBreadcrumbs
+      :ancestors="[
+        {
+          kind: 'clients',
+          label: data.hierarchy.clientName,
+          to: `/clients/${data.hierarchy.clientId}${data.hierarchy.clientArchivedAt ? '?archived=true' : ''}`,
+        },
+        {
+          kind: 'projects',
+          label: data.hierarchy.projectName,
+          to: `/projects/${data.hierarchy.projectId}${data.hierarchy.projectArchivedAt || data.hierarchy.clientArchivedAt ? '?archived=true' : ''}`,
+        },
+        {
+          kind: 'releases',
+          label: data.hierarchy.releaseName,
+          to: `/releases/${data.ticket.releaseId}${data.hierarchy.releaseArchivedAt || data.hierarchy.projectArchivedAt || data.hierarchy.clientArchivedAt ? '?archived=true' : ''}`,
+        },
+        {
+          kind: 'tickets',
+          label: data.ticket.title,
+          to: `/tickets/${id}${data.ticket.archivedAt || data.hierarchy.releaseArchivedAt || data.hierarchy.projectArchivedAt || data.hierarchy.clientArchivedAt ? '?archived=true' : ''}`,
+        },
+      ]"
+      :current="{ kind: 'tickets', label: 'Edit ticket' }"
+    />
     <div v-if="ticketError" class="space-y-3">
       <UAlert
         role="alert"

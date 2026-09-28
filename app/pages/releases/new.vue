@@ -23,6 +23,9 @@ watch(
   { immediate: true },
 )
 
+const selectedProject = computed(() =>
+  projects.value.find((project) => project.project.id === projectId.value),
+)
 const canSubmit = computed(() =>
   projects.value.some((project) => project.project.id === projectId.value),
 )
@@ -56,12 +59,30 @@ async function submit() {
 <template>
   <div class="w-full space-y-6">
     <div>
-      <NuxtLink to="/projects" class="inline-flex items-center gap-1 text-sm text-primary"
-        >← <EntityIcon kind="projects" />Projects</NuxtLink
-      >
-      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-        <EntityIcon kind="releases" />New release
-      </h1>
+      <HierarchyBreadcrumbs
+        v-if="selectedProject"
+        :ancestors="[
+          {
+            kind: 'clients',
+            label: selectedProject.clientName,
+            to: `/clients/${selectedProject.project.clientId}${selectedProject.clientArchivedAt ? '?archived=true' : ''}`,
+          },
+          {
+            kind: 'projects',
+            label: selectedProject.project.name,
+            to: `/projects/${selectedProject.project.id}${selectedProject.project.archivedAt || selectedProject.clientArchivedAt ? '?archived=true' : ''}`,
+          },
+        ]"
+        :current="{ kind: 'releases', label: 'New release' }"
+      />
+      <template v-else>
+        <NuxtLink to="/projects" class="inline-flex items-center gap-1 text-sm text-primary"
+          >← <EntityIcon kind="projects" />Projects</NuxtLink
+        >
+        <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+          <EntityIcon kind="releases" />New release
+        </h1>
+      </template>
     </div>
     <div v-if="projectsError" class="space-y-2">
       <UAlert

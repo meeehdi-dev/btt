@@ -15,6 +15,8 @@ export default defineEffectHandler((event) =>
       db
         .select({
           release,
+          clientId: client.id,
+          clientName: client.name,
           projectName: project.name,
           projectColor: project.color,
           projectArchivedAt: project.archivedAt,

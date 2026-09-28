@@ -87,37 +87,35 @@ async function addRelation() {
 <template>
   <div v-if="data" class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <NuxtLink to="/tickets" class="inline-flex items-center gap-1 text-sm text-primary"
-          >← <EntityIcon kind="tickets" />Tickets</NuxtLink
+      <div class="min-w-0">
+        <HierarchyBreadcrumbs
+          :ancestors="[
+            {
+              kind: 'clients',
+              label: data.hierarchy.clientName,
+              to: `/clients/${data.hierarchy.clientId}${data.hierarchy.clientArchivedAt ? '?archived=true' : ''}`,
+            },
+            {
+              kind: 'projects',
+              label: data.hierarchy.projectName,
+              to: `/projects/${data.hierarchy.projectId}${data.hierarchy.clientArchivedAt || data.hierarchy.projectArchivedAt ? '?archived=true' : ''}`,
+            },
+            {
+              kind: 'releases',
+              label: data.hierarchy.releaseName,
+              to: `/releases/${record.releaseId}${data.hierarchy.clientArchivedAt || data.hierarchy.projectArchivedAt || data.hierarchy.releaseArchivedAt ? '?archived=true' : ''}`,
+            },
+          ]"
+          :current="{ kind: 'tickets', label: record.title }"
         >
-        <div class="mt-3 flex items-center gap-3">
-          <h1 class="flex items-center gap-2 text-3xl font-semibold text-highlighted">
-            <EntityIcon kind="tickets" />{{ record.title }}
-          </h1>
-          <UBadge v-if="record.archivedAt" color="neutral">Archived</UBadge>
-        </div>
+          <template #current-suffix>
+            <UBadge v-if="record.archivedAt" color="neutral">Archived</UBadge>
+          </template>
+        </HierarchyBreadcrumbs>
         <div
           class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted"
           aria-label="Ticket metadata"
         >
-          <span class="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-            <NuxtLink
-              :to="`/clients/${data?.hierarchy.clientId}`"
-              class="inline-flex items-center gap-1 text-muted hover:text-primary"
-              ><EntityIcon kind="clients" />{{ data?.hierarchy.clientName }}</NuxtLink
-            >
-            <NuxtLink
-              :to="`/projects/${data?.hierarchy.projectId}`"
-              class="inline-flex items-center gap-1 text-muted hover:text-primary"
-              ><EntityIcon kind="projects" />{{ data?.hierarchy.projectName }}</NuxtLink
-            >
-            <NuxtLink
-              :to="`/releases/${record.releaseId}`"
-              class="inline-flex items-center gap-1 text-muted hover:text-primary"
-              ><EntityIcon kind="releases" />{{ data?.hierarchy.releaseName }}</NuxtLink
-            >
-          </span>
           <span
             class="inline-flex shrink-0 items-center gap-1 self-center leading-none"
             :aria-label="`Status: ${record.status}`"

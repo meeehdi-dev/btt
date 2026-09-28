@@ -12,7 +12,6 @@ const {
   query: { archived: archived ? 'true' : undefined },
 })
 const release = computed(() => releaseData.value?.release)
-const projectName = computed(() => releaseData.value?.projectName ?? '')
 const {
   data: ticketData,
   error: ticketsError,
@@ -63,20 +62,25 @@ async function markDone() {
   <div v-if="release" class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <NuxtLink
-            :to="`/projects/${release.projectId}${releaseData?.clientArchivedAt || releaseData?.projectArchivedAt ? '?archived=true' : ''}`"
-            class="inline-flex items-center gap-1 text-sm text-primary"
-            ><EntityIcon kind="projects" />{{ projectName }}</NuxtLink
-          >
-          <UIcon name="lucide:chevron-right" class="size-4 text-muted" aria-hidden="true" />
-          <div class="flex min-w-0 flex-wrap items-center gap-3">
-            <h1 class="flex items-center gap-2 text-3xl font-semibold text-highlighted">
-              <EntityIcon kind="releases" />{{ release.name }}
-            </h1>
+        <HierarchyBreadcrumbs
+          :ancestors="[
+            {
+              kind: 'clients',
+              label: releaseData?.clientName ?? '',
+              to: `/clients/${releaseData?.clientId ?? ''}${releaseData?.clientArchivedAt ? '?archived=true' : ''}`,
+            },
+            {
+              kind: 'projects',
+              label: releaseData?.projectName ?? '',
+              to: `/projects/${release.projectId}${releaseData?.clientArchivedAt || releaseData?.projectArchivedAt ? '?archived=true' : ''}`,
+            },
+          ]"
+          :current="{ kind: 'releases', label: release.name }"
+        >
+          <template #current-suffix>
             <UBadge v-if="release.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
-          </div>
-        </div>
+          </template>
+        </HierarchyBreadcrumbs>
         <div class="mt-2">
           <ReleaseTargetDate :target-date="release.targetDate" />
         </div>

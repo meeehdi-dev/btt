@@ -250,21 +250,12 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(page).toHaveURL(`/tickets/${idea.id}`)
     const ticketMetadata = page.getByLabel('Ticket metadata')
     const ticketStatus = ticketMetadata.getByLabel('Status: Test')
-    const releaseLink = ticketMetadata.getByRole('link', { name: 'Move Release' })
+    const releaseLink = page
+      .getByRole('navigation', { name: 'Breadcrumb' })
+      .getByRole('link', { name: 'Move Release' })
     await expect(ticketStatus.locator('[aria-hidden="true"]')).toBeVisible()
-    const [ticketStatusBounds, releaseLinkBounds] = await Promise.all([
-      ticketStatus.boundingBox(),
-      releaseLink.boundingBox(),
-    ])
-    if (!ticketStatusBounds || !releaseLinkBounds)
-      throw new Error('Ticket status and release link must be visible')
-    expect(
-      Math.abs(
-        ticketStatusBounds.y +
-          ticketStatusBounds.height / 2 -
-          (releaseLinkBounds.y + releaseLinkBounds.height / 2),
-      ),
-    ).toBeLessThan(5)
+    await expect(releaseLink).toBeVisible()
+    await expect(releaseLink).toHaveAttribute('href', `/releases/${r.id}`)
     await page.goto(`/releases/${r.id}`)
     await expect(page.getByText('No estimate')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'View grouped tickets' })).toHaveCount(0)

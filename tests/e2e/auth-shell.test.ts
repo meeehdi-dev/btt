@@ -199,17 +199,10 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await expect(
       page.getByText('Projects and releases for this client.', { exact: true }),
     ).toHaveCount(0)
-    const clientsCrumb = page.getByRole('main').getByRole('link', { name: 'Clients' })
-    expect(
-      await clientsCrumb.evaluate((link) => {
-        const crumb = link.getBoundingClientRect()
-        const title = document.querySelector('h1')!.getBoundingClientRect()
-        return (
-          Math.abs((crumb.top + crumb.bottom) / 2 - (title.top + title.bottom) / 2) < 5 &&
-          crumb.right <= title.left
-        )
-      }),
-    ).toBe(true)
+    await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveCount(0)
+    await expect(
+      page.getByRole('main').getByRole('link', { name: 'Clients', exact: true }),
+    ).toHaveCount(0)
     await expectEditBeforeNew(page, 'Edit client', 'New project')
     await page.setViewportSize({ width: 390, height: 844 })
     await expectEditBeforeNew(page, 'Edit client', 'New project')

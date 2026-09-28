@@ -23,6 +23,7 @@ watch(
   { immediate: true },
 )
 
+const selectedClient = computed(() => clients.value.find((client) => client.id === clientId.value))
 const canSubmit = computed(() => clients.value.some((client) => client.id === clientId.value))
 
 async function submit() {
@@ -50,12 +51,25 @@ async function submit() {
 <template>
   <div class="w-full space-y-6">
     <div>
-      <NuxtLink to="/projects" class="inline-flex items-center gap-1 text-sm text-primary"
-        >← <EntityIcon kind="projects" />Projects</NuxtLink
-      >
-      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-        <EntityIcon kind="projects" />New project
-      </h1>
+      <HierarchyBreadcrumbs
+        v-if="selectedClient"
+        :ancestors="[
+          {
+            kind: 'clients',
+            label: selectedClient.name,
+            to: `/clients/${selectedClient.id}`,
+          },
+        ]"
+        :current="{ kind: 'projects', label: 'New project' }"
+      />
+      <template v-else>
+        <NuxtLink to="/projects" class="inline-flex items-center gap-1 text-sm text-primary"
+          >← <EntityIcon kind="projects" />Projects</NuxtLink
+        >
+        <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+          <EntityIcon kind="projects" />New project
+        </h1>
+      </template>
     </div>
     <div v-if="clientsError" class="space-y-2">
       <UAlert

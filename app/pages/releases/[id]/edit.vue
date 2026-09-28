@@ -57,16 +57,26 @@ async function remove() {
 </script>
 <template>
   <div v-if="release" class="w-full space-y-6">
-    <div>
-      <NuxtLink
-        :to="`/releases/${id}${archived ? '?archived=true' : ''}`"
-        class="inline-flex items-center gap-1 text-sm text-primary"
-        >← <EntityIcon kind="releases" />Release</NuxtLink
-      >
-      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
-        <EntityIcon kind="releases" />Edit release
-      </h1>
-    </div>
+    <HierarchyBreadcrumbs
+      :ancestors="[
+        {
+          kind: 'clients',
+          label: release.clientName,
+          to: `/clients/${release.clientId}${release.clientArchivedAt ? '?archived=true' : ''}`,
+        },
+        {
+          kind: 'projects',
+          label: release.projectName,
+          to: `/projects/${release.release.projectId}${release.projectArchivedAt || release.clientArchivedAt ? '?archived=true' : ''}`,
+        },
+        {
+          kind: 'releases',
+          label: release.release.name,
+          to: `/releases/${id}${release.release.archivedAt || release.projectArchivedAt || release.clientArchivedAt ? '?archived=true' : ''}`,
+        },
+      ]"
+      :current="{ kind: 'releases', label: 'Edit release' }"
+    />
     <div v-if="releaseError" class="space-y-3">
       <UAlert
         role="alert"
