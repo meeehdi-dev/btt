@@ -23,21 +23,3 @@ export function releaseDateInfo(value: string, now = new Date()): ReleaseDateInf
 
   return { relative, full, overdue: days < 0 }
 }
-
-type SortableRelease = {
-  readonly targetDate: string | null
-  readonly name: string
-  readonly id: string
-}
-
-export function compareReleases(a: SortableRelease, b: SortableRelease) {
-  if (!a.targetDate && !b.targetDate)
-    return a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
-  if (!a.targetDate) return -1
-  if (!b.targetDate) return 1
-  return (
-    a.targetDate.localeCompare(b.targetDate) ||
-    a.name.localeCompare(b.name) ||
-    a.id.localeCompare(b.id)
-  )
-}

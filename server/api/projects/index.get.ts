@@ -39,7 +39,7 @@ export default defineEffectHandler((event) =>
           ),
         )
         .groupBy(project.id, client.name, client.archivedAt)
-        .orderBy(desc(project.updatedAt)),
+        .orderBy(desc(project.createdAt), desc(project.id)),
     )
     return { projects }
   }),

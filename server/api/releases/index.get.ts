@@ -1,5 +1,6 @@
 import { Effect } from 'effect'
-import { and, count, desc, eq, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, isNull, sql } from 'drizzle-orm'
+import { compareReleases } from '../../../shared/release-order'
 import { db } from '../../db'
 import { client, project, release, ticket } from '../../db/schema'
 import { includeArchived, requireUserId } from '../../utils/domain'
@@ -50,9 +51,8 @@ export default defineEffectHandler((event) =>
           project.archivedAt,
           client.id,
           client.name,
-        )
-        .orderBy(desc(release.updatedAt)),
+        ),
     )
-    return { releases }
+    return { releases: releases.toSorted((a, b) => compareReleases(a.release, b.release)) }
   }),
 )

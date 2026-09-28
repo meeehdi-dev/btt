@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { compareReleases } from '~/utils/release-date'
-
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
 const route = useRoute()
@@ -32,8 +30,7 @@ const {
 const releases = computed(() =>
   (releaseData.value?.releases ?? [])
     .filter((item) => item.release.projectId === id)
-    .filter((item) => showArchived.value || !doneReleaseIds.value.has(item.release.id))
-    .toSorted((a, b) => compareReleases(a.release, b.release)),
+    .filter((item) => showArchived.value || !doneReleaseIds.value.has(item.release.id)),
 )
 
 if (projectError.value && clientFailureStatus(projectError.value) === 404)

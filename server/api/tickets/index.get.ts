@@ -47,7 +47,11 @@ export default defineEffectHandler((event) =>
             validReleaseId ? eq(release.id, validReleaseId) : undefined,
           ),
         )
-        .orderBy(desc(ticket.updatedAt)),
+        .orderBy(
+          desc(sql`case when ${ticket.estimateMinutes} is null then 0 else 1 end`),
+          desc(ticket.createdAt),
+          desc(ticket.id),
+        ),
     )
     const ids = tickets.map(({ ticket: record }) => record.id)
     if (!ids.length) return { tickets: [] }

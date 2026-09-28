@@ -62,3 +62,4 @@ NNNN-short-descriptive-slug.md
 | [0025](0025-ticket-board-hierarchy-actions.md)                 | Accepted   | Ticket board hierarchy badge actions                    |
 | [0026](0026-hierarchical-breadcrumb-navigation.md)             | Accepted   | Hierarchical breadcrumb navigation                      |
 | [0027](0027-release-ticket-status-actions.md)                  | Accepted   | Release ticket status badge actions                     |
+| [0028](0028-api-item-ordering.md)                              | Accepted   | Stable API item ordering                                |

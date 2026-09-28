@@ -35,7 +35,7 @@ export default defineEffectHandler((event) =>
             : and(eq(client.userId, userId), isNull(client.archivedAt)),
         )
         .groupBy(client.id)
-        .orderBy(desc(client.updatedAt)),
+        .orderBy(desc(client.createdAt), desc(client.id)),
     )
     return { clients }
   }),

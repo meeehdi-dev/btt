@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { and, eq, isNull, or } from 'drizzle-orm'
+import { and, asc, eq, isNull, or } from 'drizzle-orm'
 import { db } from '../../db'
 import { client, project, release, ticket, ticketLink, ticketRelation } from '../../db/schema'
 import { includeArchived } from '../../utils/domain'
@@ -15,7 +15,11 @@ export default defineEffectHandler((event) =>
       yield* includeArchived(event),
     )
     const links = yield* promiseEffect('load ticket links', () =>
-      db.select().from(ticketLink).where(eq(ticketLink.ticketId, id)),
+      db
+        .select()
+        .from(ticketLink)
+        .where(eq(ticketLink.ticketId, id))
+        .orderBy(asc(ticketLink.label), asc(ticketLink.id)),
     )
     const relations = yield* promiseEffect('load ticket relations', () =>
       db
@@ -60,7 +64,9 @@ export default defineEffectHandler((event) =>
         clientArchivedAt: record.clientArchivedAt,
       },
       links,
-      related: related.filter((item) => item !== null),
+      related: related
+        .filter((item) => item !== null)
+        .toSorted((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id)),
     }
   }),
 )

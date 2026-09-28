@@ -18,7 +18,7 @@ export default defineEffectHandler((event) =>
         .select()
         .from(timeEntry)
         .where(eq(timeEntry.ticketId, ticketId))
-        .orderBy(desc(timeEntry.date), desc(timeEntry.startMinute)),
+        .orderBy(desc(timeEntry.date), desc(timeEntry.startMinute), desc(timeEntry.id)),
     )
     const trackedMinutes = entries.reduce((total, entry) => total + entry.durationMinutes, 0)
     return { entries, trackedMinutes }
