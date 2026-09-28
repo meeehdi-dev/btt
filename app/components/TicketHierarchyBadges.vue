@@ -41,10 +41,17 @@ const icons: Record<HierarchyKind, EntityKind> = {
           size="xs"
           color="neutral"
           variant="soft"
-          class="!bg-default !px-1.5 !text-muted hover:!text-default"
+          :title="truncateLabels ? item.name : undefined"
+          :class="[
+            '!bg-default !px-1.5 !text-muted hover:!text-default',
+            truncateLabels ? 'max-w-32 shrink-0' : 'shrink-0',
+          ]"
           :aria-label="`${item.kind}: ${item.name}; actions`"
         >
-          <EntityIcon :kind="icons[item.kind]" />{{ item.name }}
+          <EntityIcon :kind="icons[item.kind]" /><span
+            :class="truncateLabels ? 'min-w-0 truncate' : ''"
+            >{{ item.name }}</span
+          >
         </UButton>
         <template #content>
           <div class="flex min-w-36 flex-col gap-1 p-2">

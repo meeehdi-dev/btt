@@ -435,6 +435,7 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
               @drag-end="clearDrag"
               @related-hover="hoveredTargetId = $event"
               @related-click="locateRelated"
+              @filter="applyFilter"
             />
             <p
               v-if="!group.items.length"
@@ -485,6 +486,7 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
                   @drag-end="clearDrag"
                   @related-hover="hoveredTargetId = $event"
                   @related-click="locateRelated"
+                  @filter="applyFilter"
                 />
                 <p v-if="!group.items.length" class="text-sm text-muted">
                   No tickets in {{ group.status }}.

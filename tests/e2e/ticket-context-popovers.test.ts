@@ -96,10 +96,12 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
   const titleLink = header.getByRole('link', { name: title })
   const usage = header.getByLabel('Ticket usage')
   const hierarchy = context.getByLabel('Ticket hierarchy')
+  const hierarchyBadge = hierarchy.getByRole('button').first()
   const related = context.getByRole('button', { name: 'Related tickets' })
   await expect(usage).toBeVisible()
   await expect(usage.getByLabel(/Estimate usage:/)).toHaveCount(0)
-  await expect(hierarchy.getByRole('link').first()).toHaveClass(/text-muted/)
+  await expect(hierarchyBadge).toHaveClass(/text-muted/)
+  await expect(hierarchyBadge).toHaveClass(/bg-default/)
   await expect(related).toHaveClass(/text-muted/)
   await expect(related).toHaveClass(/bg-default/)
   const [headerBox, titleBox, usageBox, contextBox, hierarchyBox, relatedBox] = await Promise.all([
@@ -346,8 +348,10 @@ test('ticket context popovers show one or many relations and native external lin
     await expect(mobileBoardCard).toBeVisible()
     await expectTwoRowBoardTicketCard(mobileBoardCard, manyTitle)
     await expect(
-      mobileBoardCard.getByRole('link', { name: `Context ${suffix}`, exact: true }),
-    ).toHaveAttribute('href', `/clients/${clientRecord.id}`)
+      mobileBoardCard
+        .getByLabel('Ticket hierarchy')
+        .getByRole('button', { name: `client: Context ${suffix}; actions` }),
+    ).toBeVisible()
     expect(
       await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     ).toBe(true)

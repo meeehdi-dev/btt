@@ -50,6 +50,7 @@ const emit = defineEmits<{
   'drag-end': []
   'related-hover': [id: string | null]
   'related-click': [event: MouseEvent, id: string]
+  filter: [kind: 'client' | 'project' | 'release', id: string]
 }>()
 
 let startedOnControl = false
@@ -113,11 +114,12 @@ function dragEnd() {
         aria-label="Ticket context"
       >
         <TicketHierarchyBadges
-          mode="links"
+          mode="filter-actions"
           truncate-labels
           :items="hierarchyItems"
           class="w-max shrink-0"
           aria-label="Ticket hierarchy"
+          @filter="(kind, id) => emit('filter', kind, id)"
         />
         <TicketContextPopovers
           class="shrink-0"

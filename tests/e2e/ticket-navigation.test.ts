@@ -11,7 +11,7 @@ import {
 } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
 
-test('board entity links and related-ticket icons locate visible targets', async ({
+test('board hierarchy actions and related-ticket icons locate visible targets', async ({
   page,
   context,
   browser,
@@ -107,17 +107,20 @@ test('board entity links and related-ticket icons locate visible targets', async
     )
     await expect(targetCard).toHaveClass(/border-default/)
 
-    for (const [name, destination] of [
-      ['Nav Client', `/clients/${c.id}`],
-      ['Nav Project', `/projects/${p.id}`],
-      ['Nav Release', `/releases/${r.id}`],
+    for (const [kind, name, destination] of [
+      ['client', 'Nav Client', `/clients/${c.id}`],
+      ['project', 'Nav Project', `/projects/${p.id}`],
+      ['release', 'Nav Release', `/releases/${r.id}`],
     ]) {
       await page.goto('/tickets')
       await page.waitForLoadState('networkidle')
-      await board
+      const hierarchyBadge = board
         .locator(`[data-board-ticket-id="${source.id}"]`)
-        .getByRole('link', { name })
-        .click()
+        .getByRole('button', { name: `${kind}: ${name}; actions` })
+      await hierarchyBadge.click()
+      const openAction = page.getByRole('link', { name: `Open ${name}`, exact: true })
+      await expect(openAction).toHaveAttribute('href', destination)
+      await openAction.click()
       await expect(page).toHaveURL(destination)
       expect(context.pages()).toHaveLength(1)
     }

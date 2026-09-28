@@ -207,14 +207,20 @@ test('board status moves work across lanes, without reordering or changing card 
     expect(patchCount).toBe(6)
     await card(idea.id).getByRole('button', { name: 'Related tickets' }).hover()
     await expect(page.locator(`[data-related-ticket-id="${done.id}"]`)).toBeVisible()
-    await expect(card(idea.id).getByRole('link', { name: 'Move Client' })).toHaveAttribute(
+    await card(idea.id).getByRole('button', { name: 'client: Move Client; actions' }).click()
+    await expect(page.getByRole('button', { name: 'Filter by Move Client' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Open Move Client' })).toHaveAttribute(
       'href',
       `/clients/${c.id}`,
     )
-    await expect(card(idea.id).getByRole('link', { name: 'Move Release' })).toHaveAttribute(
+    await page.keyboard.press('Escape')
+    await card(idea.id).getByRole('button', { name: 'release: Move Release; actions' }).click()
+    await expect(page.getByRole('link', { name: 'Open Move Release' })).toHaveAttribute(
       'href',
       `/releases/${r.id}`,
     )
+    await page.keyboard.press('Escape')
+    await card(idea.id).getByRole('button', { name: 'Related tickets' }).hover()
     await page.locator(`[data-related-ticket-id="${done.id}"]`).click()
     await expect(page).toHaveURL(new RegExp(`/tickets\\?release=${r.id}$`))
     await expect(card(done.id)).toHaveClass(/border-primary/)
@@ -271,7 +277,10 @@ test('board status moves work across lanes, without reordering or changing card 
     await page.getByRole('button', { name: 'Show archived' }).click()
     await expect(card(archived.id)).toBeVisible()
     await expect(card(archived.id)).toHaveAttribute('draggable', 'false')
-    await expect(card(archived.id).getByRole('button', { name: /Move / })).toHaveCount(0)
+    await expect(card(archived.id).getByRole('button', { name: /^Move to / })).toHaveCount(0)
+    await expect(
+      card(archived.id).getByRole('button', { name: /^(client|project|release): .*; actions$/ }),
+    ).toHaveCount(3)
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } })
     try {

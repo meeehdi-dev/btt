@@ -328,7 +328,7 @@ Status: Complete (2026-09-27); implementation and verification are complete, and
 
 Goal: polish Today, board, and release ticket/time presentations without changing stored time, status, ownership, archive, or estimate rules.
 
-- Reuse ticket/time-entry presentation across Today, the board, and release cards while preserving wrapper interactions. Following human-approved code-review feedback, align Today/board card content order, placement, spacing, colors, and hierarchy-badge appearance while retaining per-entry versus aggregate time semantics and surface-specific actions; board client/project/release badges remain direct links and board status changes remain absent per ADR 0013. On ticket board and release detail, show tracked time/estimate without a visible percentage badge; keep hierarchy/status/links below the release ticket title.
+- Reuse ticket/time-entry presentation across Today, the board, and release cards while preserving wrapper interactions. Following human-approved code-review feedback, align Today/board card content order, placement, spacing, colors, and hierarchy-badge appearance while retaining per-entry versus aggregate time semantics. At M8 completion, board client/project/release badges were direct links; M12 later revised them to offer filter/open actions (ADR 0025). Board status changes remain absent per ADR 0013. On ticket board and release detail, show tracked time/estimate without a visible percentage badge; keep hierarchy/status/links below the release ticket title.
 - Color tracked-time values with the existing usage ratio bands; distinguish Today progress from its target and show capped orange overtime without a separate suffix.
 - Add a Today-only status-change submenu while retaining status filtering and existing status rules.
 - Make all existing Today/Tickets board select-menu filters searchable. Keep archive toggles and form selects unchanged.
@@ -380,7 +380,7 @@ Acceptance:
 - [ ] Desktop click-and-drag block creation in both directions: start-to-finish and finish-to-start.
 - [ ] Overlap prevention or warning for scheduled blocks.
 - [ ] Agenda filters by client, project, release, ticket, and status.
-- [ ] Enable quick actions from badges such as release/client/project/status badges: open a popover to filter by that item or navigate to its detail page.
+- [ ] Today hierarchy badges and ticket-board client/project/release badges offer popover actions to filter the current view by that hierarchy item or open its detail page; Today status actions remain Today-specific.
 
 ### Projects and tickets
 

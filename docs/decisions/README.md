@@ -59,3 +59,4 @@ NNNN-short-descriptive-slug.md
 | [0022](0022-shared-entity-card-presentation.md)                | Accepted   | Shared entity-card presentation shell                   |
 | [0023](0023-server-effect-http-boundary.md)                    | Accepted   | Server Effect boundary and HTTP failure mapping         |
 | [0024](0024-effect-aware-client-fetch-boundary.md)             | Accepted   | Effect-aware client fetch boundary                      |
+| [0025](0025-ticket-board-hierarchy-actions.md)                 | Accepted   | Ticket board hierarchy badge actions                    |
