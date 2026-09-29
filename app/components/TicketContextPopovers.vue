@@ -8,8 +8,9 @@ withDefaults(
   defineProps<{
     relatedTickets?: RelatedTicket[]
     externalLinks?: ExternalLink[]
+    compact?: boolean
   }>(),
-  { relatedTickets: () => [], externalLinks: () => [] },
+  { relatedTickets: () => [], externalLinks: () => [], compact: false },
 )
 const relatedOpen = ref(false)
 const externalOpen = ref(false)
@@ -20,7 +21,11 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="inline-flex shrink-0 items-center gap-1" aria-label="Ticket links">
+  <div
+    class="inline-flex shrink-0 items-center"
+    :class="compact ? 'gap-0.5' : 'gap-1'"
+    aria-label="Ticket links"
+  >
     <UTooltip v-if="relatedTickets.length" text="Related tickets">
       <UPopover
         v-model:open="relatedOpen"
@@ -34,12 +39,15 @@ const emit = defineEmits<{
           square
           color="neutral"
           variant="soft"
-          class="!bg-default !text-muted hover:!text-default"
+          :class="[
+            '!bg-default !text-muted hover:!text-default',
+            compact ? '!h-5 !min-h-5 !w-5 !min-w-5 !p-0 !justify-center' : '',
+          ]"
           aria-label="Related tickets"
           @focus="relatedOpen = true"
           @click="relatedOpen = true"
         >
-          <EntityIcon kind="related" />
+          <EntityIcon kind="related" :class="compact ? '!size-3' : ''" />
         </UButton>
         <template #content>
           <div class="max-h-64 min-w-48 max-w-72 overflow-y-auto p-2" aria-label="Related tickets">
@@ -75,12 +83,19 @@ const emit = defineEmits<{
           square
           color="neutral"
           variant="soft"
-          class="!bg-default !text-muted hover:!text-default"
+          :class="[
+            '!bg-default !text-muted hover:!text-default',
+            compact ? '!h-5 !min-h-5 !w-5 !min-w-5 !p-0 !justify-center' : '',
+          ]"
           aria-label="External links"
           @focus="externalOpen = true"
           @click="externalOpen = true"
         >
-          <UIcon name="lucide:external-link" class="size-4" aria-hidden="true" />
+          <UIcon
+            name="lucide:external-link"
+            :class="compact ? 'size-3' : 'size-4'"
+            aria-hidden="true"
+          />
         </UButton>
         <template #content>
           <div class="max-h-64 min-w-40 max-w-72 overflow-y-auto p-2" aria-label="External links">

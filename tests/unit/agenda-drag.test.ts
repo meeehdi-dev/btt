@@ -59,18 +59,31 @@ describe('agenda gesture geometry', () => {
       startMinute: 570,
       durationMinutes: 30,
       adjusted: false,
+      valid: true,
     })
     expect(moveRange(574, 30, blocker, window, 2.25)).toEqual({
       startMinute: 570,
       durationMinutes: 30,
       adjusted: true,
+      valid: true,
     })
-    expect(moveRange(630, 30, blocker, window, 2.25)).toBeNull()
+    expect(moveRange(630, 30, blocker, window, 2.25)).toEqual({
+      startMinute: 630,
+      durationMinutes: 30,
+      adjusted: false,
+      valid: false,
+    })
     expect(moveRange(655, 30, blocker, window, 2.25)).toEqual({
       startMinute: 660,
       durationMinutes: 30,
       adjusted: true,
+      valid: true,
     })
-    expect(moveRange(1175, 30, blocker, window, 2.25)).toBeNull()
+    expect(moveRange(1175, 30, blocker, window, 2.25)).toEqual({
+      startMinute: 1170,
+      durationMinutes: 30,
+      adjusted: false,
+      valid: false,
+    })
   })
 })

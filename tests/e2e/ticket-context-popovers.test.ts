@@ -12,6 +12,12 @@ import {
 } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
 
+async function expectNoHorizontalOverflow(locator: Locator) {
+  await expect
+    .poll(() => locator.evaluate((element) => element.scrollWidth <= element.clientWidth))
+    .toBe(true)
+}
+
 async function expectPlainIconTrigger(trigger: Locator) {
   await expect(trigger).toBeVisible()
   await expect(trigger).toHaveClass(/bg-default/)
@@ -19,10 +25,23 @@ async function expectPlainIconTrigger(trigger: Locator) {
   await expect(trigger.locator('xpath=following-sibling::span[@data-slot="base"]')).toHaveCount(0)
 }
 
+async function expectCenteredIcon(trigger: Locator, icon: Locator) {
+  const [triggerBox, iconBox] = await Promise.all([trigger.boundingBox(), icon.boundingBox()])
+  if (!triggerBox || !iconBox) throw new Error('Compact icon trigger must be visible')
+  expect(
+    Math.abs(triggerBox.x + triggerBox.width / 2 - (iconBox.x + iconBox.width / 2)),
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(triggerBox.y + triggerBox.height / 2 - (iconBox.y + iconBox.height / 2)),
+  ).toBeLessThanOrEqual(1)
+}
+
 async function expectTwoRowReleaseTicketCard(card: Locator, title: string) {
   const header = card.locator('[data-release-ticket-header]')
   const context = card.locator('[data-release-ticket-context]')
   const hierarchy = context.getByLabel('Ticket hierarchy')
+  await expectNoHorizontalOverflow(hierarchy)
+  await expectNoHorizontalOverflow(context)
   const usage = header.getByLabel('Ticket usage')
   const status = context.getByRole('combobox', { name: `Ticket status for ${title}` })
   const related = context.getByRole('button', { name: 'Related tickets' })
@@ -80,15 +99,24 @@ async function expectTwoRowReleaseTicketCard(card: Locator, title: string) {
   ).toBeLessThan(5)
   expect(contextBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height)
   expect(Math.abs(contextBox.x - headerBox.x)).toBeLessThan(2)
-  expect(hierarchyBox.height).toBeLessThanOrEqual(34)
-  expect(contextBox.height).toBeLessThanOrEqual(36)
+  expect(hierarchyBox.height).toBeLessThanOrEqual(70)
+  expect(contextBox.height).toBeLessThanOrEqual(100)
   expect(Math.abs(statusBox.height - hierarchyLinkBox.height)).toBeLessThan(2)
   expect(usageBox.x - (titleBox.x + titleBox.width)).toBeGreaterThanOrEqual(0)
   expect(usageBox.x - (titleBox.x + titleBox.width)).toBeLessThanOrEqual(12)
-  expect(statusBox.x).toBeGreaterThanOrEqual(hierarchyBox.x + hierarchyBox.width)
-  expect(relatedBox.x).toBeGreaterThanOrEqual(statusBox.x + statusBox.width)
-  expect(externalBox.x).toBeGreaterThanOrEqual(relatedBox.x + relatedBox.width)
-  expect(cardBox.height).toBeLessThan(112)
+  expect(
+    statusBox.x >= hierarchyBox.x + hierarchyBox.width - 1 ||
+      statusBox.y >= hierarchyBox.y + hierarchyBox.height - 1,
+  ).toBe(true)
+  expect(
+    relatedBox.x >= statusBox.x + statusBox.width - 1 ||
+      relatedBox.y >= statusBox.y + statusBox.height - 1,
+  ).toBe(true)
+  expect(
+    externalBox.x >= relatedBox.x + relatedBox.width - 1 ||
+      externalBox.y >= relatedBox.y + relatedBox.height - 1,
+  ).toBe(true)
+  expect(cardBox.height).toBeLessThan(180)
 }
 
 async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
@@ -97,6 +125,8 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
   const titleLink = header.getByRole('link', { name: title })
   const usage = header.getByLabel('Ticket usage')
   const hierarchy = context.getByLabel('Ticket hierarchy')
+  await expectNoHorizontalOverflow(hierarchy)
+  await expectNoHorizontalOverflow(context)
   const hierarchyBadge = hierarchy.getByRole('button').first()
   const related = context.getByRole('button', { name: 'Related tickets' })
   await expect(usage).toBeVisible()
@@ -118,8 +148,11 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
   expect(usageBox.x - (titleBox.x + titleBox.width)).toBeGreaterThanOrEqual(0)
   expect(usageBox.x - (titleBox.x + titleBox.width)).toBeLessThanOrEqual(12)
   expect(contextBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height)
-  expect(contextBox.height).toBeLessThanOrEqual(36)
-  expect(relatedBox.x).toBeGreaterThanOrEqual(hierarchyBox.x + hierarchyBox.width)
+  expect(contextBox.height).toBeLessThanOrEqual(144)
+  expect(
+    relatedBox.x >= hierarchyBox.x + hierarchyBox.width - 1 ||
+      relatedBox.y >= hierarchyBox.y + hierarchyBox.height - 1,
+  ).toBe(true)
 }
 
 async function cleanup(userId: string) {
@@ -330,6 +363,41 @@ test('ticket context popovers show one or many relations and native external lin
       await page.goto(`/releases/${releaseRecord.id}`)
       await page.waitForLoadState('networkidle')
     }
+
+    await page.goto('/today')
+    await page.waitForLoadState('networkidle')
+    const compactAgendaCard = page
+      .locator(`[data-agenda-ticket-id="${many.id}"]`)
+      .filter({ visible: true })
+    const compactFilter = compactAgendaCard.getByRole('button', {
+      name: `Filter by ${manyTitle}`,
+    })
+    const compactStatus = compactAgendaCard.getByRole('button', { name: 'status: Idea; actions' })
+    const compactRelated = compactAgendaCard.getByRole('button', { name: 'Related tickets' })
+    const compactExternal = compactAgendaCard.getByRole('button', { name: 'External links' })
+    const [filterHeight, statusHeight, relatedHeight, externalHeight, statusFontSize] =
+      await Promise.all([
+        compactFilter.evaluate((element) => element.getBoundingClientRect().height),
+        compactStatus.evaluate((element) => element.getBoundingClientRect().height),
+        compactRelated.evaluate((element) => element.getBoundingClientRect().height),
+        compactExternal.evaluate((element) => element.getBoundingClientRect().height),
+        compactStatus.evaluate((element) => getComputedStyle(element).fontSize),
+      ])
+    await expect(compactFilter).toBeVisible()
+    await expect(compactStatus).toBeVisible()
+    await expect(compactRelated).toBeVisible()
+    await expect(compactExternal).toBeVisible()
+    expect(filterHeight).toBeLessThanOrEqual(20)
+    expect(statusHeight).toBeLessThanOrEqual(20)
+    expect(relatedHeight).toBeLessThanOrEqual(20)
+    expect(externalHeight).toBeLessThanOrEqual(20)
+    expect(statusFontSize).toBe('10px')
+    await expectCenteredIcon(compactFilter, compactFilter.locator('[data-slot="leadingIcon"]'))
+    await expectCenteredIcon(compactRelated, compactRelated.locator('[aria-hidden="true"]').first())
+    await expectCenteredIcon(
+      compactExternal,
+      compactExternal.locator('[aria-hidden="true"]').first(),
+    )
 
     mobileContext = await browser.newContext({
       viewport: { width: 390, height: 844 },

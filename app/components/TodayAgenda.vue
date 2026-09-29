@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ticketStatuses } from '#shared/ticket-status'
-import { creationRange, moveRange, pointerSlot, resizeRange } from '~/utils/agenda-drag'
+import {
+  creationRange,
+  moveRange,
+  pointerSlot,
+  resizeRange,
+  type MovePreview,
+} from '~/utils/agenda-drag'
 import { overlaps, slotMinutes } from '#shared/time-entry'
 
 type TicketStatus = (typeof ticketStatuses)[number]
@@ -69,6 +75,8 @@ const timeline = ref<HTMLElement | null>(null)
 const desktop = ref(false)
 let breakpoint: MediaQueryList | undefined
 const alert = ref('')
+type AgendaPreview = MovePreview
+
 type Gesture = {
   pointerId: number
   kind: 'create' | 'move' | 'top' | 'bottom'
@@ -78,7 +86,7 @@ type Gesture = {
   moved: boolean
   offset: number
   original: { startMinute: number; durationMinutes: number } | null
-  preview: { startMinute: number; durationMinutes: number } | null
+  preview: AgendaPreview | null
 }
 const gesture = shallowRef<Gesture | null>(null)
 const active = computed(() => gesture.value?.moved ?? false)
@@ -161,9 +169,15 @@ function initialPointer(event: PointerEvent) {
     moved: false,
     offset: row && wrapper ? event.clientY - wrapper.getBoundingClientRect().top : 0,
     original,
-    preview: row ? original : creationRange(minute, minute, allIntervals.value, windowBounds.value),
+    preview:
+      row && original
+        ? { ...original, adjusted: false, valid: true }
+        : {
+            ...creationRange(minute, minute, allIntervals.value, windowBounds.value),
+            adjusted: false,
+            valid: true,
+          },
   }
-  alert.value = ''
   timeline.value.setPointerCapture(event.pointerId)
   event.preventDefault()
 }
@@ -177,12 +191,16 @@ function updatePointer(event: PointerEvent) {
     .map(({ entry }) => entry)
   let preview: Gesture['preview'] = null
   if (current.kind === 'create') {
-    preview = creationRange(
-      current.anchor,
-      pointerSlot(y, height, windowBounds.value),
-      intervals,
-      windowBounds.value,
-    )
+    preview = {
+      ...creationRange(
+        current.anchor,
+        pointerSlot(y, height, windowBounds.value),
+        intervals,
+        windowBounds.value,
+      ),
+      adjusted: false,
+      valid: true,
+    }
   } else if (current.kind === 'move' && current.original) {
     const rawStart = props.start + (y - current.offset) / pixelsPerMinute
     preview = moveRange(
@@ -200,13 +218,17 @@ function updatePointer(event: PointerEvent) {
         props.start + Math.round(y / (slotMinutes * pixelsPerMinute)) * slotMinutes,
       ),
     )
-    preview = resizeRange(
-      current.original,
-      current.kind as 'top' | 'bottom',
-      boundary,
-      intervals,
-      windowBounds.value,
-    )
+    preview = {
+      ...resizeRange(
+        current.original,
+        current.kind as 'top' | 'bottom',
+        boundary,
+        intervals,
+        windowBounds.value,
+      ),
+      adjusted: false,
+      valid: true,
+    }
   }
   gesture.value = {
     ...current,
@@ -222,10 +244,12 @@ function finishPointer(event: PointerEvent) {
   const moved = gesture.value?.moved
   resetGesture()
   if (current.kind === 'create' && !moved) return
-  if (!result) {
-    alert.value = 'This time slot is occupied or outside visible hours. The entry was not moved.'
+  if (!result?.valid) {
+    alert.value =
+      'This time slot conflicts with another entry or the visible hours. The entry was not moved.'
     return
   }
+  alert.value = ''
   if (current.kind === 'create') emit('create', result.startMinute, result.durationMinutes)
   else if (
     current.id &&
@@ -250,6 +274,13 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
   return {
     top: `${(first - props.start) * pixelsPerMinute}px`,
     height: `${Math.max(0, last - first) * pixelsPerMinute}px`,
+  }
+}
+function previewStyle(preview: AgendaPreview) {
+  if (preview.valid) return blockStyle(preview)
+  return {
+    top: `${(preview.startMinute - props.start) * pixelsPerMinute}px`,
+    height: `${preview.durationMinutes * pixelsPerMinute}px`,
   }
 }
 </script>
@@ -315,6 +346,7 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
         >
           <TodayAgendaEntry
             :row="row"
+            compact-timeline
             :status-busy="statusChangingId === row.ticketId"
             @filter="(kind, id) => emit('filter', kind, id)"
             @edit="emit('edit', row.entry.id)"
@@ -340,6 +372,7 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
           >
             <TodayAgendaEntry
               :row="row"
+              compact-timeline
               :status-busy="statusChangingId === row.ticketId"
               @filter="(kind, id) => emit('filter', kind, id)"
               @change-status="(id, status) => emit('change-status', id, status)"
@@ -347,20 +380,21 @@ function blockStyle(entry: { startMinute: number; durationMinutes: number }) {
           </div>
           <div
             v-if="gesture?.preview"
-            class="pointer-events-none absolute inset-x-2 z-20 rounded-lg border-2 border-primary bg-primary/20 p-2 text-xs font-semibold text-highlighted"
-            :style="blockStyle(gesture.preview)"
+            class="pointer-events-none absolute inset-x-2 z-20 rounded-lg border-2 p-2 text-xs font-semibold"
+            :class="
+              gesture.preview.valid
+                ? 'border-primary bg-primary/20 text-highlighted'
+                : 'border-error bg-error/20 text-error'
+            "
+            :style="previewStyle(gesture.preview)"
             role="status"
           >
-            {{ clock(gesture.preview.startMinute) }}–{{
-              clock(gesture.preview.startMinute + gesture.preview.durationMinutes)
-            }}
-          </div>
-          <div
-            v-else
-            class="pointer-events-none absolute inset-x-2 z-20 rounded-lg border border-error bg-error/20 p-2 text-xs"
-            :style="gesture?.original ? blockStyle(gesture.original) : {}"
-          >
-            Occupied slot
+            <template v-if="gesture.preview.valid"
+              >{{ clock(gesture.preview.startMinute) }}–{{
+                clock(gesture.preview.startMinute + gesture.preview.durationMinutes)
+              }}</template
+            >
+            <template v-else>Conflict</template>
           </div>
         </template>
       </div>

@@ -178,6 +178,7 @@ export const userSettings = pgTable(
     visibleStartMinute: integer('visible_start_minute').notNull().default(480),
     visibleEndMinute: integer('visible_end_minute').notNull().default(1200),
     workDayDurationMinutes: integer('work_day_duration_minutes').notNull().default(480),
+    startOfWeekDay: integer('start_of_week_day').notNull().default(1),
   },
   (table) => [
     check(
@@ -187,6 +188,10 @@ export const userSettings = pgTable(
     check(
       'user_settings_duration_check',
       sql`${table.workDayDurationMinutes} >= 30 and ${table.workDayDurationMinutes} <= 1440 and ${table.workDayDurationMinutes} % 30 = 0`,
+    ),
+    check(
+      'user_settings_start_of_week_check',
+      sql`${table.startOfWeekDay} >= 0 and ${table.startOfWeekDay} <= 6`,
     ),
   ],
 )

@@ -43,6 +43,12 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
   const button = heading.getByRole('button', { name: 'Mark release as done' })
   const summary = card.locator('[data-release-card-summary]')
   const hierarchy = summary.getByLabel('Release hierarchy')
+  await expect
+    .poll(() => hierarchy.evaluate((element) => element.scrollWidth <= element.clientWidth))
+    .toBe(true)
+  await expect
+    .poll(() => summary.evaluate((element) => element.scrollWidth <= element.clientWidth))
+    .toBe(true)
   const metrics = card.locator('[data-release-card-metrics]')
   const ticketIcon = card.locator('[data-release-card-ticket-icon]')
   const counts = card.locator('[data-release-card-counts]')
@@ -112,10 +118,11 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
   ).toBeLessThan(4)
   expect(summaryBox.y).toBeGreaterThanOrEqual(buttonBox.y + buttonBox.height)
   expect(Math.abs(hierarchyBox.x - titleBox.x)).toBeLessThan(2)
-  expect(metricsBox.x).toBeGreaterThanOrEqual(hierarchyBox.x + hierarchyBox.width)
-  expect(
-    Math.abs(metricsBox.y + metricsBox.height / 2 - (hierarchyBox.y + hierarchyBox.height / 2)),
-  ).toBeLessThan(4)
+  const metricsOnHierarchyRow =
+    metricsBox.x >= hierarchyBox.x + hierarchyBox.width - 1 &&
+    Math.abs(metricsBox.y + metricsBox.height / 2 - (hierarchyBox.y + hierarchyBox.height / 2)) < 4
+  const metricsBelowHierarchy = metricsBox.y >= hierarchyBox.y + hierarchyBox.height - 1
+  expect(metricsOnHierarchyRow || metricsBelowHierarchy).toBe(true)
   expect(countsBox.x).toBeGreaterThanOrEqual(ticketIconBox.x + ticketIconBox.width)
   expect(ringBox.x).toBeGreaterThanOrEqual(countsBox.x + countsBox.width)
   const metricsRightPadding = metricsBox.x + metricsBox.width - (ringBox.x + ringBox.width)
@@ -124,7 +131,7 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
   expect(ringBox.width).toBeLessThanOrEqual(20)
   expect(ringBox.height).toBeLessThanOrEqual(20)
   expect(metricsBox.height).toBeLessThanOrEqual(24)
-  expect(cardBox.height).toBeLessThan(120)
+  expect(cardBox.height).toBeLessThan(160)
 }
 
 test('hierarchy cards show active counts and accessible release completion progress', async ({
@@ -266,6 +273,10 @@ test('hierarchy cards show active counts and accessible release completion progr
     await page.goto('/projects')
     await page.waitForLoadState('networkidle')
     const projectCard = page.locator(`[data-project-card-id="${projectRecord.id}"]`)
+    const projectSummary = projectCard.locator('[data-project-card-summary]')
+    await expect
+      .poll(() => projectSummary.evaluate((element) => element.scrollWidth <= element.clientWidth))
+      .toBe(true)
     const projectTitle = projectCard.locator('[data-project-card-title]')
     const projectCounts = projectCard.getByRole('list', { name: 'Active project contents' })
     await expect(projectTitle.getByRole('heading', { name: 'Metrics project' })).toBeVisible()
@@ -344,10 +355,16 @@ test('hierarchy cards show active counts and accessible release completion progr
     ).toBe(true)
     await mobilePage.goto('/projects')
     await mobilePage.waitForLoadState('networkidle')
+    const mobileProjectCard = mobilePage.locator(`[data-project-card-id="${projectRecord.id}"]`)
+    await expect
+      .poll(() =>
+        mobileProjectCard
+          .locator('[data-project-card-summary]')
+          .evaluate((element) => element.scrollWidth <= element.clientWidth),
+      )
+      .toBe(true)
     await expect(
-      mobilePage
-        .locator(`[data-project-card-id="${projectRecord.id}"]`)
-        .getByRole('list', { name: 'Active project contents' }),
+      mobileProjectCard.getByRole('list', { name: 'Active project contents' }),
     ).toContainText('2 tickets')
     await mobilePage.goto(`/projects/${projectRecord.id}`)
     await mobilePage.waitForLoadState('networkidle')

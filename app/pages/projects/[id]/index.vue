@@ -213,12 +213,12 @@ async function markDone(releaseId: string) {
         <template #context>
           <div
             data-release-card-summary
-            class="flex w-max min-w-0 max-w-full items-center gap-2 overflow-x-auto whitespace-nowrap"
+            class="flex min-w-0 max-w-full flex-wrap items-center gap-2"
           >
             <TicketHierarchyBadges
               mode="links"
               truncate-labels
-              class="pointer-events-auto relative z-10 w-max shrink-0"
+              class="pointer-events-auto relative z-10 max-w-full"
               :items="[
                 {
                   kind: 'client',

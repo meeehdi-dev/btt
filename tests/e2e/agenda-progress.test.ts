@@ -44,7 +44,12 @@ test('workday progress caps overtime, uses one accessible summary, and colors tr
     })
     ticketId = ticketRecord.id
     const settings = await page.request.patch('/api/settings', {
-      data: { visibleStartMinute: 480, visibleEndMinute: 1200, workDayDurationMinutes: 300 },
+      data: {
+        visibleStartMinute: 480,
+        visibleEndMinute: 1200,
+        workDayDurationMinutes: 300,
+        startOfWeekDay: 1,
+      },
     })
     expect(settings.ok()).toBe(true)
     const date = await page.evaluate(() => {
@@ -66,7 +71,12 @@ test('workday progress caps overtime, uses one accessible summary, and colors tr
     const trackedValue = summary.locator('span[aria-label^="Worked"] > span').first()
     const setWorkdayTarget = async (workDayDurationMinutes: number) => {
       const response = await page.request.patch('/api/settings', {
-        data: { visibleStartMinute: 480, visibleEndMinute: 1200, workDayDurationMinutes },
+        data: {
+          visibleStartMinute: 480,
+          visibleEndMinute: 1200,
+          workDayDurationMinutes,
+          startOfWeekDay: 1,
+        },
       })
       expect(response.ok()).toBe(true)
       await page.reload()

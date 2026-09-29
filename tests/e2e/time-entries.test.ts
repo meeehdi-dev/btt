@@ -193,9 +193,8 @@ test('owned historical time entries enforce daily slots, overlap, archive and us
     }
     const unauth = await browser.newContext()
     try {
-      expect(
-        (await unauth.request.get(`http://127.0.0.1:3000${endpoint}?ticketId=${a.id}`)).status(),
-      ).toBe(401)
+      const origin = new URL(page.url()).origin
+      expect((await unauth.request.get(`${origin}${endpoint}?ticketId=${a.id}`)).status()).toBe(401)
     } finally {
       await unauth.close()
     }

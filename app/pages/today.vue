@@ -2,6 +2,12 @@
 import { Effect } from 'effect'
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
+import {
+  formatAgendaDate,
+  formatAgendaWeekRange,
+  formatAgendaWeekRangeShort,
+} from '~/utils/agenda-week'
+import { getWeekDates } from '#shared/agenda-week'
 import { entityIcons } from '~/utils/entity-icons'
 import { ticketStatuses } from '#shared/ticket-status'
 import {
@@ -13,13 +19,20 @@ import {
 import { usageColor, validDate } from '#shared/time-entry'
 
 type TicketStatus = (typeof ticketStatuses)[number]
+type WeekStartsOn = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const date = shallowRef<CalendarDate | null>(null)
 const pickerOpen = ref(false)
+const editDatePickerOpen = ref(false)
+const addDatePickerOpen = ref(false)
 const addOpen = ref(false)
+const addSource = ref<'page' | 'date' | 'drag'>('page')
 const day = computed(() => date.value?.toString() ?? '')
+const view = ref<'day' | 'week'>('day')
+const agendaViewStorageKey = 'nxmr:agenda-view'
+const locale = ref('en')
 const isToday = computed(() => day.value === today(getLocalTimeZone()).toString())
 const {
   data: agenda,
@@ -36,6 +49,49 @@ const {
   error: settingsError,
   refresh: refreshSettings,
 } = await useApiFetch('/api/settings')
+const calendarWeekStartsOn = computed<WeekStartsOn>(() => {
+  const startOfWeekDay = settings.value?.startOfWeekDay
+  return startOfWeekDay !== undefined && startOfWeekDay >= 0 && startOfWeekDay <= 6
+    ? (startOfWeekDay as WeekStartsOn)
+    : 1
+})
+const weekDates = computed(() =>
+  day.value ? (getWeekDates(day.value, settings.value?.startOfWeekDay ?? 1) ?? []) : [],
+)
+const weekStart = computed(() => weekDates.value[0] ?? '')
+const canChooseWeekAddDate = computed(
+  () => view.value === 'week' && addSource.value === 'page' && weekDates.value.length === 7,
+)
+const addWeekMinValue = computed(() =>
+  canChooseWeekAddDate.value ? parseDate(weekDates.value[0]!) : undefined,
+)
+const addWeekMaxValue = computed(() =>
+  canChooseWeekAddDate.value ? parseDate(weekDates.value[6]!) : undefined,
+)
+const isCurrentPeriod = computed(() => {
+  const currentDate = today(getLocalTimeZone()).toString()
+  return view.value === 'week' ? weekDates.value.includes(currentDate) : day.value === currentDate
+})
+const weekRangeLabel = computed(() =>
+  weekDates.value.length === 7
+    ? formatAgendaWeekRange(weekDates.value[0]!, weekDates.value[6]!, locale.value)
+    : 'Loading week…',
+)
+const weekRangeShortLabel = computed(() =>
+  weekDates.value.length === 7
+    ? formatAgendaWeekRangeShort(weekDates.value[0]!, weekDates.value[6]!, locale.value)
+    : 'Loading week…',
+)
+const {
+  data: weekAgenda,
+  pending: weekPending,
+  error: weekError,
+  refresh: refreshWeek,
+} = await useApiFetch('/api/agenda/week', {
+  query: computed(() => ({ startDate: weekStart.value })),
+  immediate: false,
+  watch: false,
+})
 const {
   data: ticketsData,
   error: ticketsError,
@@ -43,6 +99,19 @@ const {
 } = await useApiFetch('/api/tickets')
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
 const entries = computed(() => agenda.value?.entries ?? [])
+const activeEntries = computed(() =>
+  view.value === 'week' ? (weekAgenda.value?.entries ?? []) : entries.value,
+)
+const activeAgendaError = computed(() => (view.value === 'week' ? weekError.value : error.value))
+const activeAgendaPending = computed(() =>
+  view.value === 'week' ? weekPending.value : pending.value,
+)
+async function refreshActiveAgenda() {
+  return view.value === 'week' ? refreshWeek() : refresh()
+}
+function activeAgendaFailure() {
+  return activeAgendaError.value
+}
 type FilterKind = HierarchyFilterKind | 'status'
 const filters = reactive<Record<FilterKind, string>>({
   client: '',
@@ -52,7 +121,7 @@ const filters = reactive<Record<FilterKind, string>>({
   status: '',
 })
 const filterSources = computed<HierarchyFilterSource[]>(() => [
-  ...entries.value.map((row) => ({
+  ...activeEntries.value.map((row) => ({
     clientId: row.clientId,
     clientName: row.clientName,
     projectId: row.projectId,
@@ -107,7 +176,7 @@ function clearFilters() {
   filters.status = ''
 }
 const filtered = computed(() =>
-  entries.value.filter(
+  activeEntries.value.filter(
     (row) =>
       (!filters.client || row.clientId === filters.client) &&
       (!filters.project || row.projectId === filters.project) &&
@@ -137,7 +206,9 @@ const statusWriteNeedsRefresh = ref(false)
 const statusMessage = ref('')
 const editingId = ref<string | null>(null)
 const editingOpen = ref(false)
+const editingDate = shallowRef<CalendarDate | null>(null)
 const editingTime = shallowRef(new Time(9, 0))
+const addDate = shallowRef<CalendarDate | null>(null)
 const editingDuration = ref(30)
 const editingDescription = ref('')
 const editingError = ref('')
@@ -146,7 +217,7 @@ const deletingEdit = ref(false)
 async function retryTodayReads() {
   const result = await runClientEffect(
     Effect.all([
-      refreshEffect(refresh, () => error.value),
+      refreshEffect(refreshActiveAgenda, activeAgendaFailure),
       refreshEffect(refreshSettings, () => settingsError.value),
       refreshEffect(refreshTickets, () => ticketsError.value),
     ]),
@@ -170,15 +241,19 @@ async function retryTodayReads() {
     }
   }
 }
-watch(day, () => {
+watch([day, view, weekStart], ([value, currentView, startDate]) => {
   editingOpen.value = false
   addOpen.value = false
   dragError.value = ''
+  if (!value) return
+  if (currentView === 'week' && startDate) void refreshWeek()
+  else if (currentView === 'day') void refresh()
 })
 function beginEdit(id: string) {
-  const row = entries.value.find(({ entry }) => entry.id === id)
+  const row = activeEntries.value.find(({ entry }) => entry.id === id)
   if (!row) return
   editingId.value = id
+  editingDate.value = parseDate(row.entry.date)
   editingTime.value = new Time(Math.floor(row.entry.startMinute / 60), row.entry.startMinute % 60)
   editingDuration.value = row.entry.durationMinutes
   editingDescription.value = row.entry.description
@@ -186,7 +261,7 @@ function beginEdit(id: string) {
   editingOpen.value = true
 }
 async function saveEdit() {
-  if (!editingId.value || busy.value || pageActionNeedsRefresh.value) return
+  if (!editingId.value || !editingDate.value || busy.value || pageActionNeedsRefresh.value) return
   busy.value = true
   editingError.value = ''
   editingErrorTitle.value = 'Could not update time entry'
@@ -196,6 +271,7 @@ async function saveEdit() {
       $fetch<unknown>(endpoint, {
         method: 'PATCH',
         body: {
+          date: editingDate.value!.toString(),
           startMinute: editingTime.value.hour * 60 + editingTime.value.minute,
           durationMinutes: editingDuration.value,
           description: editingDescription.value,
@@ -208,7 +284,7 @@ async function saveEdit() {
       return
     }
     editingOpen.value = false
-    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const refreshed = await runClientEffect(refreshEffect(refreshActiveAgenda, activeAgendaFailure))
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Time entry corrected; refresh failed'
@@ -241,7 +317,7 @@ async function deleteEdit() {
     }
     editingOpen.value = false
     editingId.value = null
-    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const refreshed = await runClientEffect(refreshEffect(refreshActiveAgenda, activeAgendaFailure))
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Time entry deleted; refresh failed'
@@ -252,14 +328,33 @@ async function deleteEdit() {
     busy.value = false
   }
 }
-function beginDragCreate(startMinute: number, durationMinutes: number) {
+function beginAdd(dateString = day.value, source: 'page' | 'date' = 'page') {
+  if (!dateString || !validDate(dateString) || pageActionNeedsRefresh.value) return
+  addDate.value = parseDate(dateString)
+  addSource.value = source
+  addDatePickerOpen.value = false
+  actionError.value = ''
+  addOpen.value = true
+}
+function beginDateAdd(dateString: string) {
+  beginAdd(dateString, 'date')
+}
+function beginDragCreate(dateString: string, startMinute: number, durationMinutes: number) {
   if (pageActionNeedsRefresh.value) return
+  addDate.value = parseDate(dateString)
+  addSource.value = 'drag'
+  addDatePickerOpen.value = false
   startTime.value = new Time(Math.floor(startMinute / 60), startMinute % 60)
   duration.value = durationMinutes
   actionError.value = ''
   addOpen.value = true
 }
-async function changeEntry(id: string, startMinute: number, durationMinutes: number) {
+async function changeEntry(
+  id: string,
+  dateString: string,
+  startMinute: number,
+  durationMinutes: number,
+) {
   if (busy.value || pageActionNeedsRefresh.value) return
   busy.value = true
   dragError.value = ''
@@ -270,21 +365,23 @@ async function changeEntry(id: string, startMinute: number, durationMinutes: num
     const result = await runClientRequest<unknown>((signal) =>
       $fetch<unknown>(endpoint, {
         method: 'PATCH',
-        body: { startMinute, durationMinutes },
+        body: { date: dateString, startMinute, durationMinutes },
         signal,
       }),
     )
     if (result._tag === 'Failure') {
       dragErrorBase.value = result.failure.userMessage
       dragError.value = dragErrorBase.value
-      const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+      const refreshed = await runClientEffect(
+        refreshEffect(refreshActiveAgenda, activeAgendaFailure),
+      )
       if (refreshed._tag === 'Failure') {
         pageActionNeedsRefresh.value = true
         dragError.value += ` The agenda also could not be refreshed. ${refreshed.failure.userMessage}`
       }
       return
     }
-    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const refreshed = await runClientEffect(refreshEffect(refreshActiveAgenda, activeAgendaFailure))
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       dragErrorTitle.value = 'Time entry moved; refresh failed'
@@ -305,13 +402,35 @@ function syncRouteDate() {
       ? parseDate(requested)
       : today(getLocalTimeZone())
 }
-onMounted(syncRouteDate)
-watch(() => route.query.date, syncRouteDate)
-watch(day, (value) => {
-  if (value) void refresh()
+function readAgendaViewPreference(): 'day' | 'week' {
+  try {
+    const stored = window.localStorage.getItem(agendaViewStorageKey)
+    if (stored === 'day' || stored === 'week') return stored
+    if (stored !== null) window.localStorage.removeItem(agendaViewStorageKey)
+  } catch {
+    // Keep Day as the safe default when browser storage is unavailable.
+  }
+  return 'day'
+}
+watch(view, (currentView) => {
+  if (!import.meta.client) return
+  try {
+    window.localStorage.setItem(agendaViewStorageKey, currentView)
+  } catch {
+    // The current view remains usable for this visit if browser storage is unavailable.
+  }
 })
+onMounted(() => {
+  locale.value = navigator.language
+  view.value = readAgendaViewPreference()
+  syncRouteDate()
+})
+watch(() => route.query.date, syncRouteDate)
 function changeDay(offset: number) {
   date.value = date.value?.add({ days: offset }) ?? null
+}
+function changePeriod(offset: number) {
+  changeDay(offset * (view.value === 'week' ? 7 : 1))
 }
 function resetToday() {
   date.value = today(getLocalTimeZone())
@@ -335,7 +454,7 @@ async function changeTicketStatus(id: string, destination: TicketStatus) {
   const refreshTodayData = () =>
     runClientEffect(
       Effect.all([
-        refreshEffect(refresh, () => error.value),
+        refreshEffect(refreshActiveAgenda, activeAgendaFailure),
         refreshEffect(refreshTickets, () => ticketsError.value),
       ]),
     )
@@ -372,10 +491,14 @@ async function changeTicketStatus(id: string, destination: TicketStatus) {
 async function add() {
   if (
     pageActionNeedsRefresh.value ||
-    !day.value ||
+    !addDate.value ||
     !tickets.value.some(({ ticket }) => ticket.id === ticketId.value)
   )
     return
+  if (canChooseWeekAddDate.value && !weekDates.value.includes(addDate.value.toString())) {
+    actionError.value = 'Choose a date within the displayed week.'
+    return
+  }
   busy.value = true
   actionError.value = ''
   actionErrorTitle.value = 'Could not add work'
@@ -385,7 +508,7 @@ async function add() {
         method: 'POST',
         body: {
           ticketId: ticketId.value,
-          date: day.value,
+          date: addDate.value!.toString(),
           startMinute: startTime.value.hour * 60 + startTime.value.minute,
           durationMinutes: duration.value,
           description: description.value,
@@ -399,7 +522,7 @@ async function add() {
     }
     description.value = ''
     addOpen.value = false
-    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const refreshed = await runClientEffect(refreshEffect(refreshActiveAgenda, activeAgendaFailure))
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Work added; agenda refresh failed'
@@ -436,19 +559,19 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
 </script>
 <template>
   <div class="space-y-6">
-    <h1 class="sr-only">Today</h1>
+    <h1 class="sr-only">{{ view === 'week' ? 'This week' : 'Today' }}</h1>
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div
         class="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex"
-        aria-label="Choose agenda day"
+        :aria-label="view === 'week' ? 'Choose agenda week' : 'Choose agenda day'"
       >
         <UTooltip text="Previous day">
           <UButton
             color="neutral"
             variant="outline"
             icon="lucide:chevron-left"
-            aria-label="Previous day"
-            @click="changeDay(-1)"
+            :aria-label="view === 'week' ? 'Previous week' : 'Previous day'"
+            @click="changePeriod(-1)"
           />
         </UTooltip>
         <UPopover v-model:open="pickerOpen">
@@ -456,10 +579,15 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
             color="neutral"
             variant="outline"
             icon="lucide:calendar-days"
-            :label="day || 'Loading day…'"
             class="min-w-0"
-            :aria-label="`Agenda date: ${day}`"
-          />
+            :aria-label="view === 'week' ? `Agenda week: ${weekRangeLabel}` : `Agenda date: ${day}`"
+          >
+            <template v-if="view === 'week'">
+              <span class="sm:hidden">{{ weekRangeShortLabel }}</span>
+              <span class="hidden sm:inline">{{ weekRangeLabel }}</span>
+            </template>
+            <template v-else>{{ day || 'Loading day…' }}</template>
+          </UButton>
           <template #content
             ><UCalendar
               v-model="date"
@@ -473,21 +601,43 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
             color="neutral"
             variant="outline"
             icon="lucide:chevron-right"
-            aria-label="Next day"
-            @click="changeDay(1)"
+            :aria-label="view === 'week' ? 'Next week' : 'Next day'"
+            @click="changePeriod(1)"
           />
         </UTooltip>
+        <div
+          class="flex rounded-md border border-default p-0.5"
+          role="group"
+          aria-label="Agenda view"
+        >
+          <UButton
+            size="sm"
+            :color="view === 'day' ? 'primary' : 'neutral'"
+            :variant="view === 'day' ? 'soft' : 'ghost'"
+            :aria-pressed="view === 'day'"
+            label="Day"
+            @click="view = 'day'"
+          />
+          <UButton
+            size="sm"
+            :color="view === 'week' ? 'primary' : 'neutral'"
+            :variant="view === 'week' ? 'soft' : 'ghost'"
+            :aria-pressed="view === 'week'"
+            label="Week"
+            @click="view = 'week'"
+          />
+        </div>
         <UButton
-          :color="isToday ? 'primary' : 'neutral'"
-          :variant="isToday ? 'soft' : 'ghost'"
+          :color="isCurrentPeriod ? 'primary' : 'neutral'"
+          :variant="isCurrentPeriod ? 'soft' : 'ghost'"
           icon="lucide:calendar-check"
-          label="Today"
-          :aria-current="isToday ? 'date' : undefined"
+          :label="view === 'week' ? 'This week' : 'Today'"
+          :aria-current="isCurrentPeriod ? (view === 'day' ? 'date' : 'true') : undefined"
           @click="resetToday"
         />
       </div>
       <div
-        v-if="!error && !settingsError && agenda"
+        v-if="view === 'day' && !activeAgendaError && !settingsError && agenda"
         class="flex min-w-44 w-full items-center gap-3 text-sm text-muted md:flex-1 lg:max-w-[50%]"
         aria-label="Workday summary"
       >
@@ -520,10 +670,41 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         description="Record completed work in 30-minute slots without overlapping other entries."
         scrollable
       >
-        <UButton icon="lucide:plus" label="Add time entry" :disabled="pageActionNeedsRefresh" />
+        <UButton
+          icon="lucide:plus"
+          label="Add time entry"
+          :disabled="pageActionNeedsRefresh || !day"
+          @click="beginAdd(day, 'page')"
+        />
         <template #body>
           <form class="space-y-4" @submit.prevent="add">
-            <p class="text-sm text-muted">Work date: {{ day }}</p>
+            <p v-if="!canChooseWeekAddDate" class="text-sm text-muted">
+              Work date:
+              {{ addDate ? formatAgendaDate(addDate.toString(), locale) : 'Choose a date' }}
+            </p>
+            <UFormField v-else label="Work date" required>
+              <UPopover v-model:open="addDatePickerOpen">
+                <UButton
+                  color="neutral"
+                  variant="outline"
+                  icon="lucide:calendar-days"
+                  class="w-full justify-start"
+                  :label="addDate ? formatAgendaDate(addDate.toString(), locale) : 'Choose date'"
+                  :aria-label="`Work date: ${addDate?.toString() ?? 'Choose date'}`"
+                />
+                <template #content>
+                  <UCalendar
+                    v-model="addDate"
+                    :min-value="addWeekMinValue"
+                    :max-value="addWeekMaxValue"
+                    :week-starts-on="calendarWeekStartsOn"
+                    prevent-deselect
+                    class="p-2"
+                    @update:model-value="addDatePickerOpen = false"
+                  />
+                </template>
+              </UPopover>
+            </UFormField>
             <UAlert
               v-if="ticketsError"
               role="alert"
@@ -582,7 +763,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
                   icon="lucide:save"
                   label="Save time entry"
                   :loading="busy"
-                  :disabled="!day || !ticketId || pageActionNeedsRefresh"
+                  :disabled="!addDate || !ticketId || pageActionNeedsRefresh"
                   class="w-full sm:w-auto"
                 /><UButton
                   color="neutral"
@@ -605,13 +786,34 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
       <UModal
         v-model:open="editingOpen"
         title="Correct time entry"
-        description="Change the time or description on this day without dragging. For another date, use the ticket detail editor."
+        description="Correct the work date, time, duration, or description without dragging."
         scrollable
       >
         <template #body>
           <form class="space-y-4" @submit.prevent="saveEdit">
-            <p class="text-sm text-muted">Work date: {{ day }}</p>
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-3 sm:grid-cols-3">
+              <UFormField label="Work date" required>
+                <UPopover v-model:open="editDatePickerOpen">
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    icon="lucide:calendar-days"
+                    class="w-full justify-start"
+                    :label="
+                      editingDate ? formatAgendaDate(editingDate.toString(), locale) : 'Choose date'
+                    "
+                    :aria-label="`Work date: ${editingDate?.toString() ?? 'Choose date'}`"
+                  />
+                  <template #content>
+                    <UCalendar
+                      v-model="editingDate"
+                      prevent-deselect
+                      class="p-2"
+                      @update:model-value="editDatePickerOpen = false"
+                    />
+                  </template>
+                </UPopover>
+              </UFormField>
               <UFormField label="Start time" required>
                 <UInputTime
                   v-model="editingTime"
@@ -672,11 +874,11 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
       </UModal>
     </div>
     <UAlert
-      v-if="error || settingsError"
+      v-if="activeAgendaError || settingsError"
       role="alert"
       color="error"
       title="Could not load all Today data"
-      :description="clientFailureMessage(error || settingsError)"
+      :description="clientFailureMessage(activeAgendaError || settingsError)"
     />
     <UAlert
       v-if="pageActionError"
@@ -694,7 +896,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
     />
     <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
     <UButton
-      v-if="error && !pageActionNeedsRefresh"
+      v-if="activeAgendaError && !pageActionNeedsRefresh"
       color="neutral"
       variant="outline"
       icon="lucide:refresh-cw"
@@ -725,8 +927,10 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
       label="Retry refreshing Today data"
       @click="retryTodayReads()"
     />
-    <UCard v-if="!day || (pending && !agenda)"><p class="text-muted">Loading agenda…</p></UCard>
-    <template v-else-if="!error">
+    <UCard v-if="!day || (activeAgendaPending && !(view === 'week' ? weekAgenda : agenda))">
+      <p class="text-muted">Loading agenda…</p>
+    </UCard>
+    <template v-else-if="!activeAgendaError">
       <UCard :ui="{ body: 'p-2 sm:p-2' }">
         <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
           <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
@@ -777,7 +981,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         </p>
       </UCard>
       <UCard>
-        <h2 class="sr-only">{{ day }} agenda</h2>
+        <h2 class="sr-only">{{ view === 'week' ? weekRangeLabel : day }} agenda</h2>
         <UAlert
           v-if="dragError"
           color="error"
@@ -793,6 +997,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
           No work matches these filters.
         </p>
         <TodayAgenda
+          v-if="view === 'day'"
           :rows="filtered"
           :occupied="entries"
           :start="settings?.visibleStartMinute ?? 480"
@@ -800,9 +1005,28 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
           :busy="busy || pending || pageActionNeedsRefresh"
           :status-changing-id="statusChangingId"
           @filter="applyFilter"
+          @create="(start, minutes) => beginDragCreate(day, start, minutes)"
+          @change="(id, start, minutes) => changeEntry(id, day, start, minutes)"
+          @edit="beginEdit"
+          @change-status="changeTicketStatus"
+        />
+        <WeeklyAgenda
+          v-else
+          :dates="weekDates"
+          :rows="filtered"
+          :occupied="weekAgenda?.entries ?? []"
+          :tracked-minutes-by-date="weekAgenda?.trackedMinutesByDate ?? {}"
+          :start="settings?.visibleStartMinute ?? 480"
+          :end="settings?.visibleEndMinute ?? 1200"
+          :work-day-duration-minutes="target"
+          :locale="locale"
+          :busy="busy || weekPending || pageActionNeedsRefresh"
+          :status-changing-id="statusChangingId"
+          @filter="applyFilter"
           @create="beginDragCreate"
           @change="changeEntry"
           @edit="beginEdit"
+          @add="beginDateAdd"
           @change-status="changeTicketStatus"
         />
       </UCard>

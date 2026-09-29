@@ -2,6 +2,7 @@ import { overlaps, slotMinutes } from '#shared/time-entry'
 
 export type Interval = { startMinute: number; durationMinutes: number }
 export type Window = { start: number; end: number }
+export type MovePreview = Interval & { adjusted: boolean; valid: boolean }
 
 const endOf = (entry: Interval) => entry.startMinute + entry.durationMinutes
 
@@ -74,18 +75,24 @@ export function moveRange(
   window: Window,
   pixelsPerMinute: number,
   tolerancePx = 12,
-): { startMinute: number; durationMinutes: number; adjusted: boolean } | null {
+): MovePreview {
   const nearest = window.start + Math.round((rawStart - window.start) / slotMinutes) * slotMinutes
   const fits = (start: number) =>
     start >= window.start &&
     start + durationMinutes <= window.end &&
     !occupied.some((other) => overlaps({ startMinute: start, durationMinutes }, other))
-  if (rawStart < window.start || rawStart + durationMinutes > window.end) return null
+  const attempted: MovePreview = {
+    startMinute: nearest,
+    durationMinutes,
+    adjusted: false,
+    valid: false,
+  }
+  if (rawStart < window.start || rawStart + durationMinutes > window.end) return attempted
   const rawOverlaps = occupied.some((other) =>
     overlaps({ startMinute: rawStart, durationMinutes }, other),
   )
   if (fits(nearest) && !rawOverlaps)
-    return { startMinute: nearest, durationMinutes, adjusted: false }
+    return { startMinute: nearest, durationMinutes, adjusted: false, valid: true }
   const candidates = new Set<number>()
   if (fits(nearest)) candidates.add(nearest)
   for (const other of occupied) {
@@ -96,5 +103,7 @@ export function moveRange(
     .filter((start) => Math.abs(rawStart - start) * pixelsPerMinute <= tolerancePx && fits(start))
     .toSorted((a, b) => Math.abs(rawStart - a) - Math.abs(rawStart - b))
   const start = nearby[0]
-  return start === undefined ? null : { startMinute: start, durationMinutes, adjusted: true }
+  return start === undefined
+    ? attempted
+    : { startMinute: start, durationMinutes, adjusted: true, valid: true }
 }

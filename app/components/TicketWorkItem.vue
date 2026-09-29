@@ -36,6 +36,7 @@ withDefaults(
     >
       <EntityIcon kind="tickets" /><span :class="titleTextClass ?? 'truncate'">{{ title }}</span>
     </NuxtLink>
+    <slot name="entry-title-action" />
     <span class="inline-flex shrink-0 items-center gap-1 text-muted">
       <UIcon name="lucide:clock-3" class="size-4" aria-hidden="true" />{{ timeLabel }}
     </span>

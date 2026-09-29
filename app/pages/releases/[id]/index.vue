@@ -356,13 +356,13 @@ async function markDone() {
         <template #context>
           <div
             data-release-ticket-context
-            class="pointer-events-auto relative z-10 flex min-w-0 items-center gap-1 overflow-x-auto"
+            class="pointer-events-auto relative z-10 flex min-w-0 flex-wrap items-center gap-1"
             aria-label="Ticket context"
           >
             <TicketHierarchyBadges
               mode="links"
               truncate-labels
-              class="w-max shrink-0"
+              class="min-w-0 max-w-full"
               :items="[
                 {
                   kind: 'client',

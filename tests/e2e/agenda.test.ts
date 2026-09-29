@@ -27,17 +27,45 @@ test('day read and settings are owner scoped, include archived history, and vali
     await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
     const settings = await page.request.get('/api/settings')
     expect((await settings.json()).visibleStartMinute).toBe(480)
+    expect((await settings.json()).startOfWeekDay).toBe(1)
     const updated = await page.request.patch('/api/settings', {
-      data: { visibleStartMinute: 420, visibleEndMinute: 1260, workDayDurationMinutes: 450 },
+      data: {
+        visibleStartMinute: 420,
+        visibleEndMinute: 1260,
+        workDayDurationMinutes: 450,
+        startOfWeekDay: 0,
+      },
     })
     expect(updated.ok()).toBe(true)
     expect((await (await page.request.get('/api/settings')).json()).workDayDurationMinutes).toBe(
       450,
     )
+    expect((await (await page.request.get('/api/settings')).json()).startOfWeekDay).toBe(0)
     for (const invalid of [
-      { visibleStartMinute: 430, visibleEndMinute: 1260, workDayDurationMinutes: 450 },
-      { visibleStartMinute: 1260, visibleEndMinute: 1260, workDayDurationMinutes: 450 },
-      { visibleStartMinute: 420, visibleEndMinute: 1260, workDayDurationMinutes: 0 },
+      {
+        visibleStartMinute: 430,
+        visibleEndMinute: 1260,
+        workDayDurationMinutes: 450,
+        startOfWeekDay: 0,
+      },
+      {
+        visibleStartMinute: 1260,
+        visibleEndMinute: 1260,
+        workDayDurationMinutes: 450,
+        startOfWeekDay: 0,
+      },
+      {
+        visibleStartMinute: 420,
+        visibleEndMinute: 1260,
+        workDayDurationMinutes: 0,
+        startOfWeekDay: 0,
+      },
+      {
+        visibleStartMinute: 420,
+        visibleEndMinute: 1260,
+        workDayDurationMinutes: 450,
+        startOfWeekDay: 7,
+      },
     ])
       expect((await page.request.patch('/api/settings', { data: invalid })).status()).toBe(400)
     const c = await (
@@ -73,7 +101,12 @@ test('day read and settings are owner scoped, include archived history, and vali
     ).toBe(400)
     expect((await page.request.get('/api/agenda')).status()).toBe(400)
     await page.request.patch('/api/settings', {
-      data: { visibleStartMinute: 480, visibleEndMinute: 1200, workDayDurationMinutes: 60 },
+      data: {
+        visibleStartMinute: 480,
+        visibleEndMinute: 1200,
+        workDayDurationMinutes: 60,
+        startOfWeekDay: 1,
+      },
     })
     const localDay = await page.evaluate(() => {
       const date = new Date()
@@ -107,6 +140,8 @@ test('day read and settings are owner scoped, include archived history, and vali
     await page.getByRole('button', { name: 'Add time entry' }).click()
     const addDialog = page.getByRole('dialog', { name: 'Add completed work' })
     await expect(addDialog).toBeVisible()
+    await expect(addDialog.getByRole('button', { name: /Work date:/ })).toHaveCount(0)
+    await expect(addDialog).toContainText('Work date:')
     await page.keyboard.press('Escape')
     await expect(addDialog).toHaveCount(0)
     await page.getByRole('button', { name: 'Add time entry' }).click()
@@ -128,6 +163,13 @@ test('day read and settings are owner scoped, include archived history, and vali
           : false
       }),
     ).toBe(true)
+    const dayHierarchy = card.getByLabel('Entry hierarchy actions')
+    expect(await dayHierarchy.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
+      'nowrap',
+    )
+    expect(
+      await dayHierarchy.evaluate((element) => element.scrollHeight <= element.clientHeight),
+    ).toBe(true)
     const current = await (
       await page.request.get('/api/agenda', { params: { date: localDay } })
     ).json()
@@ -135,6 +177,18 @@ test('day read and settings are owner scoped, include archived history, and vali
       (row: { entry: { description: string } }) => row.entry.description === 'From Today',
     ).entry.id
     ids.entries.push(todayEntryId)
+    const todayEntryCard = page
+      .getByRole('region', { name: 'Day timeline' })
+      .locator(`[data-agenda-entry="${todayEntryId}"]`)
+      .getByRole('article')
+    const ticketFilterAction = todayEntryCard.getByRole('button', {
+      name: 'Filter by Agenda ticket',
+    })
+    await expect(ticketFilterAction).toBeVisible()
+    await ticketFilterAction.click()
+    await expect(page.getByRole('button', { name: 'Filter ticket' })).toContainText('Agenda ticket')
+    await expect(page).toHaveURL(/\/today$/)
+    await page.getByRole('button', { name: 'Clear filters' }).click()
     await expect(progress).toHaveAttribute(
       'aria-valuetext',
       'Worked 1hr 30m of 1hr target; 30m overtime',
@@ -159,7 +213,12 @@ test('day read and settings are owner scoped, include archived history, and vali
     expect(
       (
         await page.request.patch('/api/settings', {
-          data: { visibleStartMinute: 480, visibleEndMinute: 1200, workDayDurationMinutes: 90 },
+          data: {
+            visibleStartMinute: 480,
+            visibleEndMinute: 1200,
+            workDayDurationMinutes: 90,
+            startOfWeekDay: 1,
+          },
         })
       ).ok(),
     ).toBe(true)
@@ -257,6 +316,10 @@ test('day read and settings are owner scoped, include archived history, and vali
       .getByRole('list', { name: 'Work in visible hours' })
       .getByRole('article')
       .filter({ hasText: 'Spacious comment' })
+    const entryContext = spaciousCard.locator('[aria-label="Entry context"]')
+    expect(
+      await entryContext.evaluate((element) => element.scrollWidth <= element.clientWidth),
+    ).toBe(true)
     expect(
       await spaciousCard.evaluate((node) => {
         const comment = node.querySelector('p')
@@ -299,10 +362,9 @@ test('day read and settings are owner scoped, include archived history, and vali
     }
     const unauth = await browser.newContext()
     try {
-      expect((await unauth.request.get('http://127.0.0.1:3000/api/settings')).status()).toBe(401)
-      expect(
-        (await unauth.request.get('http://127.0.0.1:3000/api/agenda?date=2024-02-29')).status(),
-      ).toBe(401)
+      const origin = new URL(page.url()).origin
+      expect((await unauth.request.get(`${origin}/api/settings`)).status()).toBe(401)
+      expect((await unauth.request.get(`${origin}/api/agenda?date=2024-02-29`)).status()).toBe(401)
     } finally {
       await unauth.close()
     }

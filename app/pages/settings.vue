@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { defaultAgendaSettings, validAgendaSettings } from '#shared/agenda'
+import { localizedWeekdays } from '~/utils/agenda-week'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const { data, error, refresh } = await useApiFetch('/api/settings')
 const start = ref<number>(defaultAgendaSettings.visibleStartMinute)
 const end = ref<number>(defaultAgendaSettings.visibleEndMinute)
 const target = ref<number>(defaultAgendaSettings.workDayDurationMinutes)
+const startOfWeekDay = ref<number>(defaultAgendaSettings.startOfWeekDay)
+const locale = ref('en')
+onMounted(() => {
+  locale.value = navigator.language
+})
+const weekDayChoices = computed(() => localizedWeekdays(locale.value))
 watch(
   data,
   (settings) => {
@@ -13,6 +20,7 @@ watch(
     start.value = settings.visibleStartMinute
     end.value = settings.visibleEndMinute
     target.value = settings.workDayDurationMinutes
+    startOfWeekDay.value = settings.startOfWeekDay
   },
   { immediate: true },
 )
@@ -42,10 +50,11 @@ async function save() {
     visibleStartMinute: start.value,
     visibleEndMinute: end.value,
     workDayDurationMinutes: target.value,
+    startOfWeekDay: startOfWeekDay.value,
   }
   if (!validAgendaSettings(input)) {
     message.value =
-      'Start must precede end; use 30-minute steps and a target between 30 minutes and 24 hours.'
+      'Start must precede end; use 30-minute steps, a target between 30 minutes and 24 hours, and a valid week start day.'
     return
   }
   saving.value = true
@@ -106,6 +115,9 @@ async function save() {
         /></UFormField>
         <UFormField label="Workday target"
           ><USelect v-model="target" :items="durations" class="w-full"
+        /></UFormField>
+        <UFormField label="Week starts on"
+          ><USelect v-model="startOfWeekDay" :items="weekDayChoices" class="w-full"
         /></UFormField>
         <UAlert
           v-if="message"

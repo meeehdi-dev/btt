@@ -15,6 +15,13 @@ describe('agenda settings', () => {
       valid({ visibleStartMinute: 0, visibleEndMinute: 1440, workDayDurationMinutes: 1440 }),
     ).toBe(true)
   })
+  it('accepts and validates the start weekday using Sunday-zero numbering', () => {
+    expect(valid({ startOfWeekDay: 0 })).toBe(true)
+    expect(valid({ startOfWeekDay: 6 })).toBe(true)
+    expect(valid({ startOfWeekDay: -1 })).toBe(false)
+    expect(valid({ startOfWeekDay: 7 })).toBe(false)
+    expect(valid({ startOfWeekDay: 1.5 })).toBe(false)
+  })
   it('rejects non-30-minute grids, inverted windows, and invalid workday targets', () => {
     expect(valid({ visibleStartMinute: 500 })).toBe(false)
     expect(valid({ visibleEndMinute: 480 })).toBe(false)

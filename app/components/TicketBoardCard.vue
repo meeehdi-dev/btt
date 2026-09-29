@@ -109,15 +109,12 @@ function dragEnd() {
       </TicketWorkItem>
     </template>
     <template #context>
-      <div
-        class="flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap"
-        aria-label="Ticket context"
-      >
+      <div class="flex min-w-0 flex-wrap items-center gap-1" aria-label="Ticket context">
         <TicketHierarchyBadges
           mode="filter-actions"
           truncate-labels
           :items="hierarchyItems"
-          class="w-max shrink-0"
+          class="max-w-full"
           aria-label="Ticket hierarchy"
           @filter="(kind, id) => emit('filter', kind, id)"
         />

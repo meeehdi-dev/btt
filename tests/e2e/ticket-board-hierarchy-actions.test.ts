@@ -28,6 +28,12 @@ function boardCard(page: Page, id: string) {
   return page.locator(`[data-board-ticket-id="${id}"]`).filter({ visible: true })
 }
 
+async function expectNoHorizontalOverflow(locator: Locator) {
+  await expect
+    .poll(() => locator.evaluate((element) => element.scrollWidth <= element.clientWidth))
+    .toBe(true)
+}
+
 async function filterBy(
   card: Locator,
   page: Page,
@@ -114,6 +120,8 @@ test('ticket board hierarchy badges filter by or open their item on desktop and 
     await page.waitForLoadState('networkidle')
     const target = boardCard(page, ticketA.id)
     await expect(target).toBeVisible()
+    await expectNoHorizontalOverflow(target.getByLabel('Ticket hierarchy'))
+    await expectNoHorizontalOverflow(target.getByLabel('Ticket context'))
     await expect(boardCard(page, ticketA2.id)).toBeVisible()
     await expect(boardCard(page, ticketB.id)).toBeVisible()
 
@@ -176,6 +184,8 @@ test('ticket board hierarchy badges filter by or open their item on desktop and 
     await mobilePage.getByRole('button', { name: 'Idea: 3 tickets' }).tap()
     const mobileTarget = boardCard(mobilePage, ticketA.id)
     await expect(mobileTarget).toBeVisible()
+    await expectNoHorizontalOverflow(mobileTarget.getByLabel('Ticket hierarchy'))
+    await expectNoHorizontalOverflow(mobileTarget.getByLabel('Ticket context'))
     await mobileTarget.getByRole('button', { name: `client: ${clientAName}; actions` }).tap()
     await expect(
       mobilePage.getByRole('button', { name: `Filter by ${clientAName}`, exact: true }),

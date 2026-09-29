@@ -344,9 +344,62 @@ Acceptance:
 - Missing labels persist as `NULL` without rewriting existing custom labels; blank forms normalize to an absent label.
 - Today and board share visual card layout, hierarchy badge styling/placement, and colors while retaining distinct actions and time semantics; release cards retain their shared presentation. Project cards share the two-row layout on Projects and client detail. Searchable filters, hierarchy counts, release progress, and icon-only relation/link popovers remain accessible and usable across desktop and mobile.
 
+### M16 — Weekly agenda and cross-day moves
+
+Status: Complete. Full-diff human code review and completion declaration recorded on 2026-09-29. See `docs/milestones/m16-weekly-agenda.md`.
+
+Goal: add a localized, responsive weekly agenda alongside the existing day view.
+
+- Add a Day/Week switch and configurable first weekday (Sunday `0` through Saturday `6`, Monday by default).
+- Show seven localized date headings and independent daily progress without a weekly progress total.
+- Support per-day creation, desktop create/move/resize interactions, cross-date moves, and mobile date-picker correction while keeping every entry on one date.
+- Render invalid moves at the attempted position in red and reject invalid drops without persistence.
+
+Acceptance:
+
+- Day behavior remains available; week boundaries and localized dates follow the user's setting and browser locale.
+- Per-day progress includes filtered-out and out-of-window work; the week API remains owner-scoped and returns no weekly tracked-time aggregate.
+- Desktop and narrow-screen layouts remain usable without page-level horizontal overflow. Existing overlap, archival, ownership, and date-only rules remain authoritative.
+
+### M17 — Agenda UI refinements
+
+Status: Complete. Plan approval, full-diff code review, and completion declaration recorded on 2026-09-29. See `docs/milestones/m17-agenda-ui-refinements.md`.
+
+Goal: refine the new weekly day headers and agenda-card context controls while preserving existing date/filter semantics.
+
+- Put each weekly day’s Add action beside its date heading, with the daily tracked/target text and progress bar together below.
+- Remove horizontal scrolling from hierarchy-badge groups in Ticket Board cards, Project cards, project-detail release cards, release-detail ticket cards, and natural-height Today/Week entries; allow wrapping and preserve unrelated title/usage overflow behavior. M18 adds a narrow exception for fixed-height desktop timeline entries: wrap only when vertical space allows, otherwise use a horizontally scrollable hierarchy row.
+- Persist Day/Week selection in browser `localStorage` (default Day); do not persist the selected date or week.
+- Label the current-date action “Today” in Day view and “This week” in Week view while retaining its anchor-date behavior.
+- Add an accessible, title-adjacent per-ticket filter action to time-entry cards using the existing ticket filter.
+
+Acceptance:
+
+- Desktop and narrow weekly day headers show date and Add on the first row and daily progress below.
+- Today/Week, Ticket Board, Project, project-detail release, and release-detail ticket hierarchy badges wrap without horizontal badge scrolling or page-level overflow.
+- Day/Week selection survives navigation away from and back to `/today` in the same browser; first visit and invalid stored values default to Day, and date selection is not persisted.
+- The current-date action is labeled for the active view; the ticket shortcut filters the selected ticket without triggering title navigation.
+- No agenda date, overlap, ownership, archive, or API behavior changes.
+
+### M18 — Agenda card fit and weekly add-entry date
+
+Status: Complete. Plan approval, implementation authorization, full-diff code review, and completion declaration recorded on 2026-09-29. See `docs/milestones/m18-agenda-layout-and-weekly-add.md`.
+
+Goal: remove weekly-header spacing and agenda-card clipping, and make the Week-mode page-level Add action support any date in the displayed week.
+
+- Remove the forced minimum height from the desktop weekly day heading.
+- Preserve time-block geometry; reduce agenda-card padding and compact hierarchy, title-filter, status, and relation/link controls in fixed-height desktop Day/Week blocks. Center compact icon controls. Wrap hierarchy badges only when vertical space permits; otherwise keep them on one line with horizontal scrolling. Natural-height mobile and out-of-window cards continue to wrap. This is a narrow M18 exception to M17's general wrapping behavior.
+- In Week mode, allow the page-level Add modal to choose any of the seven dates in the displayed configured week, defaulting to the anchor date. Keep Day Add, per-day Add, and drag-create date/time behavior unchanged; do not persist the selected date.
+
+Acceptance:
+
+- All hierarchy actions remain accessible and are not clipped in 30-minute Day/Week desktop blocks; horizontally adjacent scheduled entries remain visually distinct and aligned to their unchanged time intervals.
+- Badge wrapping is used only when the block has enough height; otherwise horizontal scrolling is confined to the hierarchy group. Narrow stacked and natural-height cards remain wrapped and readable.
+- The Week-mode page-level Add modal defaults to the anchor date, permits choosing any date in the displayed configured week, and prevents choosing dates outside it. Saving creates the entry on the selected date without changing the page anchor or persisting the selection.
+- Day-mode Add, per-day Week Add, drag-create, ownership, overlap, archive, and API behavior remain unchanged.
+
 ### Later, post-MVP
 
-- Weekly planning view inspired by `tt`.
 - Weekly/monthly summaries by client/project/release/ticket.
 - Time summaries and review pages.
 - Templates for recurring project/client workflows.
@@ -371,7 +424,7 @@ Acceptance:
 
 - [ ] Today agenda as the primary MVP UI.
 - [ ] Customizable visible hours, e.g. 8am–8pm by default.
-- [ ] Start-of-week setting, inspired by `tt`.
+- [x] Start-of-week setting, inspired by `tt`.
 - [ ] Work day duration setting, used to display daily progress/overtime.
 - [ ] Bottom-of-day progress bar showing worked time against configured work day duration.
 - [ ] Manual time entries with date, start time, duration, mandatory ticket, and description.
@@ -406,7 +459,7 @@ Acceptance:
 - [ ] Release detail page: tickets, optional target date, progress, linked tracked time.
 - [ ] Ticket detail page: status, required release, estimate, linked time, estimate ratio, links, related tickets/items.
 - [ ] Ticket board/list grouped by fixed statuses; omit duplicate status on cards and use relation/external-link icon popovers on board, release and Today ticket cards, including single items; omit count overlays for all items. Keep board highlight/locate controls.
-- [ ] Later: weekly planning view inspired by `tt`.
+- [ ] Weekly planning view inspired by `tt`.
 - [ ] Later: time summaries and review pages.
 
 ### Later ideas, not MVP

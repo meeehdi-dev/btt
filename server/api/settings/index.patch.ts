@@ -13,7 +13,7 @@ export default defineEffectHandler((event) =>
     const userId = yield* requireUserId(event)
     const input = yield* decodeBody(event, AgendaSettingsUpdate)
     if (!validAgendaSettings(input))
-      return yield* validation('Invalid agenda window or workday duration')
+      return yield* validation('Invalid agenda window, workday duration, or week start day')
     const [settings] = yield* promiseEffect('update user settings', () =>
       db
         .insert(userSettings)

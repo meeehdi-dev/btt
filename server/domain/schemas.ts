@@ -65,10 +65,12 @@ export const TicketUpdate = Schema.Struct({
   archived: Schema.optional(Schema.Boolean),
 })
 const EntryMinute = Schema.Number.check(Schema.isInt())
+const Weekday = Schema.Literals([0, 1, 2, 3, 4, 5, 6] as const)
 export const AgendaSettingsUpdate = Schema.Struct({
   visibleStartMinute: EntryMinute,
   visibleEndMinute: EntryMinute,
   workDayDurationMinutes: EntryMinute,
+  startOfWeekDay: Weekday,
 })
 export const TimeEntryCreate = Schema.Struct({
   ticketId: Id,

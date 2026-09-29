@@ -63,3 +63,6 @@ NNNN-short-descriptive-slug.md
 | [0026](0026-hierarchical-breadcrumb-navigation.md)             | Accepted   | Hierarchical breadcrumb navigation                      |
 | [0027](0027-release-ticket-status-actions.md)                  | Accepted   | Release ticket status badge actions                     |
 | [0028](0028-api-item-ordering.md)                              | Accepted   | Stable API item ordering                                |
+| [0029](0029-weekly-agenda-and-conflict-previews.md)            | Accepted   | Weekly agenda and attempted-position conflict previews  |
+| [0030](0030-agenda-view-preference.md)                         | Accepted   | Browser-local agenda view preference                    |
+| [0031](0031-hierarchy-badge-wrapping.md)                       | Accepted   | Wrap hierarchy badge groups in cards                    |

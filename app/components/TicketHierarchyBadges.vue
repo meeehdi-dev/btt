@@ -14,6 +14,8 @@ defineProps<{
   mode: 'links' | 'filter-actions'
   truncateLabels?: boolean
   ariaLabel?: string
+  compact?: boolean
+  scroll?: boolean
 }>()
 const emit = defineEmits<{
   filter: [kind: HierarchyKind, id: string]
@@ -28,11 +30,10 @@ const icons: Record<HierarchyKind, EntityKind> = {
 
 <template>
   <div
-    :class="
-      mode === 'filter-actions'
-        ? 'flex min-w-0 shrink-0 items-center gap-1 overflow-x-auto'
-        : 'flex flex-wrap items-center gap-1'
-    "
+    :class="[
+      'flex min-w-0 items-center gap-1',
+      scroll ? 'max-w-full flex-1 flex-nowrap overflow-x-auto overflow-y-hidden' : 'flex-wrap',
+    ]"
     :aria-label="ariaLabel"
   >
     <template v-for="item in items" :key="item.kind">
@@ -43,8 +44,9 @@ const icons: Record<HierarchyKind, EntityKind> = {
           variant="soft"
           :title="truncateLabels ? item.name : undefined"
           :class="[
-            '!bg-default !px-1.5 !text-muted hover:!text-default',
-            truncateLabels ? 'max-w-32 shrink-0' : 'shrink-0',
+            '!bg-default !text-muted hover:!text-default',
+            compact ? '!h-5 !min-h-5 !px-1 text-[10px]' : '!px-1.5',
+            truncateLabels ? (compact ? 'max-w-24 shrink-0' : 'max-w-32 shrink-0') : 'shrink-0',
           ]"
           :aria-label="`${item.kind}: ${item.name}; actions`"
         >
@@ -82,8 +84,9 @@ const icons: Record<HierarchyKind, EntityKind> = {
         variant="soft"
         :title="truncateLabels ? item.name : undefined"
         :class="[
-          '!bg-default !px-1.5 !text-muted hover:!text-default',
-          truncateLabels ? 'max-w-32 shrink-0' : 'shrink-0',
+          '!bg-default !text-muted hover:!text-default',
+          compact ? '!h-5 !min-h-5 !px-1 text-[10px]' : '!px-1.5',
+          truncateLabels ? (compact ? 'max-w-24 shrink-0' : 'max-w-32 shrink-0') : 'shrink-0',
         ]"
       >
         <EntityIcon :kind="icons[item.kind]" /><span
