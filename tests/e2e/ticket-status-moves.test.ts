@@ -288,8 +288,9 @@ test('board status moves work across lanes, without reordering or changing card 
       await expect(mobileCard).toBeVisible()
       await expect(mobileCard).toHaveAttribute('draggable', 'false')
       await expect(mobile.getByRole('combobox', { name: /Change status/ })).toHaveCount(0)
-      await mobileCard.dragTo(mobile.getByRole('button', { name: 'Open menu' }), {
+      await mobileCard.dragTo(mobile.getByRole('main'), {
         sourcePosition: { x: 8, y: 8 },
+        targetPosition: { x: 8, y: 220 },
       })
       await expect(testLane.getByText('Idea source')).toBeVisible()
       await expect(mobileCard.getByRole('button', { name: /Move Idea source/ })).toHaveCount(0)

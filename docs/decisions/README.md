@@ -49,7 +49,7 @@ NNNN-short-descriptive-slug.md
 | [0012](0012-today-agenda-settings-and-history.md)              | Accepted   | Today agenda settings and historical work                  |
 | [0013](0013-board-status-control-removal.md)                   | Accepted   | Remove next-status control from ticket board               |
 | [0014](0014-agenda-drag-interactions.md)                       | Superseded | Single-day agenda drag interactions                        |
-| [0015](0015-compact-navigation-and-mobile-columns.md)          | Accepted   | Compact navigation and mobile control columns              |
+| [0015](0015-compact-navigation-and-mobile-columns.md)          | Superseded | Compact navigation and mobile control columns              |
 | [0016](0016-agenda-correction-control-and-board-filters.md)    | Accepted   | Agenda correction control and compact hierarchy filters    |
 | [0017](0017-release-usage-and-ticket-detail-polish.md)         | Accepted   | Release usage and ticket-detail navigation polish          |
 | [0018](0018-ticket-context-and-application-ui-consistency.md)  | Accepted   | Ticket context and application UI consistency              |
@@ -69,3 +69,4 @@ NNNN-short-descriptive-slug.md
 | [0032](0032-client-led-project-navigation.md)                  | Superseded | Client-led project navigation                              |
 | [0033](0033-no-compatibility-route-for-project-collection.md)  | Accepted   | No compatibility route for the removed Projects collection |
 | [0034](0034-pnpm-v12-package-manager.md)                       | Accepted   | pnpm v12 package-manager baseline                          |
+| [0035](0035-three-block-header-navigation.md)                  | Accepted   | Three-block header navigation                              |

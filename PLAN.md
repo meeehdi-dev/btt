@@ -490,6 +490,25 @@ Acceptance:
 - Only the human-approved package-version-specific install scripts run; other unreviewed build scripts remain blocked.
 - No application source or test changes occur, and no unrelated dependency versions change.
 
+### M23 — Three-block header navigation
+
+Status: Complete — implementation, verification, Plannotator code review, and human completion declaration recorded on 2026-09-29. See `docs/milestones/m23-three-block-header-navigation.md`.
+
+Goal: remove the width-consuming sidebar and make the authenticated shell a responsive three-block header.
+
+- Left block: `nxmr` and navigation ordered Today, Tickets, Clients.
+- Middle block: existing universal search, centered on roomy desktop widths and full-width on narrow layouts.
+- Right block: signed-in user's avatar/name and direct Settings and Sign out controls; no account popover.
+- Stack the same blocks on narrow screens without hiding navigation/account actions or introducing page-level horizontal overflow.
+- Preserve owner-scoped search, current destinations, search/navigation keyboard shortcuts and POST logout semantics; no auth/API/schema/dependency changes.
+
+Acceptance:
+
+- There is no sidebar or mobile navigation drawer; app content uses the full viewport width.
+- Desktop shows the three blocks in one row with centered search; mobile stacks left/search/right with all actions accessible and no horizontal overflow.
+- Navigation order is Today, Tickets, Clients; avatar/name, Settings and Sign out are directly available.
+- Existing search, shortcut, session and logout behavior remains intact.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.
@@ -510,8 +529,8 @@ Acceptance:
 - [x] Project catalog under clients, with names and colors (the top-level Projects collection was removed in M19).
 - [x] Release/milestone catalog under projects, with optional target date.
 - [x] Universal owner-scoped search across clients, projects, releases, tickets, and time entries, with keyboard access.
-- [x] Desktop keyboard-friendly interactions, including search focus/results navigation and accessible icon-rail navigation.
-- [x] Persistent collapsed-by-default desktop sidebar and full-screen mobile navigation menu, with account/settings actions.
+- [x] Desktop keyboard-friendly interactions, including search focus/results navigation and accessible header navigation.
+- [x] Responsive three-block authenticated header: Today/Tickets/Clients navigation on the left, universal search in the middle, and avatar/name with direct Settings/sign-out controls on the right; no sidebar or mobile drawer.
 - [x] Mobile-friendly touch interactions for the Today/Week agenda, using non-drag controls.
 
 ### Time tracking

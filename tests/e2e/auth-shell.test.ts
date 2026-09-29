@@ -99,48 +99,61 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
     await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
     await page.goto('/today')
     await expect(page).toHaveURL(/\/today$/)
-    await expect(page.getByRole('button', { name: 'Account: E2E Nxmr User' })).toBeVisible()
-    const sidebar = page.getByRole('complementary', { name: 'Sidebar' })
-    const sidebarToggle = sidebar.getByRole('button', { name: /sidebar/ })
-    const sidebarTooltip = await sidebarToggle.getAttribute('aria-label')
-    await expect(sidebarToggle).not.toHaveAttribute('title')
-    await page.waitForLoadState('networkidle')
-    await sidebarToggle.hover()
-    await expectTooltip(page, sidebarTooltip!)
-    const todayLink = sidebar.getByRole('link', { name: 'Today' })
+    const header = page.getByRole('banner')
+    const account = header.getByRole('group', { name: 'Signed in as E2E Nxmr User' })
+    await expect(account).toBeVisible()
+    await expect(account.getByText('E2E Nxmr User')).toBeVisible()
+    await expect(account.locator('img')).toHaveAttribute(
+      'src',
+      'https://avatars.githubusercontent.com/u/12345?v=4',
+    )
+    await expect(page.getByRole('complementary', { name: 'Sidebar' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Open menu' })).toHaveCount(0)
+    const mainNavigation = header.getByRole('navigation', { name: 'Main navigation' })
     expect(
-      await todayLink.evaluate((link) => {
-        const icon = link.querySelector('[aria-hidden="true"]')
-        const left = link.getBoundingClientRect()
-        const right = icon?.getBoundingClientRect()
-        return right ? Math.abs((left.left + left.right) / 2 - (right.left + right.right) / 2) : 100
-      }),
-    ).toBeLessThan(2)
-    const headerSearch = page.getByRole('searchbox', { name: 'Search workspace' })
+      (await mainNavigation.getByRole('link').allTextContents()).map((label) => label.trim()),
+    ).toEqual(['Today', 'Tickets', 'Clients'])
+
+    const headerSearch = header.getByRole('searchbox', { name: 'Search workspace' })
     expect(
       await headerSearch.evaluate((input) => {
-        const header = input.closest('header')!.getBoundingClientRect()
-        const search = input.closest('.relative')!.getBoundingClientRect()
-        return Math.abs((header.left + header.right) / 2 - (search.left + search.right) / 2)
+        const headerBounds = input.closest('header')!.getBoundingClientRect()
+        const searchBounds = input.closest('[data-header-block="search"]')!.getBoundingClientRect()
+        return Math.abs(
+          (headerBounds.left + headerBounds.right) / 2 -
+            (searchBounds.left + searchBounds.right) / 2,
+        )
       }),
     ).toBeLessThan(2)
 
-    const mainNavigation = sidebar.getByRole('navigation', { name: 'Main navigation' })
-    await expect(mainNavigation.getByRole('link', { name: 'Projects' })).toHaveCount(0)
+    const navigationHeight = await mainNavigation
+      .getByRole('link', { name: 'Today' })
+      .evaluate((element) => element.getBoundingClientRect().height)
+    for (const control of [
+      header.getByRole('link', { name: 'Settings' }),
+      header.getByRole('button', { name: 'Sign out' }),
+    ]) {
+      const initialStyle = await control.evaluate((element) => ({
+        height: element.getBoundingClientRect().height,
+        cursor: getComputedStyle(element).cursor,
+        background: getComputedStyle(element).backgroundColor,
+      }))
+      expect(Math.abs(initialStyle.height - navigationHeight)).toBeLessThan(2)
+      expect(initialStyle.cursor).toBe('pointer')
+      await control.hover()
+      const hoverBackground = await control.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      )
+      expect(hoverBackground).not.toBe(initialStyle.background)
+    }
+    await page.mouse.move(0, 0)
+
     await mainNavigation.getByRole('link', { name: 'Clients' }).click()
     await expect(page).toHaveURL(/\/clients$/)
-
-    for (const [label, path] of [
-      ['Tickets', '/tickets'],
-      ['Settings', '/settings'],
-    ] as const) {
-      if (label === 'Settings') {
-        await page.waitForLoadState('networkidle')
-        await page.getByRole('button', { name: 'Account: E2E Nxmr User' }).click()
-      }
-      await page.getByRole('link', { name: label }).click()
-      await expect(page).toHaveURL(new RegExp(`${path}$`))
-    }
+    await mainNavigation.getByRole('link', { name: 'Tickets' }).click()
+    await expect(page).toHaveURL(/\/tickets$/)
+    await header.getByRole('link', { name: 'Settings' }).click()
+    await expect(page).toHaveURL(/\/settings$/)
 
     const projectCollectionResponse = await page.goto('/projects')
     expect(projectCollectionResponse?.status()).toBe(404)
@@ -148,15 +161,34 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
 
     await page.goto('/today')
     await page.reload()
-    const account = page.getByRole('button', { name: 'Account: E2E Nxmr User' })
-    await expect(account).toBeVisible()
     await expect(account.locator('img')).toHaveAttribute(
       'src',
       'https://avatars.githubusercontent.com/u/12345?v=4',
     )
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 })
+      await expect(mainNavigation.getByRole('link', { name: 'Today' })).toBeVisible()
+      await expect(mainNavigation.getByRole('link', { name: 'Tickets' })).toBeVisible()
+      await expect(mainNavigation.getByRole('link', { name: 'Clients' })).toBeVisible()
+      await expect(headerSearch).toBeVisible()
+      await expect(header.getByRole('link', { name: 'Settings' })).toBeVisible()
+      await expect(header.getByRole('button', { name: 'Sign out' })).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      )
+      const blockTops = await Promise.all(
+        ['left', 'search', 'account'].map(async (block) =>
+          header
+            .locator(`[data-header-block="${block}"]`)
+            .evaluate((element) => element.getBoundingClientRect().top),
+        ),
+      )
+      expect(blockTops[0]).toBeLessThan(blockTops[1]!)
+      expect(blockTops[1]).toBeLessThan(blockTops[2]!)
+    }
+    await page.setViewportSize({ width: 1280, height: 900 })
     await page.waitForLoadState('networkidle')
-    await account.click()
-    await page.getByRole('button', { name: 'Sign out' }).click({ noWaitAfter: true })
+    await header.getByRole('button', { name: 'Sign out' }).click({ noWaitAfter: true })
     await page.waitForURL(/\/login$/)
   } finally {
     await helpers.deleteUser(user.id)
