@@ -1,8 +1,41 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 import { eq, inArray } from 'drizzle-orm'
 import { db } from '../../server/db'
 import { client, project, release, ticket } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+
+function boardToolbarControls(toolbar: Locator) {
+  return [
+    ...(['client', 'project', 'release', 'ticket'] as const).map((kind) =>
+      toolbar.getByRole('button', { name: `Filter ${kind}` }),
+    ),
+    toolbar.getByRole('button', { name: 'Clear filters' }),
+    toolbar.getByRole('button', { name: 'Show archived' }),
+    toolbar.getByRole('link', { name: 'New ticket', exact: true }),
+  ]
+}
+
+async function expectSameToolbarRow(toolbar: Locator) {
+  const boxes = await Promise.all(
+    boardToolbarControls(toolbar).map((control) => control.boundingBox()),
+  )
+  if (boxes.some((box) => !box))
+    throw new Error('All ticket-board toolbar controls must be visible')
+  const tops = boxes.map((box) => box!.y)
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(2)
+}
+
+async function expectStackedToolbar(toolbar: Locator) {
+  const boxes = await Promise.all(
+    boardToolbarControls(toolbar).map((control) => control.boundingBox()),
+  )
+  if (boxes.some((box) => !box))
+    throw new Error('All ticket-board toolbar controls must be visible')
+  const tops = boxes.map((box) => box!.y)
+  for (let index = 1; index < tops.length; index++) {
+    expect(tops[index]).toBeGreaterThan(tops[index - 1]!)
+  }
+}
 
 async function cleanup(userId: string) {
   const clients = await db.select({ id: client.id }).from(client).where(eq(client.userId, userId))
@@ -90,8 +123,34 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
       await expect(page.getByRole('option', { name: miss, exact: true })).toHaveCount(0)
     }
 
+    await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/tickets')
     await page.waitForLoadState('networkidle')
+    const toolbar = page.getByRole('group', { name: 'Ticket board controls' })
+    const filterGroup = toolbar.getByRole('group', { name: 'Ticket filters' })
+    await expect(toolbar).toBeVisible()
+    await expect(filterGroup.getByRole('button', { name: 'Filter client' })).toBeVisible()
+    await expect(filterGroup.getByRole('button', { name: 'Clear filters' })).toBeVisible()
+    await expect(filterGroup.getByRole('button', { name: 'Show archived' })).toHaveCount(0)
+    await expect(filterGroup.getByRole('link', { name: 'New ticket' })).toHaveCount(0)
+    await expectSameToolbarRow(toolbar)
+    await page.setViewportSize({ width: 1024, height: 900 })
+    await expectSameToolbarRow(toolbar)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await expect(toolbar.getByRole('link', { name: 'New ticket' })).toHaveAttribute(
+      'href',
+      '/tickets/new',
+    )
+    await toolbar.getByRole('button', { name: 'Show archived' }).click()
+    await expect(toolbar.getByRole('button', { name: 'Hide archived' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await toolbar.getByRole('button', { name: 'Hide archived' }).click()
+    await expect(toolbar.getByRole('button', { name: 'Show archived' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
     for (const filter of [
       {
         kind: 'client',
@@ -146,6 +205,13 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
     await expect(page.getByRole('button', { name: 'Filter ticket' })).toContainText('All tickets')
     await page.getByRole('button', { name: 'Clear filters' }).click()
     await expect(page.getByRole('button', { name: 'Filter client' })).toContainText('All clients')
+    await page.goto(`/tickets?release=${searchableRelease.id}`)
+    await page.waitForLoadState('networkidle')
+    await expect(
+      page
+        .getByRole('group', { name: 'Ticket board controls' })
+        .getByRole('link', { name: 'New ticket' }),
+    ).toHaveAttribute('href', `/tickets/new?release=${searchableRelease.id}`)
 
     await page.goto('/today')
     await page.waitForLoadState('networkidle')
@@ -223,6 +289,16 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
     const mobile = await mobileContext.newPage()
     await mobile.goto('/tickets')
     await mobile.waitForLoadState('networkidle')
+    const mobileToolbar = mobile.getByRole('group', { name: 'Ticket board controls' })
+    await expect(mobileToolbar).toBeVisible()
+    await expectStackedToolbar(mobileToolbar)
+    await expect(mobileToolbar.getByRole('link', { name: 'New ticket' })).toHaveAttribute(
+      'href',
+      '/tickets/new',
+    )
+    expect(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    )
     await mobile.getByRole('button', { name: 'Filter client' }).tap()
     const mobileSearch = mobile.getByPlaceholder('Search clients…')
     await expect(mobileSearch).toBeVisible()

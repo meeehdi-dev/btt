@@ -415,6 +415,23 @@ Acceptance:
 - Projects remain discoverable and manageable from client detail, and individual project search results still navigate to project details.
 - Create/edit/delete return paths work without the collection page; ownership, archive, hierarchy, and API behavior are unchanged.
 
+### M20 — Login and ticket board toolbar polish
+
+Status: Complete — implementation, verification, human code review, and completion declaration recorded. See `docs/milestones/m20-login-and-ticket-board-toolbar-polish.md`.
+
+Goal: correct login-card alignment and make the ticket-board filters and primary actions a single responsive toolbar.
+
+- Horizontally center the login card while preserving vertical centering, current sizing, and authentication/redirect behavior.
+- At desktop widths where the controls fit, place the client/project/release/ticket filters and Clear filters on the same toolbar line as Show/Hide archived and New ticket. Keep filters flexible on the left and archive/New ticket actions on the right.
+- Stack the same controls in a usable order at narrow widths; do not introduce page-level horizontal overflow.
+- Preserve filter search/cascade/reset semantics, archive behavior, New ticket routes (including release context), accessible names, and all board interactions.
+
+Acceptance:
+
+- Login card is horizontally centered in the viewport on desktop and mobile; its existing vertical alignment and auth flow remain unchanged.
+- All ticket-board filters, Clear filters, archive toggle, and New ticket action share one line at a sufficiently wide desktop viewport.
+- Narrow layouts remain stacked and usable without horizontal page overflow; filter, archive, and ticket-create behavior is unchanged.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

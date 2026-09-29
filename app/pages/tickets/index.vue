@@ -311,53 +311,64 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
 <template>
   <div class="space-y-6">
     <h1 class="sr-only">Tickets</h1>
-    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-      <ArchiveFilterButton v-model="showArchived" />
-      <UButton
-        :to="`/tickets/new${releaseId ? `?release=${releaseId}` : ''}`"
-        icon="lucide:plus"
-        label="New ticket"
-      />
-    </div>
-    <UCard :ui="{ body: 'p-2 sm:p-2' }">
-      <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
-        <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <div v-for="kind in ['client', 'project', 'release', 'ticket'] as const" :key="kind">
-            <USelectMenu
-              :model-value="filters[kind] || null"
-              value-key="value"
-              :items="filterOptions(kind)"
-              :disabled="!filterOptions(kind).length"
-              :search-input="filterSearchInputs[kind]"
-              :clear="{ 'aria-label': `Clear ${kind} filter` }"
-              :placeholder="`All ${kind}s`"
-              class="w-full"
-              :aria-label="`Filter ${kind}`"
-              @update:model-value="applyFilter(kind, $event ?? '')"
-            >
-              <template #leading
-                ><UTooltip :text="`Filter ${kind}`"
-                  ><UIcon
-                    :name="
-                      entityIcons[`${kind}s` as 'clients' | 'projects' | 'releases' | 'tickets']
-                    "
-                    class="size-4"
-                    :aria-label="`Filter ${kind}`" /></UTooltip
-              ></template>
-            </USelectMenu>
+    <div
+      role="group"
+      aria-label="Ticket board controls"
+      class="flex flex-col gap-2 lg:flex-row lg:items-center"
+    >
+      <UCard
+        role="group"
+        aria-label="Ticket filters"
+        class="min-w-0 flex-1"
+        :ui="{ body: 'p-2 sm:p-2' }"
+      >
+        <div class="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center">
+          <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div v-for="kind in ['client', 'project', 'release', 'ticket'] as const" :key="kind">
+              <USelectMenu
+                :model-value="filters[kind] || null"
+                value-key="value"
+                :items="filterOptions(kind)"
+                :disabled="!filterOptions(kind).length"
+                :search-input="filterSearchInputs[kind]"
+                :clear="{ 'aria-label': `Clear ${kind} filter` }"
+                :placeholder="`All ${kind}s`"
+                class="w-full"
+                :aria-label="`Filter ${kind}`"
+                @update:model-value="applyFilter(kind, $event ?? '')"
+              >
+                <template #leading
+                  ><UTooltip :text="`Filter ${kind}`"
+                    ><UIcon
+                      :name="
+                        entityIcons[`${kind}s` as 'clients' | 'projects' | 'releases' | 'tickets']
+                      "
+                      class="size-4"
+                      :aria-label="`Filter ${kind}`" /></UTooltip
+                ></template>
+              </USelectMenu>
+            </div>
           </div>
+          <UTooltip text="Clear all filters"
+            ><UButton
+              color="neutral"
+              variant="ghost"
+              icon="lucide:filter-x"
+              aria-label="Clear filters"
+              class="self-end lg:self-auto"
+              @click="clearFilters"
+          /></UTooltip>
         </div>
-        <UTooltip text="Clear all filters"
-          ><UButton
-            color="neutral"
-            variant="ghost"
-            icon="lucide:filter-x"
-            aria-label="Clear filters"
-            class="self-end"
-            @click="clearFilters"
-        /></UTooltip>
+      </UCard>
+      <div class="flex flex-col gap-2 lg:flex-row lg:shrink-0 lg:items-center">
+        <ArchiveFilterButton v-model="showArchived" />
+        <UButton
+          :to="`/tickets/new${releaseId ? `?release=${releaseId}` : ''}`"
+          icon="lucide:plus"
+          label="New ticket"
+        />
       </div>
-    </UCard>
+    </div>
     <UAlert
       v-if="error || actionError"
       role="alert"

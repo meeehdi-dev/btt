@@ -14,6 +14,20 @@ async function expectTooltip(page: Page, text: string) {
   await expect(page.locator('[data-slot="content"]').filter({ hasText: text })).toBeVisible()
 }
 
+async function expectLoginCardCentered(page: Page) {
+  const centerOffset = await page
+    .getByRole('heading', { name: 'Welcome back' })
+    .evaluate((heading) => {
+      const main = heading.closest('main')
+      if (!main) throw new Error('Login card must be inside main')
+      let card: Element = heading
+      while (card.parentElement && card.parentElement !== main) card = card.parentElement
+      const bounds = card.getBoundingClientRect()
+      return Math.abs((bounds.left + bounds.right) / 2 - window.innerWidth / 2)
+    })
+  expect(centerOffset).toBeLessThanOrEqual(1)
+}
+
 async function expectLeftAlignedProjectSummary(card: Locator) {
   const clientButton = card.getByRole('link', { name: 'M2 Client' })
   const countsList = card.getByRole('list', { name: 'Active project contents' })
@@ -64,9 +78,14 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
   page,
   context,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/today')
   await expect(page).toHaveURL(/\/login\?redirect=\/today$/)
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
+  await expectLoginCardCentered(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expectLoginCardCentered(page)
+  await page.setViewportSize({ width: 1280, height: 900 })
 
   const helpers = (await testAuth.$context).test
   const user = helpers.createUser({
