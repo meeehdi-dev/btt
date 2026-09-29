@@ -1,6 +1,6 @@
-# M8 implementation plan — Polish and shared ticket work items
+# M8 implementation plan — Polish and shared ticket work items (Complete)
 
-> **Status:** Approved M8 plan; scope expanded by direct human approval on 2026-09-26 during code review. Implementation is tracked in `docs/milestones/m8-polish-and-shared-ticket-work-items.md`.
+> **Status:** Complete — implementation, verification, code review, and human completion declaration are recorded in `docs/milestones/m8-polish-and-shared-ticket-work-items.md`.
 
 ## Context
 
@@ -98,7 +98,7 @@ Nuxt UI research: the project skill points to the maintainer skill pinned at com
 - [x] Update `PLAN.md`, add/link any required ADR(s), add focused unit/API/browser coverage, run all agreed checks, and record actual outcomes in the M8 journal.
 - [x] Complete the human-approved review additions and regression coverage, including searchable filters, hierarchy counts/progress, icon-only context triggers, and shared project cards.
 - [x] Add release-detail completion confirmation and Today correction-modal deletion with regression coverage.
-- [ ] Submit the implementation for human code review, address any findings, and wait for the human completion declaration before closing M8.
+- [x] Submit the implementation for human code review, address any findings, and wait for the human completion declaration before closing M8.
 
 ## Journal
 
@@ -162,9 +162,9 @@ Nuxt UI research: the project skill points to the maintainer skill pinned at com
 ## Review status
 
 - Plan review: Accepted via Plannotator (2026-09-26).
-- Code review: Pending.
-- Milestone completion declaration: Pending.
-- Implementation: in progress within the approved scope.
+- Code review: Accepted; no changes requested.
+- Milestone completion declaration: Recorded in `docs/milestones/m8-polish-and-shared-ticket-work-items.md`.
+- Implementation: Complete within the approved scope.
 
 ## Follow-ups
 
