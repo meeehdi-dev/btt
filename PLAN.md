@@ -432,6 +432,25 @@ Acceptance:
 - All ticket-board filters, Clear filters, archive toggle, and New ticket action share one line at a sufficiently wide desktop viewport.
 - Narrow layouts remain stacked and usable without horizontal page overflow; filter, archive, and ticket-create behavior is unchanged.
 
+### M21 — pnpm v12 upgrade
+
+Status: Complete — implementation, verification, human code review, and completion declaration recorded on 2026-09-29. See `docs/milestones/m21-pnpm-v12-upgrade.md`.
+
+Goal: adopt pnpm v12 as the project package manager without broadening the upgrade to application dependencies or runtime/tooling changes.
+
+- Pin the exact latest stable pnpm v12 release consistently in `package.json#packageManager` and `.github/workflows/check.yml`.
+- Keep Node 24, the current GitHub Actions, CI shape, frozen install, and application dependency declarations unchanged.
+- Update the lockfile only if pnpm 12 requires it; inspect any resolver changes and do not accept unrelated dependency upgrades.
+- Allow install scripts only for the exact esbuild and vue-demi versions reported by pnpm 12; keep strict handling for all other unreviewed scripts.
+- Record the package-manager baseline and approved build-script permissions in an ADR.
+
+Acceptance:
+
+- Local and CI use the same exact pnpm 12 version and the frozen install succeeds.
+- The existing format, lint, typecheck, unit, browser, build, and workflow checks pass.
+- Only the human-approved package-version-specific install scripts run; other unreviewed build scripts remain blocked.
+- No application source or test changes occur, and no unrelated dependency versions change.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

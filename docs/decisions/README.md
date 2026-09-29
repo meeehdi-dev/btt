@@ -36,7 +36,7 @@ NNNN-short-descriptive-slug.md
 | ADR                                                            | Status     | Title                                                      |
 | -------------------------------------------------------------- | ---------- | ---------------------------------------------------------- |
 | [0001](0001-llm-assisted-development-workflow.md)              | Accepted   | LLM-assisted development workflow                          |
-| [0002](0002-m0-bootstrap-baseline.md)                          | Accepted   | M0 bootstrap baseline                                      |
+| [0002](0002-m0-bootstrap-baseline.md)                          | Superseded | M0 bootstrap baseline                                      |
 | [0003](0003-m1-authentication-and-database.md)                 | Accepted   | M1 authentication and Better Auth database baseline        |
 | [0004](0004-m2-core-data-model.md)                             | Accepted   | M2 work hierarchy and archive lifecycle                    |
 | [0005](0005-m2-domain-validation-and-ui-polish.md)             | Accepted   | M2 domain validation and hierarchy UI polish               |
@@ -68,3 +68,4 @@ NNNN-short-descriptive-slug.md
 | [0031](0031-hierarchy-badge-wrapping.md)                       | Accepted   | Wrap hierarchy badge groups in cards                       |
 | [0032](0032-client-led-project-navigation.md)                  | Superseded | Client-led project navigation                              |
 | [0033](0033-no-compatibility-route-for-project-collection.md)  | Accepted   | No compatibility route for the removed Projects collection |
+| [0034](0034-pnpm-v12-package-manager.md)                       | Accepted   | pnpm v12 package-manager baseline                          |

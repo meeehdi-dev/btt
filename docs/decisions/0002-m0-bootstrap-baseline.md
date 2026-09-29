@@ -1,9 +1,9 @@
 # ADR 0002: M0 bootstrap baseline
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-21
 - Supersedes: None
-- Superseded by: None
+- Superseded by: ADR 0034 (pnpm version pin only)
 
 ## Context
 
