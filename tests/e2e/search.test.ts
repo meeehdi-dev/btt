@@ -92,6 +92,7 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
       ticketTitle: 'Needle ticket own',
     })
     await page.goto('/today?date=2030-02-10')
+    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('button', { name: 'Agenda date: 2030-02-10' })).toBeVisible()
     await expect(page.getByLabel('Day timeline').getByText('Needle work own')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible()
@@ -114,12 +115,20 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     await search.fill('definitely-no-match-1234')
     await expect(page.getByRole('listbox', { name: 'Search results' })).toContainText('No matches.')
     await search.press('Escape')
+    await page.locator('main').click()
     await page.keyboard.press('g')
     await page.keyboard.press('p')
-    await expect(page).toHaveURL(/\/projects$/)
+    await expect(page).toHaveURL(/\/today\?date=2030-02-10$/)
     await page.setViewportSize({ width: 390, height: 844 })
     await page.getByRole('button', { name: 'Open menu' }).click()
-    await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible()
+    const mobileMenu = page.getByRole('dialog', { name: 'Menu' })
+    await expect(mobileMenu).toBeVisible()
+    await expect(
+      mobileMenu.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', {
+        name: 'Projects',
+      }),
+    ).toHaveCount(0)
+    await expect(mobileMenu).toContainText('g then t/c/b navigate')
     await expect(
       page
         .getByRole('dialog', { name: 'Menu' })
@@ -162,7 +171,7 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
       .poll(() => controlRow.evaluate((node) => getComputedStyle(node).flexDirection))
       .toBe('column')
     await expect(page.getByRole('button', { name: 'Add time entry' })).toBeVisible()
-    await page.goto('/projects')
+    await page.goto('/clients')
     await expect
       .poll(() =>
         page
@@ -214,10 +223,9 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     ).json()
     expect(archivedTicket.tickets).toHaveLength(0)
     expect(archivedTicket.timeEntries).toHaveLength(0)
-    await page.goto('/projects')
-    await page.getByRole('link', { name: 'Needle client own' }).click()
+    await page.goto('/clients')
+    await page.getByRole('link', { name: 'Open client Needle client own' }).click()
     await expect(page).toHaveURL(new RegExp(`/clients/${own.c.id}$`))
-    await page.goto('/projects')
     await page
       .getByRole('link', { name: 'Open project Needle project own' })
       .click({ position: { x: 170, y: 55 } })

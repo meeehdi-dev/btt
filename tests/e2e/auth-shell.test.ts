@@ -106,8 +106,12 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
       }),
     ).toBeLessThan(2)
 
+    const mainNavigation = sidebar.getByRole('navigation', { name: 'Main navigation' })
+    await expect(mainNavigation.getByRole('link', { name: 'Projects' })).toHaveCount(0)
+    await mainNavigation.getByRole('link', { name: 'Clients' }).click()
+    await expect(page).toHaveURL(/\/clients$/)
+
     for (const [label, path] of [
-      ['Projects', '/projects'],
       ['Tickets', '/tickets'],
       ['Settings', '/settings'],
     ] as const) {
@@ -119,6 +123,11 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
       await expect(page).toHaveURL(new RegExp(`${path}$`))
     }
 
+    const projectCollectionResponse = await page.goto('/projects')
+    expect(projectCollectionResponse?.status()).toBe(404)
+    await expect(page).toHaveURL(/\/projects$/)
+
+    await page.goto('/today')
     await page.reload()
     const account = page.getByRole('button', { name: 'Account: E2E Nxmr User' })
     await expect(account).toBeVisible()
@@ -145,10 +154,12 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
 
   try {
     await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
-    await page.goto('/projects/new')
-    await expect(page.getByRole('heading', { name: 'Create a client first' })).toBeVisible()
     await page.goto('/releases/new')
     await expect(page.getByRole('heading', { name: 'Create a project first' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Go to clients' })).toHaveAttribute(
+      'href',
+      '/clients',
+    )
     const clientResponse = await page.request.post('/api/clients', {
       data: { name: 'M2 Client', color: '#ABC123' },
     })
@@ -156,13 +167,39 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     const client = await clientResponse.json()
     expect(client.id).toMatch(uuidv7Pattern)
     expect(client.userId).toBe(user.id)
-    const projectResponse = await page.request.post('/api/projects', {
-      data: { clientId: client.id, name: 'M2 Project', color: '#ABC123' },
-    })
-    expect(projectResponse.ok()).toBeTruthy()
-    const project = await projectResponse.json()
+    await page.goto('/projects/new')
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('link', { name: 'Cancel' }).click()
+    await expect(page).toHaveURL('/clients')
+    await page.goto(`/clients/${client.id}`)
+    await page.getByRole('link', { name: 'New project' }).click()
+    await expect(page).toHaveURL(`/projects/new?client=${client.id}`)
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('M2 Client')
+    await expect(page.getByRole('combobox', { name: 'Client' })).toContainText('M2 Client')
+    await page.getByRole('link', { name: 'Cancel' }).click()
+    await expect(page).toHaveURL(`/clients/${client.id}`)
+    await page.goto(`/clients/${client.id}`)
+    await page.getByRole('link', { name: 'New project' }).click()
+    await expect(page).toHaveURL(`/projects/new?client=${client.id}`)
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('combobox', { name: 'Client' })).toContainText('M2 Client')
+    await expect(page.getByRole('button', { name: 'Create project' })).toBeEnabled()
+    await page.getByRole('textbox', { name: 'Name' }).fill('M2 Project')
+    await page.getByRole('button', { name: 'Create project' }).click()
+    await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/)
+    const project = {
+      id: new URL(page.url()).pathname.split('/').at(-1)!,
+      clientId: client.id,
+    }
     expect(project.id).toMatch(uuidv7Pattern)
-    expect(project.clientId).toBe(client.id)
+    await page.goto('/releases/new')
+    await page.getByRole('link', { name: 'Cancel' }).click()
+    await expect(page).toHaveURL('/clients')
+    await page.goto(`/releases/new?project=${project.id}`)
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('link', { name: 'Cancel' }).click()
+    await expect(page).toHaveURL(`/projects/${project.id}`)
     const releaseResponse = await page.request.post('/api/releases', {
       data: { projectId: project.id, name: 'M2 Release', targetDate: '2030-02-01' },
     })
@@ -182,18 +219,7 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await page.waitForLoadState('networkidle')
     await archiveToggle.hover()
     await expectTooltip(page, 'Show archived')
-    await page.goto('/projects')
-    const projectsTitle = page.getByRole('heading', { name: 'Projects', exact: true })
-    await expect(projectsTitle).toBeVisible()
-    expect((await projectsTitle.boundingBox())?.height).toBeGreaterThan(20)
-    const projectCard = page.locator(`[data-project-card-id="${project.id}"]`)
-    await expect(projectCard.getByText('M2 Project')).toBeVisible()
-    await expect(projectCard.getByRole('link', { name: 'M2 Client' })).toBeVisible()
-    await expect(projectCard.getByText('1 release')).toBeVisible()
-    await expect(projectCard.getByText('0 tickets')).toBeVisible()
-    await expectLeftAlignedProjectSummary(projectCard)
-    await projectCard.getByRole('link', { name: 'M2 Client' }).click()
-    await expect(page).toHaveURL(`/clients/${client.id}`)
+    await page.goto(`/clients/${client.id}`)
     const clientHeading = page.getByRole('heading', { name: 'M2 Client' })
     await expect(clientHeading).toBeVisible()
     await expect(
@@ -269,6 +295,40 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     expect(
       (await page.request.patch(`/api/releases/${release.id}`, { data: { archived: true } })).ok(),
     ).toBeTruthy()
+    expect(
+      (await page.request.patch(`/api/projects/${project.id}`, { data: { archived: true } })).ok(),
+    ).toBeTruthy()
+    expect(
+      (await page.request.patch(`/api/clients/${client.id}`, { data: { archived: true } })).ok(),
+    ).toBeTruthy()
+    await page.goto(`/releases/${release.id}/edit?archived=true`)
+    await page.waitForLoadState('networkidle')
+    page.once('dialog', (dialog) => dialog.accept())
+    const [releaseDeleteResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/releases/${release.id}`) &&
+          response.request().method() === 'DELETE',
+      ),
+      page.getByRole('button', { name: 'Permanently delete' }).click(),
+    ])
+    expect(releaseDeleteResponse.ok()).toBeTruthy()
+    await expect(page).toHaveURL(`/projects/${project.id}?archived=true`)
+    await page.goto(`/projects/${project.id}/edit?archived=true`)
+    await page.waitForLoadState('networkidle')
+    page.once('dialog', (dialog) => dialog.accept())
+    const [projectDeleteResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/projects/${project.id}`) &&
+          response.request().method() === 'DELETE',
+      ),
+      page.getByRole('button', { name: 'Permanently delete' }).click(),
+    ])
+    expect(projectDeleteResponse.ok()).toBeTruthy()
+    await expect(page).toHaveURL(`/clients/${client.id}?archived=true`)
+    await page.goto('/projects/new')
+    await expect(page.getByRole('heading', { name: 'Create a client first' })).toBeVisible()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/clients/new')
     const createButton = page.getByRole('button', { name: 'Create client' })

@@ -15,6 +15,11 @@ if (!release.value && !releaseError.value)
 const name = ref(release.value?.release.name ?? '')
 const targetDate = ref(release.value?.release.targetDate ?? '')
 const archived = ref(Boolean(release.value?.release.archivedAt))
+const parentProjectPath = computed(() =>
+  release.value
+    ? `/projects/${release.value.release.projectId}${release.value.projectArchivedAt || release.value.clientArchivedAt ? '?archived=true' : ''}`
+    : '/clients',
+)
 const pending = ref(false)
 const errorMessage = ref('')
 async function save() {
@@ -49,7 +54,7 @@ async function remove() {
       errorMessage.value = result.failure.userMessage
       return
     }
-    await navigateTo('/projects')
+    await navigateTo(parentProjectPath.value)
   } finally {
     pending.value = false
   }

@@ -15,6 +15,11 @@ if (!project.value && !projectError.value)
 const name = ref(project.value?.project.name ?? '')
 const color = ref(project.value?.project.color ?? '#3b82f6')
 const archived = ref(Boolean(project.value?.project.archivedAt))
+const parentClientPath = computed(() =>
+  project.value
+    ? `/clients/${project.value.project.clientId}${project.value.clientArchivedAt ? '?archived=true' : ''}`
+    : '/clients',
+)
 const pending = ref(false)
 const errorMessage = ref('')
 async function save() {
@@ -49,7 +54,7 @@ async function remove() {
       errorMessage.value = result.failure.userMessage
       return
     }
-    await navigateTo('/projects')
+    await navigateTo(parentClientPath.value)
   } finally {
     pending.value = false
   }

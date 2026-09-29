@@ -6,7 +6,6 @@ import { entityIcons } from '~/utils/entity-icons'
 const navigation = [
   { label: 'Today', to: '/today', icon: entityIcons.today, shortcut: 't' },
   { label: 'Clients', to: '/clients', icon: entityIcons.clients, shortcut: 'c' },
-  { label: 'Projects', to: '/projects', icon: entityIcons.projects, shortcut: 'p' },
   { label: 'Tickets', to: '/tickets', icon: entityIcons.tickets, shortcut: 'b' },
 ]
 const { data: session, error: sessionError } = await authClient.useSession(useApiFetch)
@@ -181,7 +180,7 @@ onBeforeUnmount(() => {
             @navigate="menuOpen = false"
           />
         </div>
-        <p class="text-xs text-muted">Shortcuts: / or ⌘K search · g then t/c/p/b navigate</p>
+        <p class="text-xs text-muted">Shortcuts: / or ⌘K search · g then t/c/b navigate</p>
       </template>
     </UModal>
   </div>

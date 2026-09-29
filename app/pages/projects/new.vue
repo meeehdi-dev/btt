@@ -16,15 +16,18 @@ const pending = ref(false)
 const errorMessage = ref('')
 
 watch(
-  clients,
-  (available) => {
-    if (!available.some((client) => client.id === clientId.value)) clientId.value = ''
+  [clients, clientsPending],
+  ([available, loading]) => {
+    if (!loading && !available.some((client) => client.id === clientId.value)) clientId.value = ''
   },
   { immediate: true },
 )
 
 const selectedClient = computed(() => clients.value.find((client) => client.id === clientId.value))
 const canSubmit = computed(() => clients.value.some((client) => client.id === clientId.value))
+const cancelTo = computed(() =>
+  selectedClient.value ? `/clients/${selectedClient.value.id}` : '/clients',
+)
 
 async function submit() {
   pending.value = true
@@ -63,8 +66,8 @@ async function submit() {
         :current="{ kind: 'projects', label: 'New project' }"
       />
       <template v-else>
-        <NuxtLink to="/projects" class="inline-flex items-center gap-1 text-sm text-primary"
-          >← <EntityIcon kind="projects" />Projects</NuxtLink
+        <NuxtLink to="/clients" class="inline-flex items-center gap-1 text-sm text-primary"
+          >← <EntityIcon kind="clients" />Clients</NuxtLink
         >
         <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
           <EntityIcon kind="projects" />New project
@@ -114,7 +117,7 @@ async function submit() {
           errorMessage
         }}</UAlert>
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <UButton to="/projects" color="neutral" variant="ghost" icon="lucide:x" label="Cancel" />
+          <UButton :to="cancelTo" color="neutral" variant="ghost" icon="lucide:x" label="Cancel" />
           <UButton
             type="submit"
             :disabled="!canSubmit"

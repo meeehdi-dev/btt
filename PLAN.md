@@ -197,7 +197,7 @@ Goal: make the app usable by one solo user.
 - Better Auth with GitHub login.
 - Session handling.
 - Protected app layout.
-- Basic navigation shell: Today, Clients/Projects, Tickets, Settings.
+- Basic navigation shell: Today, Clients, Tickets, Settings.
 - Empty states for core pages.
 
 Acceptance:
@@ -311,7 +311,7 @@ Goal: make the MVP fast to navigate and compact for daily work without losing ex
 - Replace the horizontal dashboard navigation with a persistent-state desktop left sidebar (collapsed to icons by default; menu/icons above, user and settings at the bottom) and a top search bar. On mobile, use a top-bar menu button opening a full-screen navigation menu with search; preserve accessible labels, focus handling, and sign-out.
 - Remove decorative page introductions and redundant heading/description blocks on list, Today, and Settings pages; keep compact entity titles/breadcrumbs and essential actions on detail/edit pages for orientation.
 - Today: one compact control row with date/calendar navigation, unfiltered workday progress (about half the available desktop width), and Add time entry spaced across the row on wider screens, stacking in that order as a column on mobile; remove its Settings shortcut (Settings remains in the avatar menu). Remove repetitive filter heading, match-count message, and drag instructions; keep desktop double-click correction but remove per-entry Edit button. The mobile direct same-day correction alternative is a follow-up; ticket detail editing remains. Apply the desktop-spaced-row/mobile-column rule to other touched action rows.
-- Projects: whole-card navigation with the nested client control taking click precedence. Project release/milestone list: whole-row/card navigation with its mark-done control taking precedence.
+- Client-detail project cards: whole-card navigation with the nested client control taking click precedence. Project release/milestone list: whole-row/card navigation with its mark-done control taking precedence.
 - Ticket board, release ticket cards, and Today ticket entries: always show icon-triggered popovers for related tickets and external links, including a single item. Keep triggers icon-only regardless of item count, without count overlays. Related tickets remain internal links with board highlight/locate behavior where possible; external destinations remain native safe links. Preserve desktop drag and mobile collapsibles.
 - Center the Settings form; use compact icon-leading filter inputs with tooltip labels in Today and Tickets, with one-line desktop filter bars and mobile columns, and icon-only Clear. Combine tracked time/estimate on release ticket cards without a percentage badge; keep tracked time/estimate/percentage together on ticket board cards; color tracked time with the approved semantic ratio bands and keep estimates/targets muted. Apply the same tracked-vs-target color distinction to Today workday progress; align metadata and remove the redundant grouped-tickets button. Use semantic Nuxt UI surfaces for list/card contrast. Add matching icons to app buttons and Nuxt UI tooltips to icon-only buttons instead of native `title` tooltips; preserve `title` for truncated content hints. Align client/project/release breadcrumbs inline with their headings. Remove ticket-detail next-status button; status remains editable in the form and movable on the board. Install the local Lucide icon collection (`@iconify-json/lucide`) to avoid icon availability warnings. Polish keyboard/touch interactions and final empty/loading/error states without changing stored domain rules.
 
@@ -332,8 +332,8 @@ Goal: polish Today, board, and release ticket/time presentations without changin
 - Color tracked-time values with the existing usage ratio bands; distinguish Today progress from its target and show capped orange overtime without a separate suffix.
 - M8 added a Today-only status-change submenu while retaining status filtering and existing status rules. M14 extends status changes to Release detail ticket badges through a direct selector; the board status policy remains unchanged (ADR 0013).
 - Make all existing Today/Tickets board select-menu filters searchable. Keep archive toggles and form selects unchanged.
-- Show active project/release/ticket counts on client cards, active release/ticket counts on project cards, and active ticket count plus accessible Done/total progress on release cards. Exclude archived descendants and descendants under archived ancestors; archived parent cards omit child metrics. Reuse one two-row ProjectCard on the Projects list and client detail, with project color/title above and client link plus release/ticket counts below.
-- Keep relation/link popover triggers as accessible icons without count chips, even when there are multiple items. Show release client/project/release quick links and visible Clients/Projects headings; remove redundant explanatory subtitles from client list cards, client detail, and client-page project cards.
+- Show active project/release/ticket counts on client cards, active release/ticket counts on project cards, and active ticket count plus accessible Done/total progress on release cards. Exclude archived descendants and descendants under archived ancestors; archived parent cards omit child metrics. Use the two-row ProjectCard under client detail, with project color/title above and client link plus release/ticket counts below; M19 removes the separate Projects collection page.
+- Keep relation/link popover triggers as accessible icons without count chips, even when there are multiple items. Show release client/project/release quick links and the Clients heading; remove redundant explanatory subtitles from client list cards, client detail, and client-detail project cards.
 - Add release-detail `Mark release as done` using the existing archive action. Warn and confirm when any tickets are unfinished, including an empty release, then navigate to the parent project after success. Allow deleting the selected time entry from the Today correction modal using the existing DELETE endpoint and confirmation prompt.
 - Use explicit entity edit labels on client/project/release details, and keep Edit before New in responsive action order.
 - Make external-link labels optional. Preserve custom labels, store missing labels as `NULL`, and display the URL hostname (including subdomains) when absent.
@@ -342,7 +342,7 @@ Acceptance:
 
 - Existing time-entry geometry, overlap and persistence rules, estimate calculations, status rules, ownership, archive behavior, and interactions remain unchanged.
 - Missing labels persist as `NULL` without rewriting existing custom labels; blank forms normalize to an absent label.
-- Today and board share visual card layout, hierarchy badge styling/placement, and colors while retaining distinct actions and time semantics; release cards retain their shared presentation. Project cards share the two-row layout on Projects and client detail. Searchable filters, hierarchy counts, release progress, and icon-only relation/link popovers remain accessible and usable across desktop and mobile.
+- Today and board share visual card layout, hierarchy badge styling/placement, and colors while retaining distinct actions and time semantics; release cards retain their shared presentation. Project cards use the two-row layout under client detail. Searchable filters, hierarchy counts, release progress, and icon-only relation/link popovers remain accessible and usable across desktop and mobile.
 
 ### M16 — Weekly agenda and cross-day moves
 
@@ -397,6 +397,23 @@ Acceptance:
 - Badge wrapping is used only when the block has enough height; otherwise horizontal scrolling is confined to the hierarchy group. Narrow stacked and natural-height cards remain wrapped and readable.
 - The Week-mode page-level Add modal defaults to the anchor date, permits choosing any date in the displayed configured week, and prevents choosing dates outside it. Saving creates the entry on the selected date without changing the page anchor or persisting the selection.
 - Day-mode Add, per-day Week Add, drag-create, ownership, overlap, archive, and API behavior remain unchanged.
+
+### M19 — Client-led project navigation
+
+Status: Complete — implementation, verification, code review, and human completion declaration recorded. Execution evidence and review status: `docs/milestones/m19-client-led-project-navigation.md`.
+
+Goal: make Clients the only top-level entry point for discovering and setting up projects while preserving individual project routes and hierarchy behavior.
+
+- Remove Projects from desktop/mobile navigation and remove its `g`-then-`p` shortcut.
+- Remove the all-projects collection route at `/projects` with no compatibility redirect; retain individual project detail/create/edit routes and project search results.
+- Keep project cards and the New project action on client detail as the normal discovery/setup path.
+- Route stale collection-return and prerequisite actions to Clients or the relevant parent client/project; preserve archive context.
+
+Acceptance:
+
+- The shell has no Projects collection link or shortcut; `/projects` returns 404.
+- Projects remain discoverable and manageable from client detail, and individual project search results still navigate to project details.
+- Create/edit/delete return paths work without the collection page; ownership, archive, hierarchy, and API behavior are unchanged.
 
 ### Later, post-MVP
 
