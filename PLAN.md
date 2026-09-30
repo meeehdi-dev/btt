@@ -96,17 +96,14 @@ No local Nuxt, Nuxt UI, or Effect TS skill is currently installed in the scanned
 
 ### CI, release, and deploy
 
-Follow the existing `../tt` GitHub workflow shape unless a later implementation spike finds a clearly better replacement:
+- Dependabot is intended for npm, Docker, and GitHub Actions with grouped minor/patch updates.
+- GitHub Actions run push/PR quality checks for lint, format, typecheck, tests, and build on Node 24+.
+- M0 established quality checks and Dependabot; it deferred release/deployment automation until a separately approved follow-up.
+- For the first production deployment, Coolify connects to the Git repository and builds the repository Dockerfile directly on the Coolify host. No image registry, GHCR publishing, release-please, or Coolify API deployment workflow is required (ADR 0036).
+- Keep GitHub Actions as the quality gate. Prefer required checks on protected `main` before enabling Coolify auto-deploy; otherwise deploy manually in Coolify after checks pass. A CI-success Coolify webhook can be considered later if needed, without adding image publishing.
+- Use a repository Dockerfile to make Node/pnpm setup, Nuxt/Nitro server startup, migrations, and health checking explicit. Coolify's buildpack/Nixpacks remains a valid simpler alternative, but is not the selected first-release path.
 
-- Dependabot enabled for npm, Docker, and GitHub Actions with grouped minor/patch updates.
-- Push/PR checks for lint, format, typecheck, tests, and build.
-- CI should use Node 24+ or the latest supported runtime chosen at bootstrap.
-- Add Vitest to CI from M0, not later.
-- M0 automation scope is quality checks and Dependabot only.
-- Keep release-please for release automation, GHCR Docker image publishing, and Coolify deployment triggered from the release workflow as the intended direction, but defer their implementation to a separately approved follow-up after M0.
-- Potential improvement to consider later: combine repeated install/setup steps with reusable workflows or a matrix, but keep clarity over cleverness.
-
-Relevant `tt` references:
+Relevant `tt` references (reference only; its release/deploy flow is not adopted):
 
 - `../tt/.github/workflows/check.yml` — lint/format/typecheck/build on push and PR.
 - `../tt/.github/workflows/release-please.yml` — release-please and deploy trigger.

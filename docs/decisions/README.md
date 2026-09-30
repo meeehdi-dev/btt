@@ -70,3 +70,4 @@ NNNN-short-descriptive-slug.md
 | [0033](0033-no-compatibility-route-for-project-collection.md)  | Accepted   | No compatibility route for the removed Projects collection |
 | [0034](0034-pnpm-v12-package-manager.md)                       | Accepted   | pnpm v12 package-manager baseline                          |
 | [0035](0035-three-block-header-navigation.md)                  | Accepted   | Three-block header navigation                              |
+| [0036](0036-coolify-source-build-deployment.md)                | Accepted   | Coolify source-build deployment                            |
