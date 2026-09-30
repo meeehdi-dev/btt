@@ -1,6 +1,6 @@
 # M24 — First production deployment via Coolify
 
-> **Status:** Repository implementation and local verification complete; code review accepted. Production Coolify/database confirmation remains pending.
+> **Status:** Complete — implementation and local verification complete, code review accepted, and the human reports the production deployment works. The human declared M24 complete on 2026-09-30. Itemized backup/restore and remote CI evidence were not provided and remain follow-ups, not claims of verified checks.
 
 ## Context
 
@@ -98,18 +98,18 @@ No production secrets or server-specific credentials will be added to the reposi
 
 ## Implementation checklist
 
-Plan approval is recorded. Before any production migration or deployment, resolve the database-state and hosting questions above.
+Plan approval is recorded. The production database was confirmed empty before deployment; remaining hosting and backup details are tracked as non-blocking follow-ups below.
 
 - [x] Confirm the existing production database is empty and requires no data import.
-- [ ] Confirm database hosting/failure-tolerance expectations and backup destination.
+- [x] Human reports the production deployment works; the selected database hosting/failure-tolerance expectations and backup destination were not itemized and remain operational follow-ups.
 - [x] Add Dockerfile and `.dockerignore`; verify the runtime image excludes build placeholders and runs as non-root.
 - [x] Implement and test migration-before-server behavior without build-time DB access or new dependencies; a failed migration exits before the server starts.
 - [x] Add a non-sensitive health endpoint and Docker health check.
 - [x] Update README and `PLAN.md`; add accepted ADR 0036 and index it.
 - [x] Run formatting, lint, typecheck, unit/E2E, Nuxt build, workflow check, and Docker build/runtime checks.
-- [ ] After production data/hosting are confirmed, perform manual Coolify setup and verify domain/TLS, OAuth login, fresh database migrations, persistence, backup, and restore before recording production readiness.
+- [x] Human reports production deployment is working (2026-09-30). Domain/TLS, OAuth, migrations/persistence, and backup/restore checks were not individually itemized in the completion report; see Follow-ups.
 - [x] Record verification/deviations and submit the implementation diff for human code review.
-- [ ] Complete production Coolify/database checks and close only after the human completion declaration.
+- [x] Human completion declaration recorded; any unreported target-environment checks are accepted as non-blocking follow-ups, not represented as independently verified.
 
 ## Journal
 
@@ -165,6 +165,12 @@ Plan approval is recorded. Before any production migration or deployment, resolv
 - Scope: the human will handle Coolify configuration. No connection to the production database was made, and no deployment or migration was run against it.
 - Follow-up: verify the deployment becomes healthy, migrations are present, OAuth works, and backups/restores are configured in Coolify.
 
+### 2026-09-30 — Production deployment and completion declaration
+
+- Fact: the human said, “we deployed and it works” and declared this milestone complete.
+- Decision: record M24 as complete on the human's authority. The declaration accepts any unreported target-environment details as non-blocking follow-ups.
+- Evidence: direct user instruction in chat. No production logs, Coolify UI evidence, backup/restore result, or remote CI result was supplied or independently checked in this session.
+
 ## Verification
 
 Planning checks:
@@ -189,19 +195,19 @@ Implementation checks:
 
 - Plan review: Approved in Plannotator on 2026-09-30; production data-state and hosting confirmations remain required before deployment.
 - Code review: Accepted via Plannotator on 2026-09-30; no changes requested.
-- Milestone completion declaration: Pending production Coolify/database verification and human declaration.
+- Production deployment: Human reports it is deployed and working; detailed checks were not supplied.
+- Milestone completion declaration: Complete — declared by the human on 2026-09-30. Outstanding operational details are listed as follow-ups.
 
 ## Follow-ups
 
-- If the production database is not empty, produce a separate data-preservation/backfill/rollback plan before migration.
+- Confirm database host/failure-tolerance expectations and the backup destination; configure or verify off-host backups and test a restore into a disposable database. These checks were not itemized in the completion report.
 - If auto-deploy without CI gating is unacceptable, add only a successful-check-to-Coolify webhook (no build/push or registry); revisit scope and approval first.
-- Consider an external managed PostgreSQL service if a Coolify-host failure must not also take the database offline.
-- Remote GitHub CI and actual target-Coolify configuration remain unverified.
+- Remote GitHub CI and detailed target-Coolify checks (domain/TLS, OAuth, migrations/persistence) were not independently verified or itemized in the completion report.
 - The current Dependabot configuration does not yet monitor the new Dockerfile base image; add Docker-ecosystem update coverage as a separately reviewed maintenance change if desired.
 
 ## Closeout checklist
 
-- [ ] Approved scope complete or explicitly deferred.
-- [ ] Verification evidence recorded.
-- [ ] Human code review accepted.
-- [ ] Human completion declaration recorded in the journal and review status.
+- [x] Approved scope complete or remaining target-environment details accepted as follow-ups by the human completion declaration.
+- [x] Verification evidence recorded, with the limits of the reported production verification noted.
+- [x] Human code review accepted.
+- [x] Human completion declaration recorded in the journal and review status.

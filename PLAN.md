@@ -506,6 +506,12 @@ Acceptance:
 - Navigation order is Today, Tickets, Clients; avatar/name, Settings and Sign out are directly available.
 - Existing search, shortcut, session and logout behavior remains intact.
 
+### M24 — First production deployment via Coolify
+
+Status: Complete — implementation, local verification, code review, and human completion declaration recorded on 2026-09-30. The human reports the production deployment works. See [`docs/milestones/m24-first-release-deployment.md`](docs/milestones/m24-first-release-deployment.md); itemized backup/restore and remote CI verification remain follow-ups.
+
+- Added direct Coolify Dockerfile builds, startup migrations, a health endpoint, and a deployment/operations runbook without GHCR or release-publishing automation.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.
