@@ -16,6 +16,10 @@ const {
   refresh: refreshTickets,
 } = await useApiFetch('/api/tickets')
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
+const releaseSearchInput = useSelectSearchInput('Search releases…')
+const releasePickerOpen = ref(false)
+const relatedTicketSearchInput = useSelectSearchInput('Search tickets…')
+const relatedTicketPickerOpen = ref(false)
 const releaseId = ref(typeof route.query.release === 'string' ? route.query.release : '')
 watch(
   releases,
@@ -33,6 +37,14 @@ const estimate = ref('')
 const links = ref<{ label: string; url: string }[]>([])
 const relatedTicketIds = ref<string[]>([])
 const selectedRelation = ref('')
+function selectRelease(id: string) {
+  releaseId.value = id
+  releasePickerOpen.value = false
+}
+function selectRelatedTicket(id: string) {
+  selectedRelation.value = id
+  relatedTicketPickerOpen.value = false
+}
 const availableRelations = computed(() =>
   tickets.value.filter((item) => !relatedTicketIds.value.includes(item.ticket.id)),
 )
@@ -139,16 +151,21 @@ async function submit() {
     <UCard v-else
       ><form class="space-y-5" @submit.prevent="submit">
         <UFormField label="Release" required
-          ><USelect
-            v-model="releaseId"
+          ><USelectMenu
+            :model-value="releaseId"
+            v-model:open="releasePickerOpen"
+            value-key="value"
             :items="
               releases.map((item) => ({
                 label: `${item.projectName} · ${item.release.name}`,
                 value: item.release.id,
               }))
             "
+            :search-input="releaseSearchInput"
+            aria-label="Release"
             class="w-full"
             placeholder="Choose a release"
+            @update:model-value="selectRelease"
         /></UFormField>
         <UFormField label="Title" required
           ><UInput v-model="title" class="w-full" placeholder="Implement feature"
@@ -230,16 +247,21 @@ async function submit() {
             class="flex flex-col gap-2 sm:flex-row sm:items-end"
           >
             <UFormField label="Choose related ticket" class="flex-1"
-              ><USelect
-                v-model="selectedRelation"
+              ><USelectMenu
+                :model-value="selectedRelation"
+                v-model:open="relatedTicketPickerOpen"
+                value-key="value"
                 :items="
                   availableRelations.map((item) => ({
                     label: `${item.ticket.title} · ${item.releaseName}`,
                     value: item.ticket.id,
                   }))
                 "
+                :search-input="relatedTicketSearchInput"
+                aria-label="Choose related ticket"
                 class="w-full"
                 placeholder="Choose ticket"
+                @update:model-value="selectRelatedTicket"
             /></UFormField>
             <UButton
               color="neutral"

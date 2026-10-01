@@ -66,6 +66,7 @@ async function cleanup(userId: string) {
 test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', async ({
   page,
   context,
+  browser,
 }) => {
   const helpers = (await testAuth.$context).test
   const user = helpers.createUser({
@@ -73,6 +74,7 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     email: `nxmr-breadcrumb-${crypto.randomUUID()}@example.com`,
   })
   await helpers.saveUser(user)
+  let mobileContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
 
   try {
     await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
@@ -192,6 +194,12 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
       ],
       'Edit ticket',
     )
+    await page.getByRole('button', { name: 'Release' }).click()
+    await page.getByPlaceholder('Search releases…').fill('Breadcrumb Release B')
+    await expect(
+      page.getByRole('option', { name: `${projectB.name} · ${releaseB.name}` }),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
 
     await page.goto('/projects/new')
     await page.waitForLoadState('networkidle')
@@ -203,7 +211,10 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
       [{ label: clientA.name, href: `/clients/${clientA.id}` }],
       'New project',
     )
-    await page.getByRole('combobox', { name: 'Client' }).click()
+    await page.getByRole('button', { name: 'Client' }).click()
+    const clientSearch = page.getByPlaceholder('Search clients…')
+    await clientSearch.fill('Breadcrumb Client B')
+    await expect(page.getByRole('option', { name: clientA.name, exact: true })).toHaveCount(0)
     await page.getByRole('option', { name: clientB.name, exact: true }).click()
     await expectTrail(
       page,
@@ -221,7 +232,11 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
       ],
       'New release',
     )
-    await page.getByRole('combobox', { name: 'Project' }).click()
+    await page.getByRole('button', { name: 'Project' }).click()
+    await page.getByPlaceholder('Search projects…').fill('Breadcrumb Project B')
+    await expect(
+      page.getByRole('option', { name: `${clientA.name} · ${projectA.name}` }),
+    ).toHaveCount(0)
     await page.getByRole('option', { name: `${clientB.name} · ${projectB.name}` }).click()
     await expectTrail(
       page,
@@ -243,7 +258,11 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
       ],
       'New ticket',
     )
-    await page.getByRole('combobox', { name: 'Release' }).click()
+    await page.getByRole('button', { name: 'Release' }).click()
+    await page.getByPlaceholder('Search releases…').fill('Breadcrumb Release B')
+    await expect(
+      page.getByRole('option', { name: `${projectA.name} · ${releaseA.name}` }),
+    ).toHaveCount(0)
     await page.getByRole('option', { name: `${projectB.name} · ${releaseB.name}` }).click()
     await expectTrail(
       page,
@@ -307,7 +326,26 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
       .click()
     await expect(page).toHaveURL(`/releases/${releaseA.id}?archived=true`)
     await expect(page.getByRole('heading', { name: releaseA.name, level: 1 })).toBeVisible()
+
+    mobileContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    })
+    await mobileContext.addCookies(
+      await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }),
+    )
+    const mobile = await mobileContext.newPage()
+    await mobile.goto('/projects/new')
+    await mobile.waitForLoadState('networkidle')
+    await mobile.getByRole('button', { name: 'Client' }).tap()
+    const mobileSearch = mobile.getByPlaceholder('Search clients…')
+    await expect(mobileSearch).toBeVisible()
+    expect(await mobileSearch.evaluate((element) => element === document.activeElement)).toBe(false)
+    await mobileSearch.fill('Breadcrumb Client B')
+    await expect(mobile.getByRole('option', { name: clientB.name, exact: true })).toBeVisible()
   } finally {
+    await mobileContext?.close()
     await cleanup(user.id)
     await helpers.deleteUser(user.id)
   }

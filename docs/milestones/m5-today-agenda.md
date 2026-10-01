@@ -132,3 +132,10 @@ Desktop drag/create/resize/move (M6), timer, reports, configurable slot grid, we
 - [x] Verification evidence recorded.
 - [x] Human code review accepted.
 - [x] Human completion declaration recorded in journal and review status.
+
+### Post-closeout follow-up — searchable ticket choices
+
+- Fact: Under the separately approved `plans/time-entry-ticket-choices.md`, Done tickets are excluded only from Today/Week's new-entry picker and guard. Today retains the full ticket collection for filters/status actions; `/api/tickets`, ticket-detail entry creation, Done history, and archive behavior are unchanged.
+- Fact: Data-backed client, project, release, ticket, and relation selectors use searchable `USelectMenu` controls. Remaining simple `USelect` controls are fixed status, duration, or settings choices. ADR `0037` records the convention.
+- Evidence: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files/72 tests), `pnpm exec playwright test --workers=1 --timeout=120000` (28 passed), `pnpm build`, `pnpm check:workflow`, and `git diff --check` passed. E2E coverage includes the Today Done exclusion/other-filter preservation, searchable entity choices, mobile no-auto-focus, and Day/Week quick add. Playwright emitted non-fatal dev-server `ResizeObserver loop completed with undelivered notifications` logs. No separate manual visual inspection or all-tickets-Done empty-state check was performed.
+- Review status: M5 remains **Complete**. Plannotator reviewed this post-closeout diff and approved it with no changes requested.

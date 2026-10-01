@@ -9,6 +9,8 @@ const {
   refresh: refreshClients,
 } = await useApiFetch('/api/clients')
 const clients = computed(() => clientData.value?.clients ?? [])
+const clientSearchInput = useSelectSearchInput('Search clients…')
+const clientPickerOpen = ref(false)
 const clientId = ref(typeof route.query.client === 'string' ? route.query.client : '')
 const name = ref('')
 const color = ref('#3b82f6')
@@ -24,6 +26,10 @@ watch(
 )
 
 const selectedClient = computed(() => clients.value.find((client) => client.id === clientId.value))
+function selectClient(id: string) {
+  clientId.value = id
+  clientPickerOpen.value = false
+}
 const canSubmit = computed(() => clients.value.some((client) => client.id === clientId.value))
 const cancelTo = computed(() =>
   selectedClient.value ? `/clients/${selectedClient.value.id}` : '/clients',
@@ -100,11 +106,16 @@ async function submit() {
     <UCard v-else>
       <form class="space-y-5" @submit.prevent="submit">
         <UFormField label="Client" required>
-          <USelect
-            v-model="clientId"
+          <USelectMenu
+            :model-value="clientId"
+            v-model:open="clientPickerOpen"
+            value-key="value"
             :items="clients.map((client) => ({ label: client.name, value: client.id }))"
+            :search-input="clientSearchInput"
+            aria-label="Client"
             class="w-full"
             placeholder="Choose a client"
+            @update:model-value="selectClient"
           />
         </UFormField>
         <UFormField label="Name" required>

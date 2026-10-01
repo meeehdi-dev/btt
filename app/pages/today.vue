@@ -98,6 +98,11 @@ const {
   refresh: refreshTickets,
 } = await useApiFetch('/api/tickets')
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
+const eligibleTickets = computed(() =>
+  tickets.value.filter(({ ticket }) => ticket.status !== 'Done'),
+)
+const ticketSearchInput = useSelectSearchInput('Search tickets…')
+const ticketPickerOpen = ref(false)
 const entries = computed(() => agenda.value?.entries ?? [])
 const activeEntries = computed(() =>
   view.value === 'week' ? (weekAgenda.value?.entries ?? []) : entries.value,
@@ -214,6 +219,10 @@ const editingDescription = ref('')
 const editingError = ref('')
 const editingErrorTitle = ref('Could not update time entry')
 const deletingEdit = ref(false)
+function selectEntryTicket(id: string) {
+  ticketId.value = id
+  ticketPickerOpen.value = false
+}
 async function retryTodayReads() {
   const result = await runClientEffect(
     Effect.all([
@@ -492,7 +501,7 @@ async function add() {
   if (
     pageActionNeedsRefresh.value ||
     !addDate.value ||
-    !tickets.value.some(({ ticket }) => ticket.id === ticketId.value)
+    !eligibleTickets.value.some(({ ticket }) => ticket.id === ticketId.value)
   )
     return
   if (canChooseWeekAddDate.value && !weekDates.value.includes(addDate.value.toString())) {
@@ -720,18 +729,23 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
               label="Retry loading tickets"
               @click="retryTodayReads()"
             />
-            <template v-else-if="tickets.length">
+            <template v-else-if="eligibleTickets.length">
               <UFormField label="Ticket" required
-                ><USelect
-                  v-model="ticketId"
+                ><USelectMenu
+                  :model-value="ticketId"
+                  v-model:open="ticketPickerOpen"
+                  value-key="value"
                   :items="
-                    tickets.map((item) => ({
+                    eligibleTickets.map((item) => ({
                       label: `${item.clientName} · ${item.projectName} · ${item.releaseName} · ${item.ticket.title}`,
                       value: item.ticket.id,
                     }))
                   "
+                  :search-input="ticketSearchInput"
+                  aria-label="Ticket"
                   placeholder="Choose an active ticket"
                   class="w-full"
+                  @update:model-value="selectEntryTicket"
               /></UFormField>
               <div class="grid gap-3 sm:grid-cols-2">
                 <UFormField label="Start time" required

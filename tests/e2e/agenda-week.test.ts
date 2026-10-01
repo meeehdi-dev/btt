@@ -328,8 +328,9 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     const addDialog = page.getByRole('dialog', { name: 'Add completed work' })
     await expect(addDialog).toBeVisible()
     await expect(addDialog).toContainText(labels[2]!)
-    await addDialog.getByRole('combobox', { name: 'Ticket*' }).click()
+    await addDialog.getByRole('button', { name: 'Ticket' }).click()
     await page.getByRole('option', { name: 'Weekly first ticket' }).click()
+    await expect(page.getByRole('listbox')).toBeHidden()
     await addDialog.getByRole('textbox', { name: 'Work description' }).fill('Weekly quick add')
     await addDialog.getByRole('button', { name: 'Save time entry' }).click()
     await expect(addDialog).toHaveCount(0)
@@ -463,8 +464,10 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await expect(
       globalAddDialog.getByRole('button', { name: `Work date: ${dates[4]}` }),
     ).toBeVisible()
-    await globalAddDialog.getByRole('combobox', { name: 'Ticket*' }).click()
+    await globalAddDialog.getByRole('button', { name: 'Ticket' }).click()
+    await page.getByPlaceholder('Search tickets…').fill('Weekly first')
     await page.getByRole('option', { name: 'Weekly first ticket' }).click()
+    await expect(page.getByRole('listbox')).toBeHidden()
     await globalAddDialog
       .getByRole('textbox', { name: 'Work description' })
       .fill('Weekly global add')
@@ -692,7 +695,7 @@ test('week gestures create, resize, move across dates, and preview move conflict
     const addDialog = page.getByRole('dialog', { name: 'Add completed work' })
     await expect(addDialog).toBeVisible()
     await expect(addDialog).toContainText('Thursday')
-    await addDialog.getByRole('combobox', { name: 'Ticket*' }).click()
+    await addDialog.getByRole('button', { name: 'Ticket' }).click()
     await page.getByRole('option', { name: 'Week movable work' }).click()
     await addDialog.getByRole('button', { name: 'Save time entry' }).click()
     await expect(addDialog).toHaveCount(0)

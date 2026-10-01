@@ -71,3 +71,4 @@ NNNN-short-descriptive-slug.md
 | [0034](0034-pnpm-v12-package-manager.md)                       | Accepted   | pnpm v12 package-manager baseline                          |
 | [0035](0035-three-block-header-navigation.md)                  | Accepted   | Three-block header navigation                              |
 | [0036](0036-coolify-source-build-deployment.md)                | Accepted   | Coolify source-build deployment                            |
+| [0037](0037-searchable-data-backed-selectors.md)               | Accepted   | Searchable selectors for user-managed data                 |

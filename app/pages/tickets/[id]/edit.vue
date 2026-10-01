@@ -19,6 +19,8 @@ const {
   error: releasesError,
   refresh: refreshReleases,
 } = await useApiFetch('/api/releases')
+const releaseSearchInput = useSelectSearchInput('Search releases…')
+const releasePickerOpen = ref(false)
 const title = ref(data.value?.ticket.title ?? '')
 const description = ref(data.value?.ticket.description ?? '')
 const releaseId = ref(data.value?.ticket.releaseId ?? '')
@@ -27,6 +29,10 @@ const estimate = ref(
   data.value?.ticket.estimateMinutes ? formatTicketEstimate(data.value.ticket.estimateMinutes) : '',
 )
 const archived = ref(Boolean(data.value?.ticket.archivedAt))
+function selectRelease(selectedReleaseId: string) {
+  releaseId.value = selectedReleaseId
+  releasePickerOpen.value = false
+}
 const pending = ref(false)
 const errorMessage = ref('')
 async function save() {
@@ -139,16 +145,21 @@ async function remove() {
           />
         </div>
         <UFormField label="Release" required
-          ><USelect
-            v-model="releaseId"
+          ><USelectMenu
+            :model-value="releaseId"
+            v-model:open="releasePickerOpen"
+            value-key="value"
             :items="
               (releasesData?.releases ?? []).map((item) => ({
                 label: `${item.projectName} · ${item.release.name}`,
                 value: item.release.id,
               }))
             "
+            :search-input="releaseSearchInput"
+            aria-label="Release"
             class="w-full"
             :disabled="!!releasesError || !releasesData?.releases.length"
+            @update:model-value="selectRelease"
         /></UFormField>
         <UFormField label="Title" required><UInput v-model="title" class="w-full" /></UFormField>
         <UFormField label="Description"

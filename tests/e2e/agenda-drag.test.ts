@@ -77,7 +77,7 @@ test('desktop drag creation, hidden blockers, moves, resizing and non-drag mobil
     await page.mouse.up()
     const addDialog = page.getByRole('dialog', { name: 'Add completed work' })
     await expect(addDialog).toBeVisible()
-    await addDialog.getByRole('combobox', { name: 'Ticket*' }).click()
+    await addDialog.getByRole('button', { name: 'Ticket' }).click()
     await page.getByRole('option', { name: /Visible work/ }).click()
     await addDialog.getByRole('button', { name: 'Save time entry' }).click()
     await expect(addDialog).toHaveCount(0)

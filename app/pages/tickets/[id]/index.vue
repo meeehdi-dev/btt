@@ -20,6 +20,8 @@ const {
   refresh: refreshChoices,
 } = await useApiFetch('/api/tickets')
 const relatedId = ref('')
+const relatedTicketSearchInput = useSelectSearchInput('Search tickets…')
+const relatedTicketPickerOpen = ref(false)
 const label = ref('')
 const url = ref('')
 const pending = ref(false)
@@ -68,6 +70,10 @@ async function addLink() {
       return result
     }),
   )
+}
+function selectRelatedTicket(ticketId: string) {
+  relatedId.value = ticketId
+  relatedTicketPickerOpen.value = false
 }
 async function addRelation() {
   if (!relatedId.value) return
@@ -278,8 +284,10 @@ async function addRelation() {
         <p v-else class="mt-2 text-muted">No related tickets.</p>
         <form class="mt-4 space-y-2" @submit.prevent="addRelation">
           <UFormField label="Link a ticket"
-            ><USelect
-              v-model="relatedId"
+            ><USelectMenu
+              :model-value="relatedId"
+              v-model:open="relatedTicketPickerOpen"
+              value-key="value"
               :disabled="!!choicesError || pending || actionNeedsRefresh"
               :items="
                 (choices?.tickets ?? [])
@@ -293,8 +301,11 @@ async function addRelation() {
                     value: item.ticket.id,
                   }))
               "
+              :search-input="relatedTicketSearchInput"
+              aria-label="Link a ticket"
               class="w-full"
-              placeholder="Choose ticket" /></UFormField
+              placeholder="Choose ticket"
+              @update:model-value="selectRelatedTicket" /></UFormField
           ><UButton
             type="submit"
             :disabled="!relatedId || !!choicesError || pending || actionNeedsRefresh"

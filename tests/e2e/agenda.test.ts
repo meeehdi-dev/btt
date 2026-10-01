@@ -21,7 +21,14 @@ test('day read and settings are owner scoped, include archived history, and vali
   await helpers.saveUser(owner)
   await helpers.saveUser(other)
   let ids:
-    | { client: string; project: string; release: string; ticket: string; entries: string[] }
+    | {
+        client: string
+        project: string
+        release: string
+        ticket: string
+        doneTicket: string
+        entries: string[]
+      }
     | undefined
   try {
     await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
@@ -84,6 +91,11 @@ test('day read and settings are owner scoped, include archived history, and vali
     const t = await (
       await page.request.post('/api/tickets', { data: { releaseId: r.id, title: 'Agenda ticket' } })
     ).json()
+    const doneTicket = await (
+      await page.request.post('/api/tickets', {
+        data: { releaseId: r.id, title: 'Done agenda ticket', status: 'Done' },
+      })
+    ).json()
     const e = await (
       await page.request.post('/api/time-entries', {
         data: {
@@ -95,7 +107,14 @@ test('day read and settings are owner scoped, include archived history, and vali
         },
       })
     ).json()
-    ids = { client: c.id, project: p.id, release: r.id, ticket: t.id, entries: [e.id] }
+    ids = {
+      client: c.id,
+      project: p.id,
+      release: r.id,
+      ticket: t.id,
+      doneTicket: doneTicket.id,
+      entries: [e.id],
+    }
     expect(
       (await page.request.get('/api/agenda', { params: { date: '2024-02-30' } })).status(),
     ).toBe(400)
@@ -146,11 +165,25 @@ test('day read and settings are owner scoped, include archived history, and vali
     await expect(addDialog).toHaveCount(0)
     await page.getByRole('button', { name: 'Add time entry' }).click()
     await expect(addDialog).toBeVisible()
-    await addDialog.getByRole('combobox', { name: 'Ticket*' }).click()
+    await addDialog.getByRole('button', { name: 'Ticket' }).click()
+    const ticketSearch = page.getByPlaceholder('Search tickets…')
+    await ticketSearch.fill('Done agenda ticket')
+    await expect(page.getByRole('option', { name: /Done agenda ticket/ })).toHaveCount(0)
+    await ticketSearch.fill('Agenda ticket')
     await page.getByRole('option', { name: /Agenda ticket/ }).click()
+    await expect(page.getByRole('listbox')).toBeHidden()
     await page.getByRole('textbox', { name: 'Work description' }).fill('From Today')
+    await expect(page.getByRole('textbox', { name: 'Work description' })).toHaveValue('From Today')
     await addDialog.getByRole('button', { name: 'Save time entry' }).click()
     await expect(addDialog).toHaveCount(0)
+    const afterAdd = await (
+      await page.request.get('/api/agenda', { params: { date: localDay } })
+    ).json()
+    expect(
+      afterAdd.entries.some(
+        (row: { entry: { description: string } }) => row.entry.description === 'From Today',
+      ),
+    ).toBe(true)
     await expect(
       page.getByRole('region', { name: 'Day timeline' }).getByText('From Today'),
     ).toBeVisible()
@@ -240,7 +273,7 @@ test('day read and settings are owner scoped, include archived history, and vali
     expect(firstBounds.y + firstBounds.height).toBeCloseTo(secondBounds.y, 1)
     expect(secondCardBounds.y).toBeGreaterThan(firstCardBounds.y + firstCardBounds.height)
     await page.getByRole('button', { name: 'Add time entry' }).click()
-    await addDialog.getByRole('combobox', { name: 'Ticket*' }).click()
+    await addDialog.getByRole('button', { name: 'Ticket' }).click()
     await page.getByRole('option', { name: /Agenda ticket/ }).click()
     await addDialog.getByRole('button', { name: 'Save time entry' }).click()
     await expect(addDialog.getByText(/Time entries cannot overlap/)).toBeVisible()
@@ -250,7 +283,16 @@ test('day read and settings are owner scoped, include archived history, and vali
     await expect(page.getByRole('button', { name: 'Filter client' })).toContainText('Agenda client')
     await page.getByLabel('Clear client filter').click()
     await expect(page.getByRole('button', { name: 'Filter client' })).toContainText('All clients')
+    await page.getByRole('button', { name: 'Filter ticket' }).click()
+    await page.getByPlaceholder('Search tickets…').fill('Done agenda ticket')
+    await expect(
+      page.getByRole('option', { name: 'Done agenda ticket', exact: true }),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Filter status' }).click()
+    await page.getByPlaceholder('Search statuses…').fill('Done')
+    await expect(page.getByRole('option', { name: 'Done', exact: true })).toBeVisible()
+    await page.getByPlaceholder('Search statuses…').fill('Idea')
     await page.getByRole('option', { name: 'Idea' }).click()
     await expect(page.getByRole('button', { name: 'Filter status' })).toContainText('Idea')
     await page.getByLabel('Clear status filter').click()
@@ -261,7 +303,7 @@ test('day read and settings are owner scoped, include archived history, and vali
     await expect(page.getByText(/No completed work on this day/)).toHaveCount(0)
     await expect(page.locator('[data-agenda-entry]')).toHaveCount(0)
     await page.getByRole('button', { name: 'Filter ticket' }).click()
-    await page.getByRole('option', { name: 'Agenda ticket' }).click()
+    await page.getByRole('option', { name: 'Agenda ticket', exact: true }).click()
     await expect(page.getByText('No work matches these filters.')).toBeVisible()
     await page.getByRole('button', { name: 'Clear filters' }).click()
     await page.keyboard.press('Escape')
@@ -372,6 +414,7 @@ test('day read and settings are owner scoped, include archived history, and vali
     if (ids) {
       await db.delete(timeEntry).where(eq(timeEntry.ticketId, ids.ticket))
       await db.delete(ticket).where(eq(ticket.id, ids.ticket))
+      await db.delete(ticket).where(eq(ticket.id, ids.doneTicket))
       await db.delete(release).where(eq(release.id, ids.release))
       await db.delete(project).where(eq(project.id, ids.project))
       await db.delete(client).where(eq(client.id, ids.client))

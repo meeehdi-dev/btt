@@ -9,6 +9,8 @@ const {
   refresh: refreshProjects,
 } = await useApiFetch('/api/projects')
 const projects = computed(() => projectData.value?.projects ?? [])
+const projectSearchInput = useSelectSearchInput('Search projects…')
+const projectPickerOpen = ref(false)
 const projectId = ref(typeof route.query.project === 'string' ? route.query.project : '')
 const name = ref('')
 const targetDate = ref('')
@@ -26,6 +28,10 @@ watch(
 const selectedProject = computed(() =>
   projects.value.find((project) => project.project.id === projectId.value),
 )
+function selectProject(id: string) {
+  projectId.value = id
+  projectPickerOpen.value = false
+}
 const canSubmit = computed(() =>
   projects.value.some((project) => project.project.id === projectId.value),
 )
@@ -115,16 +121,21 @@ async function submit() {
     <UCard v-else>
       <form class="space-y-5" @submit.prevent="submit">
         <UFormField label="Project" required>
-          <USelect
-            v-model="projectId"
+          <USelectMenu
+            :model-value="projectId"
+            v-model:open="projectPickerOpen"
+            value-key="value"
             :items="
               projects.map((project) => ({
                 label: `${project.clientName} · ${project.project.name}`,
                 value: project.project.id,
               }))
             "
+            :search-input="projectSearchInput"
+            aria-label="Project"
             class="w-full"
             placeholder="Choose a project"
+            @update:model-value="selectProject"
           />
         </UFormField>
         <UFormField label="Name" required>
