@@ -21,11 +21,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div
-    class="inline-flex shrink-0 items-center"
-    :class="compact ? 'gap-0.5' : 'gap-1'"
-    aria-label="Ticket links"
-  >
+  <div class="inline-flex shrink-0 items-center gap-1" aria-label="Ticket links">
     <UTooltip v-if="relatedTickets.length" text="Related tickets">
       <UPopover
         v-model:open="relatedOpen"

@@ -189,42 +189,45 @@ const statusMenuItems = computed(() => [
       <TicketHierarchyBadges
         mode="filter-actions"
         truncate-labels
-        aria-label="Entry hierarchy actions"
+        aria-label="Entry hierarchy, status, and ticket links"
         :compact="compactTimeline"
         :scroll="compactTimeline && !hierarchyCanWrap"
         :items="hierarchyItems"
         @filter="(kind, id) => emit('filter', kind, id)"
-      />
-      <UDropdownMenu
-        :items="statusMenuItems"
-        :content="{ side: 'top', avoidCollisions: false }"
-        size="xs"
       >
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="soft"
-          :loading="statusBusy"
-          :disabled="statusBusy"
-          :aria-busy="statusBusy || undefined"
-          :aria-label="`status: ${row.status}; actions`"
-          :class="[
-            'shrink-0 !bg-default !text-muted hover:!text-default',
-            compactTimeline ? '!h-5 !min-h-5 !px-1 !text-[10px]' : '',
-          ]"
-        >
-          <UIcon
-            name="lucide:circle-dot"
-            :class="compactTimeline ? 'size-3' : 'size-4'"
-            aria-hidden="true"
-          />{{ row.status }}
-        </UButton>
-      </UDropdownMenu>
-      <TicketContextPopovers
-        :related-tickets="row.relatedTickets"
-        :external-links="row.externalLinks"
-        :compact="compactTimeline"
-      />
+        <template #trailing>
+          <UDropdownMenu
+            :items="statusMenuItems"
+            :content="{ side: 'top', avoidCollisions: false }"
+            size="xs"
+          >
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="soft"
+              :loading="statusBusy"
+              :disabled="statusBusy"
+              :aria-busy="statusBusy || undefined"
+              :aria-label="`status: ${row.status}; actions`"
+              :class="[
+                'shrink-0 !bg-default !text-muted hover:!text-default',
+                compactTimeline ? '!h-5 !min-h-5 !px-1 !text-[10px]' : '',
+              ]"
+            >
+              <UIcon
+                name="lucide:circle-dot"
+                :class="compactTimeline ? 'size-3' : 'size-4'"
+                aria-hidden="true"
+              />{{ row.status }}
+            </UButton>
+          </UDropdownMenu>
+          <TicketContextPopovers
+            :related-tickets="row.relatedTickets"
+            :external-links="row.externalLinks"
+            :compact="compactTimeline"
+          />
+        </template>
+      </TicketHierarchyBadges>
     </div>
   </article>
 </template>

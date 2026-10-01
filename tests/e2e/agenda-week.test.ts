@@ -376,7 +376,7 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
       `[data-week-date="${dates[6]}"] [data-agenda-entry="${entries[3]}"]`,
     )
     const shortCard = shortBlock.getByRole('article')
-    const shortHierarchy = shortCard.getByLabel('Entry hierarchy actions')
+    const shortHierarchy = shortCard.getByLabel('Entry hierarchy, status, and ticket links')
     await expect(shortBlock).toBeVisible()
     expect(await shortHierarchy.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
       'nowrap',
@@ -407,23 +407,44 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
       shortCardBox.y + shortCardBox.height + 3,
     )
     expect(shortCardBox.height).toBeLessThanOrEqual(shortBlockBox.height + 1)
-    const shortStatus = shortCard.getByRole('button', { name: /status: .*; actions/ })
+    const shortStatus = shortHierarchy.getByRole('button', { name: /status: .*; actions/ })
     await expect(shortStatus).toBeVisible()
     const shortStatusBox = await shortStatus.boundingBox()
     if (!shortStatusBox) throw new Error('30-minute entry status action must be visible')
     expect(shortStatusBox.y + shortStatusBox.height).toBeLessThanOrEqual(
       shortCardBox.y + shortCardBox.height + 3,
     )
+    const shortBadgeNames = await shortHierarchy
+      .getByRole('button')
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
+    expect(shortBadgeNames.slice(0, 3)).toEqual([
+      'client: Weekly client; actions',
+      'project: Weekly project; actions',
+      'release: Weekly release; actions',
+    ])
+    expect(shortBadgeNames[3]).toMatch(/^status: .*; actions$/)
     expect(shortBlockBox.height).toBeCloseTo(54, 0)
     expect(adjacentBox.height).toBeCloseTo(54, 0)
     expect(Math.abs(shortBlockBox.y + shortBlockBox.height - adjacentBox.y)).toBeLessThanOrEqual(1)
     const finalShortBadge = shortHierarchy.getByRole('button', { name: /release: Weekly release/ })
     await finalShortBadge.focus()
     expect(await shortHierarchy.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+    await shortStatus.focus()
+    await shortHierarchy.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth
+    })
+    const focusedStatusBox = await shortStatus.boundingBox()
+    if (!focusedStatusBox) throw new Error('30-minute entry status action must be focusable')
+    expect(focusedStatusBox.x).toBeGreaterThanOrEqual(shortHierarchyBox.x - 1)
+    expect(focusedStatusBox.x + focusedStatusBox.width).toBeLessThanOrEqual(
+      shortHierarchyBox.x + shortHierarchyBox.width + 1,
+    )
     const middleBlock = page.locator(
       `[data-week-date="${dates[0]}"] [data-agenda-entry="${entries[0]}"]`,
     )
-    const middleHierarchy = middleBlock.getByRole('article').getByLabel('Entry hierarchy actions')
+    const middleHierarchy = middleBlock
+      .getByRole('article')
+      .getByLabel('Entry hierarchy, status, and ticket links')
     expect(await middleHierarchy.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
       'nowrap',
     )
@@ -435,7 +456,7 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
       `[data-week-date="${dates[1]}"] [data-agenda-entry="${entries[2]}"]`,
     )
     const tallCard = tallBlock.getByRole('article')
-    const tallHierarchy = tallCard.getByLabel('Entry hierarchy actions')
+    const tallHierarchy = tallCard.getByLabel('Entry hierarchy, status, and ticket links')
     expect(await tallHierarchy.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
       'wrap',
     )
@@ -450,6 +471,11 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     expect(tallHierarchyBox.y + tallHierarchyBox.height).toBeLessThanOrEqual(
       tallCardBox.y + tallCardBox.height + 1,
     )
+    const tallBadgeNames = await tallHierarchy
+      .getByRole('button')
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
+    expect(tallBadgeNames).toHaveLength(4)
+    expect(tallBadgeNames[3]).toMatch(/^status: .*; actions$/)
 
     await page.getByRole('button', { name: 'Add time entry', exact: true }).click()
     const globalAddDialog = page.getByRole('dialog', { name: 'Add completed work' })

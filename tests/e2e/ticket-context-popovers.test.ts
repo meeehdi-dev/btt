@@ -36,6 +36,55 @@ async function expectCenteredIcon(trigger: Locator, icon: Locator) {
   ).toBeLessThanOrEqual(1)
 }
 
+async function measureCompactBadgeContrast(label: Locator) {
+  return label.evaluate((element) => {
+    type RGB = readonly [number, number, number]
+    type RGBA = readonly [number, number, number, number]
+    const context = document.createElement('canvas').getContext('2d')
+    if (!context) throw new Error('A canvas context is required to measure badge contrast')
+    const readColor = (value: string): RGBA => {
+      context.clearRect(0, 0, 1, 1)
+      context.fillStyle = value
+      context.fillRect(0, 0, 1, 1)
+      const pixels = context.getImageData(0, 0, 1, 1).data
+      return [pixels[0]!, pixels[1]!, pixels[2]!, pixels[3]! / 255]
+    }
+    const button = element.closest('button')
+    const card = element.closest('article')
+    if (!button || !card)
+      throw new Error('Compact hierarchy badge text must be inside an agenda card button')
+    const style = getComputedStyle(element)
+    const foreground = readColor(style.color)
+    const overlay = readColor(getComputedStyle(button).backgroundColor)
+    const surface = readColor(getComputedStyle(card).backgroundColor)
+    const background: RGB = [
+      overlay[0] * overlay[3] + surface[0] * (1 - overlay[3]),
+      overlay[1] * overlay[3] + surface[1] * (1 - overlay[3]),
+      overlay[2] * overlay[3] + surface[2] * (1 - overlay[3]),
+    ]
+    const luminanceWeights: RGB = [0.2126, 0.7152, 0.0722]
+    const luminance = ([red, green, blue]: RGB) => {
+      const linearRed =
+        red / 255 <= 0.04045 ? red / 255 / 12.92 : ((red / 255 + 0.055) / 1.055) ** 2.4
+      const linearGreen =
+        green / 255 <= 0.04045 ? green / 255 / 12.92 : ((green / 255 + 0.055) / 1.055) ** 2.4
+      const linearBlue =
+        blue / 255 <= 0.04045 ? blue / 255 / 12.92 : ((blue / 255 + 0.055) / 1.055) ** 2.4
+      return (
+        luminanceWeights[0] * linearRed +
+        luminanceWeights[1] * linearGreen +
+        luminanceWeights[2] * linearBlue
+      )
+    }
+    const foregroundLuminance = luminance([foreground[0], foreground[1], foreground[2]])
+    const backgroundLuminance = luminance(background)
+    return (
+      (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+      (Math.min(foregroundLuminance, backgroundLuminance) + 0.05)
+    )
+  })
+}
+
 async function expectTwoRowReleaseTicketCard(card: Locator, title: string) {
   const header = card.locator('[data-release-ticket-header]')
   const context = card.locator('[data-release-ticket-context]')
@@ -249,18 +298,27 @@ test('ticket context popovers show one or many relations and native external lin
       const now = new Date()
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     })
-    for (const [ticketId, startMinute] of [
-      [many.id, 540],
-      [one.id, 600],
-    ] as const) {
-      await create('/api/time-entries', {
-        ticketId,
-        date,
-        startMinute,
-        durationMinutes: 30,
-        description: 'Popover test work',
-      })
-    }
+    const shortManyEntry = await create('/api/time-entries', {
+      ticketId: many.id,
+      date,
+      startMinute: 540,
+      durationMinutes: 30,
+      description: 'Popover test work',
+    })
+    await create('/api/time-entries', {
+      ticketId: one.id,
+      date,
+      startMinute: 600,
+      durationMinutes: 30,
+      description: 'Popover test work',
+    })
+    const tallEntry = await create('/api/time-entries', {
+      ticketId: many.id,
+      date,
+      startMinute: 720,
+      durationMinutes: 90,
+      description: 'Taller popover test work',
+    })
 
     const tickets = (await (await page.request.get('/api/tickets')).json()).tickets
     const manyFromApi = tickets.find(
@@ -297,8 +355,8 @@ test('ticket context popovers show one or many relations and native external lin
     const boardLinks = boardCard.getByRole('button', { name: 'External links' })
     await expectPlainIconTrigger(boardRelations)
     await expectPlainIconTrigger(boardLinks)
-    await expect(boardCard.getByLabel('Tracked: 30m of 15m').locator('span.text-error')).toHaveText(
-      '30m',
+    await expect(boardCard.getByLabel('Tracked: 2hr of 15m').locator('span.text-error')).toHaveText(
+      '2hr',
     )
     await boardRelations.hover()
     await expect(page.locator(`[data-related-ticket-id="${one.id}"]`)).toBeVisible()
@@ -333,8 +391,8 @@ test('ticket context popovers show one or many relations and native external lin
     await expectPlainIconTrigger(releaseRelations)
     await expectPlainIconTrigger(releaseLinks)
     await expect(
-      releaseCard.getByLabel('Tracked: 30m of 15m').locator('span.text-error'),
-    ).toHaveText('30m')
+      releaseCard.getByLabel('Tracked: 2hr of 15m').locator('span.text-error'),
+    ).toHaveText('2hr')
     await releaseRelations.focus()
     await expect(page.locator(`[data-related-ticket-id="${two.id}"]`)).toBeVisible()
     await page.keyboard.press('Escape')
@@ -367,36 +425,194 @@ test('ticket context popovers show one or many relations and native external lin
     await page.goto('/today')
     await page.waitForLoadState('networkidle')
     const compactAgendaCard = page
-      .locator(`[data-agenda-ticket-id="${many.id}"]`)
-      .filter({ visible: true })
+      .locator(`[data-agenda-entry="${shortManyEntry.id}"]`)
+      .getByRole('article')
     const compactFilter = compactAgendaCard.getByRole('button', {
       name: `Filter by ${manyTitle}`,
     })
-    const compactStatus = compactAgendaCard.getByRole('button', { name: 'status: Idea; actions' })
-    const compactRelated = compactAgendaCard.getByRole('button', { name: 'Related tickets' })
-    const compactExternal = compactAgendaCard.getByRole('button', { name: 'External links' })
-    const [filterHeight, statusHeight, relatedHeight, externalHeight, statusFontSize] =
-      await Promise.all([
-        compactFilter.evaluate((element) => element.getBoundingClientRect().height),
-        compactStatus.evaluate((element) => element.getBoundingClientRect().height),
-        compactRelated.evaluate((element) => element.getBoundingClientRect().height),
-        compactExternal.evaluate((element) => element.getBoundingClientRect().height),
-        compactStatus.evaluate((element) => getComputedStyle(element).fontSize),
-      ])
+    const compactBadgeGroup = compactAgendaCard.getByLabel(
+      'Entry hierarchy, status, and ticket links',
+    )
+    const compactClient = compactBadgeGroup.getByRole('button', {
+      name: `client: Context ${suffix}; actions`,
+    })
+    const compactProject = compactBadgeGroup.getByRole('button', {
+      name: `project: Context project ${suffix}; actions`,
+    })
+    const compactRelease = compactBadgeGroup.getByRole('button', {
+      name: `release: Context release ${suffix}; actions`,
+    })
+    const compactStatus = compactBadgeGroup.getByRole('button', {
+      name: 'status: Idea; actions',
+    })
+    const compactRelated = compactBadgeGroup.getByRole('button', { name: 'Related tickets' })
+    const compactExternal = compactBadgeGroup.getByRole('button', { name: 'External links' })
+    const compactControls = [
+      compactClient,
+      compactProject,
+      compactRelease,
+      compactStatus,
+      compactRelated,
+      compactExternal,
+    ]
+    const [filterHeight, compactControlMetrics, statusFontSize] = await Promise.all([
+      compactFilter.evaluate((element) => element.getBoundingClientRect().height),
+      Promise.all(
+        compactControls.map((control) =>
+          control.evaluate((element) => {
+            const { x, width, height } = element.getBoundingClientRect()
+            const style = getComputedStyle(element)
+            const label = element.querySelector('span:not([aria-hidden="true"])')
+            const icon = element.querySelector('[aria-hidden="true"]')?.getBoundingClientRect()
+            return {
+              x,
+              width,
+              height,
+              iconWidth: icon?.width ?? 0,
+              iconHeight: icon?.height ?? 0,
+              backgroundColor: style.backgroundColor,
+              color: label ? getComputedStyle(label).color : style.color,
+              borderRadius: style.borderRadius,
+              fontSize: style.fontSize,
+            }
+          }),
+        ),
+      ),
+      compactStatus.evaluate((element) => getComputedStyle(element).fontSize),
+    ])
     await expect(compactFilter).toBeVisible()
     await expect(compactStatus).toBeVisible()
     await expect(compactRelated).toBeVisible()
     await expect(compactExternal).toBeVisible()
-    expect(filterHeight).toBeLessThanOrEqual(20)
-    expect(statusHeight).toBeLessThanOrEqual(20)
-    expect(relatedHeight).toBeLessThanOrEqual(20)
-    expect(externalHeight).toBeLessThanOrEqual(20)
+    await expect(compactBadgeGroup.getByRole('button', { name: 'Related tickets' })).toHaveCount(1)
+    await expect(compactBadgeGroup.getByRole('button', { name: 'External links' })).toHaveCount(1)
+    const compactBadgeNames = await compactBadgeGroup
+      .getByRole('button')
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
+    expect(compactBadgeNames).toHaveLength(6)
+    expect(compactBadgeNames.slice(0, 3)).toEqual([
+      `client: Context ${suffix}; actions`,
+      `project: Context project ${suffix}; actions`,
+      `release: Context release ${suffix}; actions`,
+    ])
+    expect(compactBadgeNames[3]).toBe('status: Idea; actions')
+    expect(compactBadgeNames[4]).toBe('Related tickets')
+    expect(compactBadgeNames[5]).toBe('External links')
+    expect(filterHeight).toBe(20)
+    expect(compactControlMetrics.map((control) => control.height)).toEqual([20, 20, 20, 20, 20, 20])
+    expect(compactControlMetrics.map((control) => control.iconWidth)).toEqual([
+      12, 12, 12, 12, 12, 12,
+    ])
+    expect(compactControlMetrics.map((control) => control.iconHeight)).toEqual([
+      12, 12, 12, 12, 12, 12,
+    ])
+    const compactControlGaps = compactControlMetrics.slice(1).map((control, index) => {
+      const previous = compactControlMetrics[index]!
+      return control.x - (previous.x + previous.width)
+    })
+    for (const gap of compactControlGaps) expect(gap).toBeCloseTo(4, 2)
+    expect(compactControlMetrics.map((control) => control.borderRadius)).toEqual([
+      compactControlMetrics[0]!.borderRadius,
+      compactControlMetrics[0]!.borderRadius,
+      compactControlMetrics[0]!.borderRadius,
+      compactControlMetrics[0]!.borderRadius,
+      compactControlMetrics[0]!.borderRadius,
+      compactControlMetrics[0]!.borderRadius,
+    ])
+    expect(compactControlMetrics.slice(0, 3).map((control) => control.backgroundColor)).toEqual([
+      compactControlMetrics[0]!.backgroundColor,
+      compactControlMetrics[0]!.backgroundColor,
+      compactControlMetrics[0]!.backgroundColor,
+    ])
+    expect(compactControlMetrics[0]!.backgroundColor).not.toBe(
+      compactControlMetrics[3]!.backgroundColor,
+    )
+    expect(compactControlMetrics.slice(0, 3).map((control) => control.color)).toEqual([
+      compactControlMetrics[0]!.color,
+      compactControlMetrics[0]!.color,
+      compactControlMetrics[0]!.color,
+    ])
+    expect(compactControlMetrics[0]!.color).not.toBe(compactControlMetrics[3]!.color)
+    for (const control of compactControls.slice(0, 3)) {
+      await expect(control).toHaveClass(/bg-secondary\/10/)
+      await expect(control.locator('span').last()).toHaveClass(/text-secondary-700/)
+      await expect(control.locator('span').last()).toHaveClass(/dark:text-secondary-300/)
+    }
+    const root = page.locator('html')
+    await root.evaluate((element) => element.classList.remove('dark'))
+    const lightContrast = await measureCompactBadgeContrast(compactClient.locator('span').last())
+    await root.evaluate((element) => element.classList.add('dark'))
+    const darkContrast = await measureCompactBadgeContrast(compactClient.locator('span').last())
+    await root.evaluate((element) => element.classList.remove('dark'))
+    expect(lightContrast).toBeGreaterThanOrEqual(4.5)
+    expect(darkContrast).toBeGreaterThanOrEqual(4.5)
+    expect(compactControlMetrics.slice(3).map((control) => control.backgroundColor)).toEqual([
+      compactControlMetrics[3]!.backgroundColor,
+      compactControlMetrics[3]!.backgroundColor,
+      compactControlMetrics[3]!.backgroundColor,
+    ])
+    expect(compactControlMetrics.slice(0, 4).map((control) => control.fontSize)).toEqual([
+      '10px',
+      '10px',
+      '10px',
+      '10px',
+    ])
     expect(statusFontSize).toBe('10px')
     await expectCenteredIcon(compactFilter, compactFilter.locator('[data-slot="leadingIcon"]'))
     await expectCenteredIcon(compactRelated, compactRelated.locator('[aria-hidden="true"]').first())
     await expectCenteredIcon(
       compactExternal,
       compactExternal.locator('[aria-hidden="true"]').first(),
+    )
+
+    await page.setViewportSize({ width: 1280, height: 1900 })
+    await page.getByRole('button', { name: 'Week', exact: true }).click()
+    await expect(page.getByRole('region', { name: 'Week timeline' })).toBeVisible()
+    const weeklyContextMetrics = await compactBadgeGroup.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }))
+    expect(weeklyContextMetrics.scrollWidth).toBeGreaterThan(weeklyContextMetrics.clientWidth)
+    await compactBadgeGroup.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth
+    })
+    const [weeklyContextBox, weeklyRelatedBox, weeklyExternalBox] = await Promise.all([
+      compactBadgeGroup.boundingBox(),
+      compactRelated.boundingBox(),
+      compactExternal.boundingBox(),
+    ])
+    if (!weeklyContextBox || !weeklyRelatedBox || !weeklyExternalBox)
+      throw new Error('Week context controls must be visible after horizontal scrolling')
+    for (const box of [weeklyRelatedBox, weeklyExternalBox]) {
+      expect(box.x).toBeGreaterThanOrEqual(weeklyContextBox.x - 1)
+      expect(box.x + box.width).toBeLessThanOrEqual(weeklyContextBox.x + weeklyContextBox.width + 1)
+    }
+    await compactRelated.focus()
+    await expect(page.locator(`[data-related-ticket-id="${one.id}"]`)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await compactExternal.focus()
+    await expect(page.getByRole('link', { name: 'Design', exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    const tallAgendaCard = page
+      .locator(`[data-agenda-entry="${tallEntry.id}"]`)
+      .getByRole('article')
+    const tallBadgeGroup = tallAgendaCard.getByLabel('Entry hierarchy, status, and ticket links')
+    expect(await tallBadgeGroup.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
+      'wrap',
+    )
+    const tallContextNames = await tallBadgeGroup
+      .getByRole('button')
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
+    expect(tallContextNames).toHaveLength(6)
+    expect(tallContextNames.slice(4)).toEqual(['Related tickets', 'External links'])
+    const [tallCardBox, tallGroupBox] = await Promise.all([
+      tallAgendaCard.boundingBox(),
+      tallBadgeGroup.boundingBox(),
+    ])
+    if (!tallCardBox || !tallGroupBox) throw new Error('Tall agenda context must be visible')
+    expect(tallGroupBox.y + tallGroupBox.height).toBeLessThanOrEqual(
+      tallCardBox.y + tallCardBox.height + 1,
     )
 
     mobileContext = await browser.newContext({
@@ -435,7 +651,9 @@ test('ticket context popovers show one or many relations and native external lin
     ).toBe(true)
     await mobilePage.goto('/today')
     await mobilePage.waitForLoadState('networkidle')
-    const agendaCard = mobilePage.locator(`[data-agenda-ticket-id="${many.id}"]`)
+    const agendaCard = mobilePage
+      .locator(`[data-agenda-ticket-id="${many.id}"]`)
+      .filter({ has: mobilePage.getByText('Popover test work', { exact: true }) })
     const agendaClientButton = agendaCard.getByRole('button', {
       name: `client: Context ${suffix}; actions`,
     })

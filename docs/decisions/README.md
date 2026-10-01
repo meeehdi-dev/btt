@@ -72,3 +72,5 @@ NNNN-short-descriptive-slug.md
 | [0035](0035-three-block-header-navigation.md)                  | Accepted   | Three-block header navigation                              |
 | [0036](0036-coolify-source-build-deployment.md)                | Accepted   | Coolify source-build deployment                            |
 | [0037](0037-searchable-data-backed-selectors.md)               | Accepted   | Searchable selectors for user-managed data                 |
+| [0038](0038-today-agenda-status-badge-flow.md)                 | Superseded | Ordered status badge flow in Today agenda entries          |
+| [0039](0039-today-agenda-context-control-flow.md)              | Accepted   | Keep Today agenda context controls in one flow             |

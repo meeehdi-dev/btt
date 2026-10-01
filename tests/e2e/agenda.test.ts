@@ -196,13 +196,18 @@ test('day read and settings are owner scoped, include archived history, and vali
           : false
       }),
     ).toBe(true)
-    const dayHierarchy = card.getByLabel('Entry hierarchy actions')
+    const dayHierarchy = card.getByLabel('Entry hierarchy, status, and ticket links')
     expect(await dayHierarchy.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
       'nowrap',
     )
     expect(
       await dayHierarchy.evaluate((element) => element.scrollHeight <= element.clientHeight),
     ).toBe(true)
+    const dayBadges = await dayHierarchy
+      .getByRole('button')
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
+    expect(dayBadges).toHaveLength(4)
+    expect(dayBadges[3]).toMatch(/^status: .*; actions$/)
     const current = await (
       await page.request.get('/api/agenda', { params: { date: localDay } })
     ).json()
