@@ -182,24 +182,8 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
       ],
       'Edit release',
     )
-    await page.goto(`/tickets/${ticketA.id}/edit`)
-    await page.waitForLoadState('networkidle')
-    await expectTrail(
-      page,
-      [
-        { label: clientA.name, href: `/clients/${clientA.id}` },
-        { label: projectA.name, href: `/projects/${projectA.id}` },
-        { label: releaseA.name, href: `/releases/${releaseA.id}` },
-        { label: ticketA.title, href: `/tickets/${ticketA.id}` },
-      ],
-      'Edit ticket',
-    )
-    await page.getByRole('button', { name: 'Release' }).click()
-    await page.getByPlaceholder('Search releases…').fill('Breadcrumb Release B')
-    await expect(
-      page.getByRole('option', { name: `${projectB.name} · ${releaseB.name}` }),
-    ).toBeVisible()
-    await page.keyboard.press('Escape')
+    const removedTicketEditor = await page.goto(`/tickets/${ticketA.id}/edit`)
+    expect(removedTicketEditor?.status()).toBe(404)
 
     await page.goto('/projects/new')
     await page.waitForLoadState('networkidle')
@@ -295,18 +279,8 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
       'New project',
     )
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await page.goto(`/tickets/${ticketA.id}/edit`)
-    await page.waitForLoadState('networkidle')
-    await expectTrail(
-      page,
-      [
-        { label: clientA.name, href: `/clients/${clientA.id}?archived=true` },
-        { label: projectA.name, href: `/projects/${projectA.id}?archived=true` },
-        { label: releaseA.name, href: `/releases/${releaseA.id}?archived=true` },
-        { label: ticketA.title, href: `/tickets/${ticketA.id}?archived=true` },
-      ],
-      'Edit ticket',
-    )
+    const archivedEditorResponse = await page.goto(`/tickets/${ticketA.id}/edit?archived=true`)
+    expect(archivedEditorResponse?.status()).toBe(404)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.goto(`/tickets/${ticketA.id}?archived=true`)
     await page.waitForLoadState('networkidle')

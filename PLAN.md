@@ -130,7 +130,7 @@ Relevant `tt` references (reference only; its release/deploy flow is not adopted
   - `id`, `projectId`, `name`, optional `targetDate`, timestamps
 - `Ticket`
   - `id`, `releaseId`, `title`, `description`, `status`, optional `estimateMinutes`, timestamps
-  - Status changes are available through the ticket edit form, Today status badge, Release detail status selector, and desktop board drag-and-drop; no dedicated next-status action is added to ticket detail, and the board control policy remains unchanged.
+  - Ticket status uses the fixed status set. The initial interaction surfaces were the ticket edit form, Today status badge, Release detail selector, and desktop board drag-and-drop. M25 makes a direct ticket-detail selector the normal edit surface; board and Today/Release policies remain unchanged.
 - `TicketLink`
   - `id`, `ticketId`, optional `label`, `url`
 - `TicketRelation`
@@ -512,6 +512,20 @@ Status: Complete — implementation, local verification, code review, and human 
 
 - Added direct Coolify Dockerfile builds, startup migrations, a health endpoint, and a deployment/operations runbook without GHCR or release-publishing automation.
 
+### M25 — Ticket detail page overhaul
+
+Status: Implementation in progress after plan approval on 2026-10-03. See [`docs/milestones/m25-ticket-detail-overhaul.md`](docs/milestones/m25-ticket-detail-overhaul.md).
+
+Goal: make ticket detail the compact, normal surface for ticket edits while keeping Today as the only time-entry creation surface.
+
+- Edit status, description, estimate, and release association directly with field-scoped updates; keep title editing in a title-only modal.
+- Move external-link and related-ticket creation into separate modals; retain their lists and existing remove/navigation behavior.
+- Retain compact tracked-time history and correction/deletion, but disable new entry creation on ticket detail.
+- Retire `/tickets/:id/edit` with a 404 and no redirect; preserve archive/restore/delete rules and archived hierarchy context.
+- Keep inputs and the archive action standard-sized; achieve compactness through reduced page/card padding, margins, and gaps, with Archive at the upper-right of the detail header.
+
+Acceptance: focused desktop/mobile browser coverage passes for field updates, modal flows, failure/retry handling, archive lifecycle, time-entry restrictions, and the retired editor route; full project checks and human code review are recorded in M25.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.
@@ -557,7 +571,8 @@ Status: Complete — implementation, local verification, code review, and human 
 - [x] Projects under clients, with color and basic metadata; there is no top-level Projects collection.
 - [x] Release/milestone lists under projects, with optional target dates.
 - [x] Ticket board grouped by the fixed statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
-- [x] Change ticket status through the edit form, Today status action, Release detail selector, or desktop board drag-and-drop; no ticket-detail next-status action.
+- [x] Change ticket status through the initial edit form, Today status action, Release detail selector, or desktop board drag-and-drop (the initial ticket-detail policy is superseded by M25).
+- [ ] Ticket detail becomes the normal edit surface: title-only modal, live status/description/estimate/release fields, and no `/tickets/:id/edit` route (M25 in progress).
 - [x] Ticket title/description, required release association (with client/project context), status, estimate, external links, and related tickets.
 - [x] External links require a URL, allow an optional custom label, and display the hostname when unlabeled.
 - [x] Ticket time estimates only; no complexity or ticket-level target date.
@@ -576,6 +591,7 @@ Status: Complete — implementation, local verification, code review, and human 
 - [ ] Project-wide ticket/time summaries; ticket and tracked-usage details are available through the associated release/ticket views instead.
 - [x] Release detail for tickets, target date, completion progress, status changes, and ticket-linked tracked-time/estimate usage.
 - [x] Ticket detail for status, required release, estimate, linked time, estimate usage, external links, and related tickets.
+- [ ] Compact ticket-detail time history with correction/deletion retained and new-entry creation disabled (M25 in progress).
 - [x] Ticket board grouped by status, with related-ticket/external-link popovers, no duplicate card status, and highlight/locate behavior.
 - [x] Weekly planning view with per-day progress and cross-day moves.
 

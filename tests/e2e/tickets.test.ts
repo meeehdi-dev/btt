@@ -178,7 +178,9 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page.getByRole('button', { name: 'Create ticket' }).click()
     await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]+$/)
     await expect(page.getByRole('heading', { name: 'Created in browser' })).toBeVisible()
-    await expect(page.getByLabel('Estimated: 1hr 30m')).toBeVisible()
+    await expect(
+      page.getByRole('textbox', { name: 'Estimate for Created in browser' }),
+    ).toHaveValue('1hr 30m')
     await expect(page.getByRole('link', { name: 'Brief' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'jira.atlassian.com', exact: true })).toBeVisible()
     const browserTicketId = page.url().split('/').at(-1)!
@@ -205,11 +207,11 @@ test('release tickets, workflow, links and relations respect auth and archive li
       page.getByRole('region', { name: 'Estimate tickets' }).getByText('First ticket'),
     ).toBeVisible()
     await page.goto(`/tickets/${a.id}`)
-    const metadata = page.getByLabel('Ticket metadata')
-    const status = metadata.getByLabel('Status: Estimate')
-    const estimate = metadata.getByLabel('Estimated: 45m')
-    await expect(status.locator('[aria-hidden="true"]')).toBeVisible()
-    await expect(estimate).toBeVisible()
+    const metadata = page.getByLabel('Ticket fields')
+    const status = metadata.getByRole('combobox', { name: 'Ticket status for First ticket' })
+    const estimate = metadata.getByRole('textbox', { name: 'Estimate for First ticket' })
+    await expect(status).toContainText('Estimate')
+    await expect(estimate).toHaveValue('45m')
     const [statusBox, estimateBox] = await Promise.all([
       status.boundingBox(),
       estimate.boundingBox(),
@@ -218,9 +220,8 @@ test('release tickets, workflow, links and relations respect auth and archive li
     expect(
       Math.abs(statusBox.y + statusBox.height / 2 - (estimateBox.y + estimateBox.height / 2)),
     ).toBeLessThan(5)
-    const editTicket = page.getByRole('link', { name: 'Edit ticket' })
-    await expect(editTicket).toHaveAttribute('href', `/tickets/${a.id}/edit`)
-    await expect(editTicket).toHaveClass(/ring-accented/)
+    await expect(page.getByRole('button', { name: 'Edit ticket title' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Edit ticket' })).toHaveCount(0)
     const link = await page.request.post(`/api/tickets/${a.id}/links`, {
       data: { label: 'PR', url: 'https://example.com/pr' },
     })
@@ -263,20 +264,24 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page.waitForLoadState('networkidle')
     await expect(page.getByRole('link', { name: 'PR', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Second ticket' })).toBeVisible()
-    await page.getByRole('button', { name: 'Link a ticket' }).click()
+    await page.getByRole('button', { name: 'Link ticket', exact: true }).click()
+    const relationDialog = page.getByRole('dialog', { name: 'Link a related ticket' })
+    await relationDialog.getByRole('button', { name: 'Related ticket' }).click()
     await page.getByPlaceholder('Search tickets…').fill('Cross-release ticket')
     await expect(page.getByRole('option', { name: /Cross-release ticket/ })).toBeVisible()
     await page.getByRole('option', { name: /Cross-release ticket/ }).click()
-    await page.getByRole('button', { name: 'Link ticket' }).click()
+    await relationDialog.getByRole('button', { name: 'Link ticket', exact: true }).click()
     await expect(page.getByRole('link', { name: 'Cross-release ticket' })).toBeVisible()
-    await page.getByRole('textbox', { name: 'Link label' }).fill('')
-    await page
+    await page.getByRole('button', { name: 'Add external link' }).click()
+    const linkDialog = page.getByRole('dialog', { name: 'Add external link' })
+    await linkDialog.getByRole('textbox', { name: 'Link label' }).fill('')
+    await linkDialog
       .getByRole('textbox', { name: 'URL*', exact: true })
       .fill('https://jira.atlassian.com/browse/NXMR-FORM')
-    await expect(page.getByRole('textbox', { name: 'URL*', exact: true })).toHaveValue(
+    await expect(linkDialog.getByRole('textbox', { name: 'URL*', exact: true })).toHaveValue(
       'https://jira.atlassian.com/browse/NXMR-FORM',
     )
-    await page.getByRole('button', { name: 'Add link' }).click()
+    await linkDialog.getByRole('button', { name: 'Add link' }).click()
     const fallbackLink = page.locator('a[href="https://jira.atlassian.com/browse/NXMR-FORM"]')
     await expect(fallbackLink).toHaveText('jira.atlassian.com')
     const ticketLinks = (await (await page.request.get(`/api/tickets/${a.id}`)).json()).links

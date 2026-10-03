@@ -242,18 +242,17 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(lane('Test').getByText('Done source')).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
 
-    // Status changes on the board use desktop drag; the edit form remains the non-drag route.
+    // Status changes on the board use desktop drag; ticket detail provides a direct status selector.
     await expect(card(idea.id).getByRole('button', { name: /Move Idea source/ })).toHaveCount(0)
     await dragBetweenLanes(page, board, card(idea.id), lane('Test'))
     await expect(lane('Test').getByText('Idea source')).toBeVisible()
-    await card(idea.id).getByRole('link', { name: 'Idea source' }).click()
+    await page.goto(`/tickets/${idea.id}`)
     await expect(page).toHaveURL(`/tickets/${idea.id}`)
-    const ticketMetadata = page.getByLabel('Ticket metadata')
-    const ticketStatus = ticketMetadata.getByLabel('Status: Test')
+    const ticketStatus = page.getByRole('combobox', { name: 'Ticket status for Idea source' })
     const releaseLink = page
       .getByRole('navigation', { name: 'Breadcrumb' })
       .getByRole('link', { name: 'Move Release' })
-    await expect(ticketStatus.locator('[aria-hidden="true"]')).toBeVisible()
+    await expect(ticketStatus).toContainText('Test')
     await expect(releaseLink).toBeVisible()
     await expect(releaseLink).toHaveAttribute('href', `/releases/${r.id}`)
     await page.goto(`/releases/${r.id}`)
@@ -296,8 +295,9 @@ test('board status moves work across lanes, without reordering or changing card 
       await expect(mobileCard.getByRole('button', { name: /Move Idea source/ })).toHaveCount(0)
       await mobileCard.getByRole('link', { name: 'Idea source' }).click()
       await expect(mobile).toHaveURL(`/tickets/${idea.id}`)
-      await mobile.getByRole('link', { name: 'Edit' }).click()
-      await expect(mobile.getByRole('combobox', { name: 'Status' })).toBeVisible()
+      await expect(
+        mobile.getByRole('combobox', { name: 'Ticket status for Idea source' }),
+      ).toContainText('Test')
       await mobile.goto(`/tickets?release=${r.id}`)
       await mobile.waitForLoadState('networkidle')
       await mobile.getByRole('button', { name: 'Show archived' }).click()

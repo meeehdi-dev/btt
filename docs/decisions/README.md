@@ -74,3 +74,4 @@ NNNN-short-descriptive-slug.md
 | [0037](0037-searchable-data-backed-selectors.md)               | Accepted   | Searchable selectors for user-managed data                 |
 | [0038](0038-today-agenda-status-badge-flow.md)                 | Superseded | Ordered status badge flow in Today agenda entries          |
 | [0039](0039-today-agenda-context-control-flow.md)              | Accepted   | Keep Today agenda context controls in one flow             |
+| [0040](0040-ticket-detail-inline-editing.md)                   | Proposed   | Make ticket detail the normal edit surface                 |
