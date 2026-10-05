@@ -539,6 +539,18 @@ Goal: make today's date and current local time easy to locate in the Day and Wee
 
 Acceptance: deterministic browser coverage verifies current-date marking, minute updates, Day/Week selection, visible-hours boundaries, narrow layouts, and unchanged timeline interactions; full project checks and human code review are recorded in M26.
 
+### M27 — CI browser-test reliability and diagnostics
+
+Status: Implementation and human code review complete; GitHub artifact-upload verification and the completion declaration remain pending. See [`docs/milestones/m27-ci-browser-test-reliability.md`](docs/milestones/m27-ci-browser-test-reliability.md).
+
+Goal: fix the recurring archived-entry resize E2E failure and make future failures diagnosable without weakening the CI gate.
+
+- Stabilize the top-edge resize browser interaction; assert its preview and persisted result. Make a focused `TodayAgenda` correction only if reproduction shows a real pointer hit-target bug.
+- Retain Playwright traces/reports and upload E2E artifacts from the existing GitHub Actions job.
+- Do not automatically retry Playwright failures. CI remains failed until manually rerun, if needed.
+
+Acceptance: the focused gesture test is repeatable and the full project quality gates pass; CI retains useful artifacts for a failure while still failing the first attempt. No agenda persistence, overlap, archive, or authentication behavior changes.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

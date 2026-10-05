@@ -237,22 +237,40 @@ test('desktop drag creation, hidden blockers, moves, resizing and non-drag mobil
             .startMinute,
       )
       .toBe(720)
-    const archivedMovedBox = await archived.boundingBox()
-    if (!archivedMovedBox) throw new Error('Entry missing before top resize')
+    // The PATCH can persist before Today finishes refreshing and clears its busy guard.
+    await page.waitForLoadState('networkidle')
+    const topResize = archived.locator('[data-drag-edge="top"]')
+    const topResizeBox = await topResize.boundingBox()
+    if (!topResizeBox) throw new Error('Top resize handle missing')
+    const resizeStart = {
+      x: topResizeBox.x + topResizeBox.width / 2,
+      y: topResizeBox.y + topResizeBox.height / 2,
+    }
+    expect(
+      await page.evaluate(
+        ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('[data-drag-edge="top"]')),
+        resizeStart,
+      ),
+    ).toBe(true)
     const aboveBlocker = await point(630, 0)
-    await page.mouse.move(archivedMovedBox.x + archivedMovedBox.width / 2, archivedMovedBox.y + 3)
+    await page.mouse.move(resizeStart.x, resizeStart.y)
     await page.mouse.down()
     await page.mouse.move(aboveBlocker.x, aboveBlocker.y, { steps: 5 })
+    await expect(timeline.getByRole('status')).toHaveText('11:00–12:30')
     await page.mouse.up()
     await expect
-      .poll(
-        async () =>
-          (
-            await (await page.request.get('/api/agenda', { params: { date: day } })).json()
-          ).entries.find((row: { entry: { id: string } }) => row.entry.id === hiddenId)?.entry
-            .startMinute,
-      )
-      .toBe(660)
+      .poll(async () => {
+        const targetEntry = (
+          await (await page.request.get('/api/agenda', { params: { date: day } })).json()
+        ).entries.find((agendaRow: { entry: { id: string } }) => agendaRow.entry.id === hiddenId)
+        return targetEntry
+          ? {
+              startMinute: targetEntry.entry.startMinute,
+              durationMinutes: targetEntry.entry.durationMinutes,
+            }
+          : null
+      })
+      .toEqual({ startMinute: 660, durationMinutes: 90 })
     expect(blockerId).toBeTruthy()
   } finally {
     if (ids) {
