@@ -87,8 +87,8 @@ No application dependency changes are proposed.
 - [x] No application component change was needed; the evidence points to a test synchronization race, not a demonstrated user-facing hit-target bug.
 - [x] Retain Playwright traces/reports and add failure-only E2E artifact upload to the existing CI job, with no automatic retries.
 - [x] Repeat the focused browser test and run the full E2E and project quality gates.
-- [ ] Verify artifact upload on a GitHub Actions run after this change is pushed; confirm failures remain failures without automatic retries and record the run/artifact link.
-- [x] Add the M27 roadmap entry and accepted ADR 0041; human code review is accepted and the completion declaration remains pending.
+- [x] Verify artifact upload on GitHub Actions; confirm failures remain failures without automatic retries and record the run/artifact link.
+- [x] Add the M27 roadmap entry and accepted ADR 0041; original and follow-up code reviews are accepted. The completion declaration remains pending.
 
 ## Journal
 
@@ -124,7 +124,31 @@ No application dependency changes are proposed.
 
 - Decision (human): full-diff code review accepted with no changes requested.
 - Evidence: direct user review in chat on 2026-10-06.
-- Status: M27 remains open until the remote artifact-upload check and human completion declaration are recorded.
+- Status: M27 remains open until the latest CI E2E failures are diagnosed/resolved and the human completion declaration is recorded.
+
+### 2026-10-06 — GitHub artifact verification and follow-up E2E failures
+
+- Fact: [GitHub Actions run 37318392159](https://github.com/meeehdi-dev/nxmr/actions/runs/37318392159) ran the E2E suite with two workers; 24 of 31 tests passed and seven failed. Install, migration, format, lint, typecheck, tsgo, and unit-test steps passed. Build/workflow checks were skipped after E2E failed.
+- Fact: the diagnostic-upload step succeeded and uploaded [`playwright-diagnostics-37318392159-1`](https://github.com/meeehdi-dev/nxmr/actions/runs/37318392159/artifacts/11348354740) (about 53.8 MB; seven-day retention). The run stayed failed on its first attempt and no automatic retry occurred, verifying ADR 0041's artifact and no-retry behavior.
+- Fact: the archived-entry conflict assertion in `tests/e2e/agenda-drag.test.ts` expected `Time entries cannot overlap`; the retained page snapshot already contains the `Concurrent blocker` in the agenda and shows the local friendly conflict alert, `Could not move time entry` / `This time slot conflicts with another entry or the visible hours. The entry was not moved.` Thus the test's intended stale-UI/API-conflict path was not the path taken, and the following persisted-state assertion did not run.
+- Fact: six other E2E cases ended in 30-second test timeouts or related trace/context errors: client hierarchy archival, hierarchy breadcrumbs, hierarchy-card metrics, ticket context popovers, ticket navigation, and ticket status moves. Failures include a timed-out API request, a timed-out `networkidle` wait, a browser-context close protocol error, and a malformed trace archive.
+- Hypothesis: the unrelated timeouts and trace/context errors may indicate CI resource pressure with two workers; this is not established by the artifact. The exact failure cause needs focused reproduction before changing CI concurrency or timeouts.
+- Evidence: inspected `gh run view 37318392159 --repo meeehdi-dev/nxmr --job 111790867548 --log-failed`, queried the run/artifact metadata with `gh api`, downloaded the artifact with `gh run download`, and read its HTML report, error snapshots, and traces. No source-code changes or remote reruns were made.
+- Status: artifact-upload verification is complete. M27 remains open because the new CI E2E failures need diagnosis and resolution before completion.
+
+### 2026-10-06 — Conflict assertion correction and local E2E verification
+
+- Decision: make the agenda conflict assertion accept the user-visible conflict wording whether validation happens in the browser or at the API boundary (`/conflict|overlap/i`). The retained trace proves that the concurrent blocker had already appeared in the page, so requiring only the server's `Time entries cannot overlap` text was race-sensitive. No application behavior changed.
+- Verification: `CI=true pnpm exec playwright test tests/e2e/agenda-drag.test.ts --workers=1` passed; then `CI=true pnpm test:e2e --workers=2` passed all 31 tests in 1.9 minutes against a disposable PostgreSQL 17 container. The temporary database container and `.env.development` override were removed by a cleanup trap.
+- Hypothesis: the six unrelated CI timeouts/trace failures were not reproduced locally, even with two workers. This makes a CI-runner/resource interaction plausible, but does not establish the remote cause.
+- Evidence: local test commands and output from 2026-10-06; `tests/e2e/agenda-drag.test.ts` contains the only application/test code change. No remote rerun was started.
+- Status: agenda conflict assertion is corrected and the local E2E suite passes. The six CI-only timeout/trace failures still need diagnosis and a successful GitHub Actions verification before M27 can close.
+
+### 2026-10-06 — Human review of follow-up correction
+
+- Decision (human): review of the agenda conflict-assertion correction and its documentation completed with no changes requested.
+- Evidence: direct user review in chat on 2026-10-06.
+- Status: the follow-up code review is accepted. M27 remains open while the six CI-only failures are investigated and until the human completion declaration.
 
 ## Verification
 
@@ -138,20 +162,21 @@ Planning checks:
 Implementation verification (authorized):
 
 - [x] `CI=true pnpm exec playwright test tests/e2e/agenda-drag.test.ts --workers=1 --repeat-each=5` — 5 passed against an isolated PostgreSQL 17 database; a final focused run after a variable-only rename also passed.
-- [x] `CI=true pnpm test:e2e --workers=2` — all 31 tests passed against the isolated database.
+- [x] `CI=true pnpm test:e2e --workers=2` — all 31 tests passed against the isolated database; after the conflict-assertion correction, a fresh disposable PostgreSQL 17 run again passed all 31 in 1.9 minutes.
+- [x] After the correction, `CI=true pnpm exec playwright test tests/e2e/agenda-drag.test.ts --workers=1`, `pnpm lint`, `pnpm exec oxfmt --check PLAN.md docs/milestones/m27-ci-browser-test-reliability.md tests/e2e/agenda-drag.test.ts`, `node scripts/check-workflow-docs.mjs`, and `git diff --check` passed.
 - [x] `pnpm db:migrate`, `pnpm format:check` (278 files), `pnpm lint` (clean), `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, `node scripts/check-workflow-docs.mjs`, and `git diff --check` — passed. Build emitted only the non-fatal Vite `PLUGIN_TIMINGS` advisory.
 - [x] Playwright CI HTML reporter generated `playwright-report/index.html`; no `retries` setting exists. Workflow YAML parsed successfully; `actionlint` is not installed.
-- [ ] Verify GitHub Actions uploads the failure report/trace artifact and leaves the first failure red on the next pushed workflow run. No remote workflow was triggered from this session.
+- [x] GitHub Actions run 37318392159 uploaded the failure report/trace artifact and remained red on the first attempt; no automatic retry was configured.
 
 ## Review status
 
 - Plan review: Approved by the human via chat on 2026-10-06; implementation authorized.
-- Code review: Accepted by the human on 2026-10-06; no changes requested.
+- Code review: Original M27 implementation and the follow-up conflict-assertion correction/documentation accepted by the human on 2026-10-06; no changes requested.
 - Milestone completion declaration: Pending.
 
 ## Follow-ups
 
-- On the next pushed workflow run, verify that E2E failures upload the HTML report, trace, and error context as a seven-day artifact. This was not remotely verified because no push or workflow rerun was initiated.
+- Artifact upload and no-automatic-retry behavior were verified on run 37318392159. The agenda conflict assertion was corrected and the complete E2E suite passes locally; diagnose the six unrelated CI timeout/trace failures and verify a successful GitHub Actions run before declaring M27 complete.
 - No automatic retry is planned. If Playwright instability persists after the test is stabilized, reruns will be manual, as directed by the human.
 - Do not classify runner/action deprecation notices as the cause of this failure; handle action-version maintenance separately.
 

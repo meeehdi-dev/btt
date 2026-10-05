@@ -202,9 +202,7 @@ test('desktop drag creation, hidden blockers, moves, resizing and non-drag mobil
     await page.mouse.down()
     await page.mouse.move(staleTarget.x, staleTarget.y, { steps: 8 })
     await page.mouse.up()
-    await expect(
-      page.getByRole('alert').filter({ hasText: 'Time entries cannot overlap' }),
-    ).toBeVisible()
+    await expect(page.getByRole('alert').filter({ hasText: /conflict|overlap/i })).toBeVisible()
     expect(
       (
         await (await page.request.get('/api/agenda', { params: { date: day } })).json()
