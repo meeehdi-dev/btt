@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { waitForClientMount } from './wait-for-client-mount'
 import { testAuth } from '../../server/utils/auth-test'
 import { db } from '../../server/db'
 import {
@@ -161,6 +162,7 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
 
     await page.goto('/today')
     await page.reload()
+    await waitForClientMount(page)
     await expect(account.locator('img')).toHaveAttribute(
       'src',
       'https://avatars.githubusercontent.com/u/12345?v=4',
@@ -187,7 +189,6 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
       expect(blockTops[1]).toBeLessThan(blockTops[2]!)
     }
     await page.setViewportSize({ width: 1280, height: 900 })
-    await page.waitForLoadState('networkidle')
     await header.getByRole('button', { name: 'Sign out' }).click({ noWaitAfter: true })
     await page.waitForURL(/\/login$/)
   } finally {
@@ -219,13 +220,13 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     expect(client.id).toMatch(uuidv7Pattern)
     expect(client.userId).toBe(user.id)
     await page.goto('/projects/new')
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await page.getByRole('link', { name: 'Cancel' }).click()
     await expect(page).toHaveURL('/clients')
     await page.goto(`/clients/${client.id}`)
     await page.getByRole('link', { name: 'New project' }).click()
     await expect(page).toHaveURL(`/projects/new?client=${client.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('M2 Client')
     await expect(page.getByRole('button', { name: 'Client' })).toContainText('M2 Client')
     await page.getByRole('link', { name: 'Cancel' }).click()
@@ -233,7 +234,7 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await page.goto(`/clients/${client.id}`)
     await page.getByRole('link', { name: 'New project' }).click()
     await expect(page).toHaveURL(`/projects/new?client=${client.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expect(page.getByRole('button', { name: 'Client' })).toContainText('M2 Client')
     await expect(page.getByRole('button', { name: 'Create project' })).toBeEnabled()
     await page.getByRole('textbox', { name: 'Name' }).fill('M2 Project')
@@ -248,7 +249,7 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await page.getByRole('link', { name: 'Cancel' }).click()
     await expect(page).toHaveURL('/clients')
     await page.goto(`/releases/new?project=${project.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await page.getByRole('link', { name: 'Cancel' }).click()
     await expect(page).toHaveURL(`/projects/${project.id}`)
     const releaseResponse = await page.request.post('/api/releases', {
@@ -267,7 +268,7 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await expect(archiveToggle).toBeVisible()
     await expect(page.getByText('View projects and releases', { exact: true })).toHaveCount(0)
     await expect(archiveToggle).not.toHaveAttribute('title')
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await archiveToggle.hover()
     await expectTooltip(page, 'Show archived')
     await page.goto(`/clients/${client.id}`)
@@ -302,11 +303,11 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     const markDone = page.getByRole('button', { name: 'Mark release as done' })
     await expect(markDone).toBeVisible()
     await expect(markDone).not.toHaveAttribute('title')
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await markDone.hover()
     await expectTooltip(page, 'Mark done')
     await page.goto(`/releases/${release.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectEditBeforeNew(page, 'Edit release', 'New ticket')
     await page.setViewportSize({ width: 1280, height: 844 })
     await expectEditBeforeNew(page, 'Edit release', 'New ticket')
@@ -353,7 +354,7 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
       (await page.request.patch(`/api/clients/${client.id}`, { data: { archived: true } })).ok(),
     ).toBeTruthy()
     await page.goto(`/releases/${release.id}/edit?archived=true`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     page.once('dialog', (dialog) => dialog.accept())
     const [releaseDeleteResponse] = await Promise.all([
       page.waitForResponse(
@@ -366,7 +367,7 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     expect(releaseDeleteResponse.ok()).toBeTruthy()
     await expect(page).toHaveURL(`/projects/${project.id}?archived=true`)
     await page.goto(`/projects/${project.id}/edit?archived=true`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     page.once('dialog', (dialog) => dialog.accept())
     const [projectDeleteResponse] = await Promise.all([
       page.waitForResponse(

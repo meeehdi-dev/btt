@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { waitForClientMount } from './wait-for-client-mount'
 import { eq, inArray, or } from 'drizzle-orm'
 import { db } from '../../server/db'
 import {
@@ -137,7 +138,7 @@ test('board status moves work across lanes, without reordering or changing card 
       }
     })
     await page.goto(`/tickets?release=${r.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     const board = page.getByRole('region', { name: 'Ticket board' })
     const lane = (status: string) => board.getByRole('region', { name: `${status} tickets` })
     const card = (id: string) => board.locator(`[data-board-ticket-id="${id}"]`)
@@ -263,7 +264,7 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(releaseTicket.locator('div.flex.items-center').first()).not.toContainText('Test ·')
 
     await page.goto(`/tickets?release=${r.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await page.getByRole('button', { name: 'Show archived' }).click()
     await expect(card(archived.id)).toBeVisible()
     await expect(card(archived.id)).toHaveAttribute('draggable', 'false')
@@ -278,7 +279,7 @@ test('board status moves work across lanes, without reordering or changing card 
         .context()
         .addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
       await mobile.goto(`/tickets?release=${r.id}`)
-      await mobile.waitForLoadState('networkidle')
+      await waitForClientMount(mobile)
       const testLane = mobile.getByRole('region', { name: 'Test tickets' })
       await testLane.getByRole('button', { name: 'Test: 2 tickets' }).click()
       const mobileCard = mobile
@@ -299,7 +300,7 @@ test('board status moves work across lanes, without reordering or changing card 
         mobile.getByRole('combobox', { name: 'Ticket status for Idea source' }),
       ).toContainText('Test')
       await mobile.goto(`/tickets?release=${r.id}`)
-      await mobile.waitForLoadState('networkidle')
+      await waitForClientMount(mobile)
       await mobile.getByRole('button', { name: 'Show archived' }).click()
       const deploy = mobile.getByRole('region', { name: 'Deploy tickets' })
       await deploy.getByRole('button', { name: 'Deploy: 1 tickets' }).click()

@@ -148,7 +148,37 @@ No application dependency changes are proposed.
 
 - Decision (human): review of the agenda conflict-assertion correction and its documentation completed with no changes requested.
 - Evidence: direct user review in chat on 2026-10-06.
-- Status: the follow-up code review is accepted. M27 remains open while the six CI-only failures are investigated and until the human completion declaration.
+- Status: the follow-up code review is accepted. M27 remains open while the CI-only failures are investigated and until the human completion declaration.
+
+### 2026-10-06 — Follow-up CI run 37327207436
+
+- Fact: [run 37327207436, job 111820882460](https://github.com/meeehdi-dev/nxmr/actions/runs/37327207436/job/111820882460), on commit `5c6ed39`, passed install, migration, formatting, lint, both typechecks, and unit tests. The E2E step ran 31 tests with two workers; 24 passed and seven failed after about 5m20s. The overall job failed after about 6m48s.
+- Fact: the archived-entry conflict wording assertion no longer failed. The agenda drag test instead timed out waiting for `networkidle` after reload; its saved snapshot showed “Loading agenda…”. Six other tests timed out across unrelated client hierarchy, breadcrumb, card metrics, popover, navigation, and status-move scenarios. Failures included a direct API `PATCH` timeout, UI action/load-state timeouts, and one malformed trace archive.
+- Fact: the diagnostic artifact [`playwright-diagnostics-37327207436-1`](https://github.com/meeehdi-dev/nxmr/actions/runs/37327207436/artifacts/11353355548) uploaded successfully (about 51.4 MB, seven-day retention). The browser-network entries available in traces show completed app API requests generally taking tens of milliseconds, but do not include the timed-out direct `page.request` API call. This run has no runner CPU/memory telemetry.
+- Hypothesis: shared-runner contention among the Nuxt dev server, Chromium, and/or PostgreSQL remains plausible, but this artifact does not establish the cause. Local two-worker E2E runs passed previously.
+- Follow-up: a CI-only one-worker experiment was initially drafted in [`plans/ci-e2e-single-worker-experiment.md`](../../plans/ci-e2e-single-worker-experiment.md), but the human redirected investigation toward test design. That plan is superseded before approval. No worker, timeout, retry, application, or workflow changes were made and no push/rerun was triggered.
+
+### 2026-10-06 — Source-level test timeout diagnosis
+
+- Fact: `playwright.config.ts` has no explicit test timeout, so the observed 30-second deadline is Playwright's default. The 285-line `tests/e2e/agenda-drag.test.ts` is one test combining several separate desktop/mobile/archive scenarios and contains six `networkidle` waits.
+- Fact: the agenda-drag trace records five `networkidle` waits consuming 18.71 seconds total. The fifth wait was cancelled by the overall test timeout at `tests/e2e/agenda-drag.test.ts:218`; the top-edge resize interaction later in that test was never reached. The first four waits consumed about 16.25 seconds; the final reload wait consumed the remaining 2.46 seconds before cancellation.
+- Fact: six failure traces are readable; their completed `networkidle` waits consume 13.13–22.00 seconds per test. The hierarchy-card-metrics trace is malformed; its test file contains 12 `networkidle` waits. The failing API patch and locator actions were the operations in progress at the test deadline, not proof that those operations individually took 30 seconds.
+- Fact: `rg -nF "waitForLoadState('networkidle')" tests/e2e | wc -l` reports 105 such waits across the suite. Completed browser-network API requests in readable traces were generally fast; no runner resource metrics are available.
+- Conclusion/hypothesis: repeated idle barriers combined with oversized scenarios are the best-supported source of these test-level timeouts. This does not prove every failure shares one cause, but the evidence does not justify the earlier worker-contention hypothesis or a one-worker CI change.
+- Decision: a focused test-only simplification was proposed in [`plans/m27-e2e-test-simplification.md`](../../plans/m27-e2e-test-simplification.md): isolate archived top-resize browser coverage and replace only unnecessary `networkidle` waits in the currently failing scenarios with semantic readiness conditions.
+- Decision (human): “go” approved that plan via chat on 2026-10-06 and authorized implementation within its scope. No worker, timeout, retry, application, or workflow changes are authorized.
+
+### 2026-10-06 — Approved E2E simplification implementation
+
+- Fact: split the agenda-drag omnibus into four independent tests sharing a scoped fixture: desktop gestures, mobile correction/deletion, stale server-side overlap, and archived-parent top resize. The focused browser assertions still check actual gesture previews and persisted results.
+- Fact: replaced all 56 `networkidle` waits in the seven approved test files. The suite-wide count fell from 105 to 49. Screens whose visible server-rendered controls need client handlers use `waitForClientMount`, a test-only wait for Vue mounting on `#__nuxt`; existing locator assertions continue to cover rendered data. No product/UI code or dependencies changed.
+- Fact: a fixed 400 ms delay before mobile board interaction was replaced with an assertion that the status collapsible is open and a wait for its actual Web Animations API animations to finish. This preserves the required movement/animation synchronization without a blind delay.
+- Evidence: the first mechanical removal exposed lost interactions before client mount and while the mobile collapsible was moving. The Vue mount condition and explicit animation completion resolved those conditions; this shows some prior idle waits were acting as coarse hydration/animation barriers, not merely waiting for API responses.
+- Verification: the seven affected files passed all 11 tests with two workers. `CI=true pnpm test:e2e --workers=2` then passed all 34 browser tests in 1.6 minutes against a disposable PostgreSQL 17 database. The archived-parent top-resize test passed five repetitions with one worker.
+- Verification: `pnpm format:check` (281 files), `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, `node scripts/check-workflow-docs.mjs`, and `git diff --check` passed. Build emitted the existing non-fatal Vite `PLUGIN_TIMINGS` advisory.
+- Observation: the Nuxt dev server logged `ResizeObserver loop completed with undelivered notifications` during E2E and Vue Router no-match warnings for intentional 404 route tests. They did not fail the 34-test run and were not suppressed or changed.
+- Fact: all browser runs used an isolated disposable PostgreSQL 17 container and temporary `.env.development`, both removed by cleanup traps. No existing development database was changed. No push or GitHub Actions run was triggered.
+- Status: implementation and local verification are complete. Human code review and explicit authorization to trigger CI are still required; no conclusion about the hosted-runner result is claimed.
 
 ## Verification
 
@@ -168,21 +198,33 @@ Implementation verification (authorized):
 - [x] Playwright CI HTML reporter generated `playwright-report/index.html`; no `retries` setting exists. Workflow YAML parsed successfully; `actionlint` is not installed.
 - [x] GitHub Actions run 37318392159 uploaded the failure report/trace artifact and remained red on the first attempt; no automatic retry was configured.
 
+### Approved E2E simplification follow-up
+
+- [x] The approved plan [`plans/m27-e2e-test-simplification.md`](../../plans/m27-e2e-test-simplification.md) was implemented without changing timeout, worker, retry, workflow, application, or dependency policy.
+- [x] The 7 affected E2E files passed all 11 tests with two workers; the complete 34-test E2E suite passed with two workers.
+- [x] The archived-parent top-resize test passed five repeated runs.
+- [x] Formatting, lint, both typechecks, unit tests, build, workflow checks, workflow-document checks, and diff checks passed.
+- [ ] Human code review of this follow-up accepted.
+- [ ] After review, explicit human authorization to trigger CI and verification of the first remote result recorded.
+
 ## Review status
 
-- Plan review: Approved by the human via chat on 2026-10-06; implementation authorized.
-- Code review: Original M27 implementation and the follow-up conflict-assertion correction/documentation accepted by the human on 2026-10-06; no changes requested.
+- Plan review: Original M27 plan and the E2E simplification plan approved by the human via chat on 2026-10-06; follow-up implementation authorized.
+- Code review: Original M27 implementation and conflict-assertion correction/documentation accepted by the human on 2026-10-06. The E2E simplification follow-up is awaiting human code review.
+- CI authorization: Not yet requested; no CI run has been triggered for this follow-up.
 - Milestone completion declaration: Pending.
 
 ## Follow-ups
 
-- Artifact upload and no-automatic-retry behavior were verified on run 37318392159. The agenda conflict assertion was corrected and the complete E2E suite passes locally; diagnose the six unrelated CI timeout/trace failures and verify a successful GitHub Actions run before declaring M27 complete.
-- No automatic retry is planned. If Playwright instability persists after the test is stabilized, reruns will be manual, as directed by the human.
+- Review [`plans/m27-e2e-test-simplification.md`](../../plans/m27-e2e-test-simplification.md) implementation and the full diff. After the code review is accepted, obtain explicit human authorization before triggering GitHub Actions; inspect the first-attempt result and retained diagnostic artifact before declaring M27 complete.
+- The local 34/34 E2E result does not prove the hosted-runner failures are resolved. If the next authorized CI run fails, retain first-failure diagnostics and investigate without automatic retries, timeout increases, or worker changes unless separately approved.
+- No automatic retry is planned. Manual reruns remain the human's choice after inspecting diagnostics.
 - Do not classify runner/action deprecation notices as the cause of this failure; handle action-version maintenance separately.
 
 ## Closeout checklist
 
 - [ ] Approved scope complete or explicitly deferred.
-- [ ] Verification evidence recorded.
-- [x] Human code review accepted.
+- [x] Verification evidence recorded.
+- [x] Human code review accepted for the original M27 implementation and conflict-assertion correction.
+- [ ] Human code review accepted for the E2E simplification follow-up.
 - [ ] Human completion declaration recorded in the journal and review status.

@@ -541,7 +541,7 @@ Acceptance: deterministic browser coverage verifies current-date marking, minute
 
 ### M27 — CI browser-test reliability and diagnostics
 
-Status: Original implementation and follow-up code reviews are accepted; artifact upload is verified. Six CI-only E2E timeout/trace failures remain under investigation, so the completion declaration is pending. See [`docs/milestones/m27-ci-browser-test-reliability.md`](docs/milestones/m27-ci-browser-test-reliability.md) and [run 37318392159](https://github.com/meeehdi-dev/nxmr/actions/runs/37318392159).
+Status: The approved test-only simplification is implemented and verified locally: all 34 E2E tests passed with two workers, along with project quality gates. The follow-up code review and explicit authorization for a GitHub Actions run are pending; run [37327207436](https://github.com/meeehdi-dev/nxmr/actions/runs/37327207436) remains the last remote result. See [`docs/milestones/m27-ci-browser-test-reliability.md`](docs/milestones/m27-ci-browser-test-reliability.md) and [`plans/m27-e2e-test-simplification.md`](plans/m27-e2e-test-simplification.md).
 
 Goal: fix the recurring archived-entry resize E2E failure and make future failures diagnosable without weakening the CI gate.
 

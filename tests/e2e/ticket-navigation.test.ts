@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { waitForClientMount } from './wait-for-client-mount'
 import { eq, inArray, or } from 'drizzle-orm'
 import { db } from '../../server/db'
 import {
@@ -65,7 +66,7 @@ test('board hierarchy actions and related-ticket icons locate visible targets', 
     )
 
     await page.goto('/tickets')
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     const board = page.getByRole('region', { name: 'Ticket board' })
     const sourceCard = board.locator(`[data-board-ticket-id="${source.id}"]`)
     await page.getByRole('button', { name: 'Filter client' }).click()
@@ -113,7 +114,7 @@ test('board hierarchy actions and related-ticket icons locate visible targets', 
       ['release', 'Nav Release', `/releases/${r.id}`],
     ]) {
       await page.goto('/tickets')
-      await page.waitForLoadState('networkidle')
+      await waitForClientMount(page)
       const hierarchyBadge = board
         .locator(`[data-board-ticket-id="${source.id}"]`)
         .getByRole('button', { name: `${kind}: ${name}; actions` })
@@ -127,7 +128,7 @@ test('board hierarchy actions and related-ticket icons locate visible targets', 
 
     // The cross-release target is not in this filtered board, so the real link navigates to detail.
     await page.goto(`/tickets?release=${r.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await page
       .getByRole('region', { name: 'Ticket board' })
       .locator(`[data-board-ticket-id="${source.id}"]`)
@@ -213,11 +214,16 @@ test('board hierarchy actions and related-ticket icons locate visible targets', 
         .context()
         .addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
       await mobile.goto('/tickets')
-      await mobile.waitForLoadState('networkidle')
+      await waitForClientMount(mobile)
       await mobile.getByRole('button', { name: 'Idea: 1 tickets' }).click()
-      await mobile.waitForTimeout(400) // Let the collapsible finish opening before tapping its moving content.
       const idea = mobile.getByRole('region', { name: 'Idea tickets' })
       const done = mobile.getByRole('region', { name: 'Done tickets' })
+      const ideaContent = idea.locator('[data-slot="content"]')
+      await expect(ideaContent).toHaveAttribute('data-state', 'open')
+      await ideaContent.evaluate(async (element) => {
+        await Promise.all(element.getAnimations().map((animation) => animation.finished))
+      })
+      await expect(idea.getByRole('button', { name: 'Related tickets' })).toBeVisible()
       await expect(done.getByRole('button', { name: 'Done: 2 tickets' })).toHaveAttribute(
         'aria-expanded',
         'false',

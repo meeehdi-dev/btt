@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { waitForClientMount } from './wait-for-client-mount'
 import { eq, inArray, or } from 'drizzle-orm'
 import { db } from '../../server/db'
 import {
@@ -121,7 +122,7 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     expect(releaseDetails).toMatchObject({ clientId: clientA.id, clientName: clientA.name })
 
     await page.goto(`/clients/${clientA.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expect(page.getByRole('heading', { name: clientA.name, level: 1 })).toBeVisible()
     await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveCount(0)
     await expect(
@@ -129,14 +130,14 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     ).toHaveCount(0)
 
     await page.goto(`/projects/${projectA.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectTrail(
       page,
       [{ label: clientA.name, href: `/clients/${clientA.id}` }],
       projectA.name,
     )
     await page.goto(`/releases/${releaseA.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectTrail(
       page,
       [
@@ -146,7 +147,7 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
       releaseA.name,
     )
     await page.goto(`/tickets/${ticketA.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectTrail(
       page,
       [
@@ -186,10 +187,10 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     expect(removedTicketEditor?.status()).toBe(404)
 
     await page.goto('/projects/new')
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveCount(0)
     await page.goto(`/projects/new?client=${clientA.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectTrail(
       page,
       [{ label: clientA.name, href: `/clients/${clientA.id}` }],
@@ -207,7 +208,7 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     )
 
     await page.goto(`/releases/new?project=${projectA.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectTrail(
       page,
       [
@@ -232,7 +233,7 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     )
 
     await page.goto(`/tickets/new?release=${releaseA.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectTrail(
       page,
       [
@@ -272,7 +273,7 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     ).toBeTruthy()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(`/projects/new?client=${clientB.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectTrail(
       page,
       [{ label: clientB.name, href: `/clients/${clientB.id}` }],
@@ -283,7 +284,7 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     expect(archivedEditorResponse?.status()).toBe(404)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.goto(`/tickets/${ticketA.id}?archived=true`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await expectTrail(
       page,
       [
@@ -311,7 +312,7 @@ test('hierarchy breadcrumbs are consistent, contextual, and archive-aware', asyn
     )
     const mobile = await mobileContext.newPage()
     await mobile.goto('/projects/new')
-    await mobile.waitForLoadState('networkidle')
+    await waitForClientMount(mobile)
     await mobile.getByRole('button', { name: 'Client' }).tap()
     const mobileSearch = mobile.getByPlaceholder('Search clients…')
     await expect(mobileSearch).toBeVisible()

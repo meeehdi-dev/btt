@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test'
+import { waitForClientMount } from './wait-for-client-mount'
 import { eq, inArray, or } from 'drizzle-orm'
 import { db } from '../../server/db'
 import {
@@ -348,7 +349,7 @@ test('ticket context popovers show one or many relations and native external lin
     ).toBeNull()
 
     await page.goto('/tickets')
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     const boardCard = page.locator(`[data-board-ticket-id="${many.id}"]`).filter({ visible: true })
     await expectTwoRowBoardTicketCard(boardCard, manyTitle)
     const boardRelations = boardCard.getByRole('button', { name: 'Related tickets' })
@@ -383,7 +384,7 @@ test('ticket context popovers show one or many relations and native external lin
     await page.keyboard.press('Escape')
 
     await page.goto(`/releases/${releaseRecord.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     const releaseCard = page.locator(`[data-release-ticket-id="${many.id}"]`)
     await expectTwoRowReleaseTicketCard(releaseCard, manyTitle)
     const releaseRelations = releaseCard.getByRole('button', { name: 'Related tickets' })
@@ -419,11 +420,11 @@ test('ticket context popovers show one or many relations and native external lin
       await hierarchyLink.click()
       await expect(page).toHaveURL(path)
       await page.goto(`/releases/${releaseRecord.id}`)
-      await page.waitForLoadState('networkidle')
+      await waitForClientMount(page)
     }
 
     await page.goto('/today')
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     const compactAgendaCard = page
       .locator(`[data-agenda-entry="${shortManyEntry.id}"]`)
       .getByRole('article')
@@ -625,7 +626,7 @@ test('ticket context popovers show one or many relations and native external lin
     )
     const mobilePage = await mobileContext.newPage()
     await mobilePage.goto('/tickets')
-    await mobilePage.waitForLoadState('networkidle')
+    await waitForClientMount(mobilePage)
     await mobilePage.getByRole('button', { name: 'Idea: 3 tickets' }).tap()
     const mobileBoardCard = mobilePage
       .locator(`[data-board-ticket-id="${many.id}"]`)
@@ -641,7 +642,7 @@ test('ticket context popovers show one or many relations and native external lin
       await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     ).toBe(true)
     await mobilePage.goto(`/releases/${releaseRecord.id}`)
-    await mobilePage.waitForLoadState('networkidle')
+    await waitForClientMount(mobilePage)
     await expectTwoRowReleaseTicketCard(
       mobilePage.locator(`[data-release-ticket-id="${many.id}"]`),
       manyTitle,
@@ -650,7 +651,7 @@ test('ticket context popovers show one or many relations and native external lin
       await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     ).toBe(true)
     await mobilePage.goto('/today')
-    await mobilePage.waitForLoadState('networkidle')
+    await waitForClientMount(mobilePage)
     const agendaCard = mobilePage
       .locator(`[data-agenda-ticket-id="${many.id}"]`)
       .filter({ has: mobilePage.getByText('Popover test work', { exact: true }) })
@@ -684,7 +685,7 @@ test('ticket context popovers show one or many relations and native external lin
     ).toBe(true)
 
     await page.goto(`/releases/${releaseRecord.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await page.getByRole('button', { name: 'Mark release as done' }).click()
     const completionWarning = page.getByRole('dialog', { name: 'Mark release as done?' })
     await expect(completionWarning.getByText('Not all tickets are done')).toBeVisible()
@@ -716,7 +717,7 @@ test('ticket context popovers show one or many relations and native external lin
       expect(response.ok()).toBe(true)
     }
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await page.getByRole('button', { name: 'Mark release as done' }).click()
     await expect(page).toHaveURL(`/projects/${projectRecord.id}`)
   } finally {
