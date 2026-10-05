@@ -54,6 +54,8 @@ type Gesture = {
 
 const props = defineProps<{
   dates: string[]
+  currentDate: string
+  currentMinute: number | null
   rows: Row[]
   occupied: Row[]
   trackedMinutesByDate: Record<string, number>
@@ -141,6 +143,20 @@ function trackedTextClass(date: string) {
 }
 function dayLabel(date: string) {
   return formatAgendaDate(date, props.locale)
+}
+function isCurrentDate(date: string) {
+  return date === props.currentDate
+}
+function showNowMarker(date: string) {
+  return (
+    isCurrentDate(date) &&
+    props.currentMinute !== null &&
+    props.currentMinute >= props.start &&
+    props.currentMinute < props.end
+  )
+}
+function nowMarkerTop() {
+  return `${((props.currentMinute ?? props.start) - props.start) * pixelsPerMinute}px`
 }
 function resetGesture() {
   const id = gesture.value?.pointerId
@@ -402,11 +418,22 @@ function hiddenRows(date: string) {
         v-for="date in dates"
         :key="`header-${date}`"
         class="min-w-0 space-y-1 rounded-t-md border border-default bg-elevated/50 p-2"
+        :class="{ 'border-primary/60 bg-primary/10': isCurrentDate(date) }"
         :aria-label="dayLabel(date)"
       >
         <div class="flex min-w-0 items-center justify-between gap-1">
-          <h2 class="min-w-0 flex-1 text-sm font-semibold text-highlighted">
-            {{ dayLabel(date) }}
+          <h2 class="flex min-w-0 flex-1 items-center gap-1 text-sm font-semibold text-highlighted">
+            <time
+              :datetime="date"
+              :aria-current="isCurrentDate(date) ? 'date' : undefined"
+              class="min-w-0 truncate"
+              >{{ dayLabel(date) }}</time
+            >
+            <span
+              v-if="isCurrentDate(date)"
+              class="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+              >Today</span
+            >
           </h2>
           <UTooltip :text="`Add time entry on ${dayLabel(date)}`">
             <UButton
@@ -477,7 +504,19 @@ function hiddenRows(date: string) {
           :key="date"
           :data-week-date="date"
           class="relative min-w-0 border-r border-default first:border-l"
+          :class="{ 'bg-primary/5': isCurrentDate(date) }"
         >
+          <div
+            v-if="showNowMarker(date)"
+            data-current-time-marker
+            class="pointer-events-none absolute inset-x-0 z-30 flex -translate-y-1/2 items-center"
+            :style="{ top: nowMarkerTop() }"
+            role="img"
+            :aria-label="`Current time ${clock(currentMinute ?? start)}`"
+          >
+            <span class="size-2 shrink-0 rounded-full bg-error" />
+            <span class="h-px flex-1 bg-error" />
+          </div>
           <div
             v-for="row in column(date)?.within"
             :key="row.entry.id"
@@ -586,12 +625,23 @@ function hiddenRows(date: string) {
         v-for="day in columns"
         :key="day.date"
         class="space-y-3 rounded-md border border-default bg-elevated/30 p-3"
+        :class="{ 'border-primary/60 bg-primary/5': isCurrentDate(day.date) }"
         :aria-label="dayLabel(day.date)"
       >
         <div class="space-y-1">
           <div class="flex min-w-0 items-center justify-between gap-3">
-            <h2 class="min-w-0 flex-1 font-semibold text-highlighted">
-              {{ dayLabel(day.date) }}
+            <h2 class="flex min-w-0 flex-1 items-center gap-1 font-semibold text-highlighted">
+              <time
+                :datetime="day.date"
+                :aria-current="isCurrentDate(day.date) ? 'date' : undefined"
+                class="min-w-0 truncate"
+                >{{ dayLabel(day.date) }}</time
+              >
+              <span
+                v-if="isCurrentDate(day.date)"
+                class="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
+                >Today</span
+              >
             </h2>
             <UButton
               color="neutral"

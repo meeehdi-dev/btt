@@ -33,7 +33,25 @@ const day = computed(() => date.value?.toString() ?? '')
 const view = ref<'day' | 'week'>('day')
 const agendaViewStorageKey = 'nxmr:agenda-view'
 const locale = ref('en')
-const isToday = computed(() => day.value === today(getLocalTimeZone()).toString())
+const currentTime = shallowRef<Date | null>(null)
+const currentDate = computed(() => {
+  const value = currentTime.value
+  return value
+    ? new CalendarDate(value.getFullYear(), value.getMonth() + 1, value.getDate()).toString()
+    : ''
+})
+const currentMinute = computed(() =>
+  currentTime.value ? currentTime.value.getHours() * 60 + currentTime.value.getMinutes() : null,
+)
+function formatClock(minute: number) {
+  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`
+}
+const currentTimeLabel = computed(() =>
+  currentMinute.value === null ? '' : `Now ${formatClock(currentMinute.value)}`,
+)
+const isToday = computed(
+  () => day.value === (currentDate.value || today(getLocalTimeZone()).toString()),
+)
 const {
   data: agenda,
   pending,
@@ -69,8 +87,8 @@ const addWeekMaxValue = computed(() =>
   canChooseWeekAddDate.value ? parseDate(weekDates.value[6]!) : undefined,
 )
 const isCurrentPeriod = computed(() => {
-  const currentDate = today(getLocalTimeZone()).toString()
-  return view.value === 'week' ? weekDates.value.includes(currentDate) : day.value === currentDate
+  const current = currentDate.value || today(getLocalTimeZone()).toString()
+  return view.value === 'week' ? weekDates.value.includes(current) : day.value === current
 })
 const weekRangeLabel = computed(() =>
   weekDates.value.length === 7
@@ -404,6 +422,14 @@ const durations = Array.from({ length: 48 }, (_, index) => ({
   label: formatTicketEstimate((index + 1) * 30),
   value: (index + 1) * 30,
 }))
+let clockTimer: number | undefined
+function syncCurrentTime() {
+  currentTime.value = new Date()
+  if (clockTimer !== undefined) window.clearTimeout(clockTimer)
+  if (document.visibilityState === 'hidden') return
+  const delay = 60_000 - (Date.now() % 60_000) + 10
+  clockTimer = window.setTimeout(syncCurrentTime, delay)
+}
 function syncRouteDate() {
   const requested = route.query.date
   date.value =
@@ -433,6 +459,14 @@ onMounted(() => {
   locale.value = navigator.language
   view.value = readAgendaViewPreference()
   syncRouteDate()
+  syncCurrentTime()
+  document.addEventListener('visibilitychange', syncCurrentTime)
+  window.addEventListener('focus', syncCurrentTime)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', syncCurrentTime)
+  window.removeEventListener('focus', syncCurrentTime)
+  if (clockTimer !== undefined) window.clearTimeout(clockTimer)
 })
 watch(() => route.query.date, syncRouteDate)
 function changeDay(offset: number) {
@@ -644,6 +678,13 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
           :aria-current="isCurrentPeriod ? (view === 'day' ? 'date' : 'true') : undefined"
           @click="resetToday"
         />
+        <span
+          v-if="isCurrentPeriod && currentTimeLabel"
+          class="col-span-4 inline-flex items-center justify-center gap-1.5 rounded-md bg-elevated px-2 py-1 text-sm text-muted sm:col-span-1 sm:justify-start"
+        >
+          <UIcon name="lucide:clock-3" class="size-4" aria-hidden="true" />
+          <time :datetime="currentTime?.toISOString()">{{ currentTimeLabel }}</time>
+        </span>
       </div>
       <div
         v-if="view === 'day' && !activeAgendaError && !settingsError && agenda"
@@ -1012,6 +1053,9 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         </p>
         <TodayAgenda
           v-if="view === 'day'"
+          :date="day"
+          :current-date="currentDate"
+          :current-minute="currentMinute"
           :rows="filtered"
           :occupied="entries"
           :start="settings?.visibleStartMinute ?? 480"
@@ -1027,6 +1071,8 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         <WeeklyAgenda
           v-else
           :dates="weekDates"
+          :current-date="currentDate"
+          :current-minute="currentMinute"
           :rows="filtered"
           :occupied="weekAgenda?.entries ?? []"
           :tracked-minutes-by-date="weekAgenda?.trackedMinutesByDate ?? {}"

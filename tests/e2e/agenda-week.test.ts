@@ -62,6 +62,125 @@ async function pageDateLabels(page: import('@playwright/test').Page, dates: stri
   }, dates)
 }
 
+function dateKey(value: { year: number; month: number; day: number }) {
+  return `${value.year}-${String(value.month).padStart(2, '0')}-${String(value.day).padStart(2, '0')}`
+}
+
+function clockLabel(hour: number, minute: number) {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+test('Today marks the current local date and time across Day and Week views', async ({
+  page,
+  context,
+}) => {
+  const helpers = (await testAuth.$context).test
+  const owner = helpers.createUser({
+    name: 'Current time owner',
+    email: `agenda-now-${crypto.randomUUID()}@example.com`,
+  })
+  await helpers.saveUser(owner)
+  try {
+    await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
+    await page.clock.install({ time: new Date(2024, 8, 18, 10, 29, 30) })
+    const currentParts = await page.evaluate(() => {
+      const now = new Date()
+      return {
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        day: now.getDate(),
+        hour: now.getHours(),
+        minuteOfHour: now.getMinutes(),
+      }
+    })
+    const current = {
+      date: dateKey(currentParts),
+      minute: currentParts.hour * 60 + currentParts.minuteOfHour,
+      label: clockLabel(currentParts.hour, currentParts.minuteOfHour),
+    }
+    await page.goto(`/today?date=${current.date}`)
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByText(`Now ${current.label}`, { exact: true })).toBeVisible()
+    let marker = page.locator('[data-current-time-marker]:visible')
+    await expect(marker).toHaveCount(1)
+    await expect(marker).toHaveAttribute('aria-label', `Current time ${current.label}`)
+    expect(await marker.evaluate((element) => (element as HTMLElement).style.top)).toBe(
+      `${(current.minute - 480) * 2.25}px`,
+    )
+    expect(await marker.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe('none')
+
+    await page.clock.fastForward(31_000)
+    await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
+    await expect(marker).toHaveAttribute('aria-label', 'Current time 10:30')
+
+    await page.getByRole('button', { name: 'Previous day' }).click()
+    await expect(page.getByText(/^Now /)).toHaveCount(0)
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Today', exact: true }).click()
+    await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true)
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.getByRole('button', { name: 'Week', exact: true }).click()
+    await expect(page.getByRole('region', { name: 'Week timeline' })).toBeVisible()
+    const currentDateHeading = page.locator('time[aria-current="date"]:visible')
+    await expect(currentDateHeading).toHaveCount(1)
+    await expect(currentDateHeading).toHaveAttribute('datetime', current.date)
+    await expect(currentDateHeading.locator('..')).toContainText('Today')
+    marker = page.locator('[data-current-time-marker]:visible')
+    await expect(marker).toHaveCount(1)
+    await expect(marker.locator('..')).toHaveAttribute('data-week-date', current.date)
+
+    await page.getByRole('button', { name: 'Next week' }).click()
+    await expect(page.getByText(/^Now /)).toHaveCount(0)
+    await expect(page.locator('time[aria-current="date"]')).toHaveCount(0)
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+    await page.getByRole('button', { name: 'This week', exact: true }).click()
+    await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
+
+    await page.clock.setSystemTime(new Date(2024, 8, 18, 20, 0))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(page.getByText('Now 20:00', { exact: true })).toBeVisible()
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+    await page.clock.setSystemTime(new Date(2024, 8, 18, 7, 59))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(page.getByText('Now 07:59', { exact: true })).toBeVisible()
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+    await page.clock.setSystemTime(new Date(2024, 8, 18, 8, 0))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(1)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.getByText('Now 08:00', { exact: true })).toBeVisible()
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+    await expect(page.locator('time[aria-current="date"]:visible')).toHaveCount(1)
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true)
+
+    await page.clock.setSystemTime(new Date(2024, 8, 19, 0, 1))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    const nextCurrentParts = await page.evaluate(() => {
+      const now = new Date()
+      return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }
+    })
+    const nextCurrentDate = dateKey(nextCurrentParts)
+    await expect(page.getByText('Now 00:01', { exact: true })).toBeVisible()
+    await expect(page.locator('time[aria-current="date"]:visible')).toHaveAttribute(
+      'datetime',
+      nextCurrentDate,
+    )
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+  } finally {
+    await helpers.deleteUser(owner.id)
+  }
+})
+
 test('weekly agenda reads seven owner-scoped dates with per-day progress and localized mobile controls', async ({
   page,
   context,

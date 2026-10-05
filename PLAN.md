@@ -526,6 +526,19 @@ Goal: make ticket detail the compact, normal surface for ticket edits while keep
 
 Acceptance: focused desktop/mobile browser coverage passes for field updates, modal flows, failure/retry handling, archive lifecycle, time-entry restrictions, and the retired editor route; full project checks and human code review are recorded in M25.
 
+### M26 — Today current-day and current-time indicators
+
+Status: Complete — implementation, verification, Plannotator code review, and human completion declaration recorded on 2026-10-05. See [`docs/milestones/m26-today-current-day-and-time-indicators.md`](docs/milestones/m26-today-current-day-and-time-indicators.md).
+
+Goal: make today's date and current local time easy to locate in the Day and Week agenda without changing agenda data or geometry.
+
+- Show a live `Now HH:mm` cue when the selected Day/Week contains today; keep it in the page controls when current time is outside visible hours.
+- Mark the current time in the desktop Day timeline and today's desktop Week column only while the minute falls within configured visible hours.
+- Label today's Week header on desktop and narrow stacked layouts; show the `Now` cue on narrow Day/Week layouts where there is no time-scaled grid.
+- Preserve local date semantics, visible-hours settings, time-entry interactions, and per-day progress.
+
+Acceptance: deterministic browser coverage verifies current-date marking, minute updates, Day/Week selection, visible-hours boundaries, narrow layouts, and unchanged timeline interactions; full project checks and human code review are recorded in M26.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.
@@ -594,6 +607,7 @@ Acceptance: focused desktop/mobile browser coverage passes for field updates, mo
 - [ ] Compact ticket-detail time history with correction/deletion retained and new-entry creation disabled (M25 in progress).
 - [x] Ticket board grouped by status, with related-ticket/external-link popovers, no duplicate card status, and highlight/locate behavior.
 - [x] Weekly planning view with per-day progress and cross-day moves.
+- [x] Current-day and current-time indicators on Today.
 
 ### Later ideas, not MVP
 

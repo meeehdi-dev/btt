@@ -31,6 +31,9 @@ type Row = {
   externalLinks: { id: string; label: string | null; url: string }[]
 }
 const props = defineProps<{
+  date: string
+  currentDate: string
+  currentMinute: number | null
   rows: Row[]
   occupied: Row[]
   start: number
@@ -53,6 +56,16 @@ const hours = computed(() =>
     { length: Math.ceil((props.end - props.start) / 60) + 1 },
     (_, index) => props.start + index * 60,
   ).filter((minute) => minute <= props.end),
+)
+const showNowMarker = computed(
+  () =>
+    props.date === props.currentDate &&
+    props.currentMinute !== null &&
+    props.currentMinute >= props.start &&
+    props.currentMinute < props.end,
+)
+const nowMarkerTop = computed(
+  () => `${((props.currentMinute ?? props.start) - props.start) * pixelsPerMinute}px`,
 )
 const early = computed(() => props.rows.filter(({ entry }) => entry.startMinute < props.start))
 const late = computed(() => props.rows.filter(({ entry }) => entry.startMinute >= props.end))
@@ -336,6 +349,17 @@ function previewStyle(preview: AgendaPreview) {
           class="pointer-events-none absolute w-full border-t border-default"
           :style="{ top: `${(hour - start) * pixelsPerMinute}px` }"
         />
+        <div
+          v-if="showNowMarker"
+          data-current-time-marker
+          class="pointer-events-none absolute inset-x-0 z-30 flex -translate-y-1/2 items-center"
+          :style="{ top: nowMarkerTop }"
+          role="img"
+          :aria-label="`Current time ${clock(currentMinute ?? start)}`"
+        >
+          <span class="size-2 shrink-0 rounded-full bg-error" />
+          <span class="h-px flex-1 bg-error" />
+        </div>
         <div
           v-for="row in within"
           :key="row.entry.id"
