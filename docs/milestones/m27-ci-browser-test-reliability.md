@@ -193,6 +193,15 @@ No application dependency changes are proposed.
 - Evidence: the isolated temporary database container and `.env.development` override were removed by a cleanup trap; existing development containers were not used or changed. No push or remote run was triggered from this session.
 - Status: local remediation is complete. Human review of this follow-up and explicit authorization for a new GitHub Actions run remain pending.
 
+### CI run 37365101184 — Remaining mobile readiness correction
+
+- Fact: [run 37365101184, job 111948241687](https://github.com/meeehdi-dev/nxmr/actions/runs/37365101184/job/111948241687), on commit `2c7db9e`, passed all pre-E2E checks and 39/40 browser tests, including archived-parent top resize. Only the mobile agenda correction test failed, at its five-second `Delete correction` visibility assertion.
+- Fact: downloaded and inspected [artifact 11367339551](https://github.com/meeehdi-dev/nxmr/actions/runs/37365101184/artifacts/11367339551). The assertion started before client mounting; the agenda API request began about 4.4 seconds into that assertion and completed successfully in 23 ms. The saved snapshot already contains the seeded entry. This is a client-readiness race, not a missing record or slow API.
+- Decision (human): fix only the remaining problem; a narrow test skip is permitted if necessary. No skip was needed. Reused the approved M27 client-mount helper immediately after the mobile reload in `tests/e2e/agenda-drag.test.ts`, before starting content assertions. The implementation adds only an import and one wait; application code, assertions, timeouts, workers, retries, dependencies, and workflow remain unchanged.
+- Verification: a temporary copy of the mobile test injected a six-second delay into the Today client module. Without the new wait, it reproduced the exact five-second missing-entry assertion failure; with the wait, the same delayed scenario passed 3/3. The unchanged-timeout real mobile case then passed 5/5 with two workers, and `CI=true pnpm test:e2e --workers=2` passed all 40 tests in 1.6 minutes.
+- Verification: `pnpm db:migrate`, `pnpm format:check` (281 files), `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, and `git diff --check` passed. The intentional retired-route test emitted its existing non-fatal Vue Router no-match warning.
+- Evidence: all browser tests used an isolated disposable PostgreSQL 17 container. The temporary delayed test, `.env.development` override, and container were removed by a cleanup trap; existing development databases were not changed. No push or remote run was triggered. Human code review and CI confirmation of this newest change remain pending.
+
 ## Verification
 
 Planning checks:
@@ -219,14 +228,16 @@ Implementation verification (authorized):
 - [x] After CI run 37360072110 identified remaining test-readiness/oversized-scenario failures, the agenda fixture and two long test scenarios were corrected/split without weakening assertions.
 - [x] All 12 tests in the three affected files and the full 40-test E2E suite passed with two workers against isolated PostgreSQL 17.
 - [x] Formatting, lint, both typechecks, unit tests, build, workflow checks, workflow-document checks, and diff checks passed after the CI-driven follow-up.
+- [x] Inspected the first-attempt result and retained artifact from run 37365101184: 39/40 passed; the remaining mobile failure is a client-mount race.
+- [x] Reproduced the mobile assertion failure under delayed module loading; the two-line readiness fix passed 3/3 delayed scenarios, 5/5 real mobile repetitions, and the full 40-test suite without skipped tests or policy changes.
 - [ ] Human code review of this follow-up accepted.
 - [ ] After review, explicit human authorization to trigger CI and verification of the first remote result recorded.
 
 ## Review status
 
 - Plan review: Original M27 plan and the E2E simplification plan approved by the human via chat on 2026-10-06; follow-up implementation authorized.
-- Code review: Original M27 implementation and conflict-assertion correction/documentation accepted by the human on 2026-10-06. The CI-driven test-readiness and scenario-splitting follow-up is awaiting human code review.
-- CI authorization: No remote run has been requested for the current local follow-up. Run 37360072110 tested the prior commit, not this working tree; explicit authorization remains required before a new run.
+- Code review: Original M27 implementation and conflict-assertion correction/documentation accepted by the human on 2026-10-06. The CI-driven test-readiness and scenario-splitting follow-up, including the latest two-line mobile mount wait, is awaiting human code review.
+- CI authorization: Run 37365101184 tested commit `2c7db9e`, not the latest mobile mount wait. No push or remote run was triggered during this correction; review and explicit authorization remain required before a new run.
 - Milestone completion declaration: Pending.
 
 ## Follow-ups

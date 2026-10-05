@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '../../server/db'
 import { client, project, release, ticket, timeEntry } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+import { waitForClientMount } from './wait-for-client-mount'
 
 type AgendaFixture = {
   clientId: string
@@ -236,6 +237,7 @@ test('mobile agenda correction can edit and delete a time entry without overflow
   const deletableId = await add(hiddenTicketId, 1140, 30, 'Delete correction')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.reload()
+  await waitForClientMount(page)
 
   const workList = page.getByRole('list', { name: 'Work in visible hours' })
   const deletableEntry = workList.getByText('Delete correction')
