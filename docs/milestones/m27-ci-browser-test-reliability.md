@@ -180,6 +180,19 @@ No application dependency changes are proposed.
 - Fact: all browser runs used an isolated disposable PostgreSQL 17 container and temporary `.env.development`, both removed by cleanup traps. No existing development database was changed. No push or GitHub Actions run was triggered.
 - Status: implementation and local verification are complete. Human code review and explicit authorization to trigger CI are still required; no conclusion about the hosted-runner result is claimed.
 
+### 2026-10-06 — CI run 37360072110 and test-readiness follow-up
+
+- Fact: [GitHub Actions run 37360072110, job 111932170822](https://github.com/meeehdi-dev/nxmr/actions/runs/37360072110/job/111932170822), on commit `8c7fb67`, passed install, migration, formatting, lint, both typechecks, and unit tests. E2E ran 34 tests: 30 passed and four failed. The diagnostic artifact [`playwright-diagnostics-37360072110-1`](https://github.com/meeehdi-dev/nxmr/actions/runs/37360072110/artifacts/11366328669) uploaded successfully.
+- Fact: two agenda-drag cases failed before interacting with the agenda because the shared fixture's five-second date-button assertion still saw `Loading day…`. The trace showed the agenda route's client bundle arriving late; the fixture used the UI to derive a date before agenda data was ready. The final test fixture keeps navigating to `/today` for tests that use `page.reload()`, but now derives the test date from the browser clock rather than asserting an unrelated rendered date.
+- Fact: `hierarchy-breadcrumbs` reached the 30-second test deadline waiting for the mobile page's Vue mount late in a long sequential route scenario. `ticket-context-popovers` also exceeded the 30-second test deadline; its trace archive was malformed, so no further failure detail is available.
+- Decision: split the breadcrumb and ticket-context tests into focused scenarios using per-test data fixtures. Existing browser assertions were preserved; this reduces work under each unchanged Playwright timeout. No timeout, worker, retry, product, or workflow setting changed.
+- Fact: the first local attempt after removing the fixture's initial `/today` navigation exposed that these tests subsequently call `page.reload()` and therefore require a real route. Restoring the route navigation while removing the brittle date-button dependency fixed this; the temporary failure did not indicate an application regression.
+- Verification: all 12 tests in the three affected files passed with two workers against an isolated disposable PostgreSQL 17 container. The full suite passed all 40 tests with two workers in 1.6 minutes. The same local run recorded non-failing `ResizeObserver` and intentional Vue Router no-match warnings.
+- Verification: `pnpm format:check` (281 files), `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, `node scripts/check-workflow-docs.mjs`, and `git diff --check` passed. Build emitted the non-fatal Vite `PLUGIN_TIMINGS` advisory.
+- Fact: the run annotations also include a Node.js 20 deprecation warning for the existing v4 GitHub Actions and an `ubuntu-latest` migration notice. These are advisory and unrelated to the E2E test failure; action/workflow upgrades remain outside this follow-up.
+- Evidence: the isolated temporary database container and `.env.development` override were removed by a cleanup trap; existing development containers were not used or changed. No push or remote run was triggered from this session.
+- Status: local remediation is complete. Human review of this follow-up and explicit authorization for a new GitHub Actions run remain pending.
+
 ## Verification
 
 Planning checks:
@@ -201,23 +214,25 @@ Implementation verification (authorized):
 ### Approved E2E simplification follow-up
 
 - [x] The approved plan [`plans/m27-e2e-test-simplification.md`](../../plans/m27-e2e-test-simplification.md) was implemented without changing timeout, worker, retry, workflow, application, or dependency policy.
-- [x] The 7 affected E2E files passed all 11 tests with two workers; the complete 34-test E2E suite passed with two workers.
+- [x] The seven initially affected E2E files passed all 11 targeted tests with two workers; the original complete suite passed 34 tests.
 - [x] The archived-parent top-resize test passed five repeated runs.
-- [x] Formatting, lint, both typechecks, unit tests, build, workflow checks, workflow-document checks, and diff checks passed.
+- [x] After CI run 37360072110 identified remaining test-readiness/oversized-scenario failures, the agenda fixture and two long test scenarios were corrected/split without weakening assertions.
+- [x] All 12 tests in the three affected files and the full 40-test E2E suite passed with two workers against isolated PostgreSQL 17.
+- [x] Formatting, lint, both typechecks, unit tests, build, workflow checks, workflow-document checks, and diff checks passed after the CI-driven follow-up.
 - [ ] Human code review of this follow-up accepted.
 - [ ] After review, explicit human authorization to trigger CI and verification of the first remote result recorded.
 
 ## Review status
 
 - Plan review: Original M27 plan and the E2E simplification plan approved by the human via chat on 2026-10-06; follow-up implementation authorized.
-- Code review: Original M27 implementation and conflict-assertion correction/documentation accepted by the human on 2026-10-06. The E2E simplification follow-up is awaiting human code review.
-- CI authorization: Not yet requested; no CI run has been triggered for this follow-up.
+- Code review: Original M27 implementation and conflict-assertion correction/documentation accepted by the human on 2026-10-06. The CI-driven test-readiness and scenario-splitting follow-up is awaiting human code review.
+- CI authorization: No remote run has been requested for the current local follow-up. Run 37360072110 tested the prior commit, not this working tree; explicit authorization remains required before a new run.
 - Milestone completion declaration: Pending.
 
 ## Follow-ups
 
-- Review [`plans/m27-e2e-test-simplification.md`](../../plans/m27-e2e-test-simplification.md) implementation and the full diff. After the code review is accepted, obtain explicit human authorization before triggering GitHub Actions; inspect the first-attempt result and retained diagnostic artifact before declaring M27 complete.
-- The local 34/34 E2E result does not prove the hosted-runner failures are resolved. If the next authorized CI run fails, retain first-failure diagnostics and investigate without automatic retries, timeout increases, or worker changes unless separately approved.
+- Review [`plans/m27-e2e-test-simplification.md`](../../plans/m27-e2e-test-simplification.md) and the current full diff. After code review is accepted, obtain explicit human authorization before triggering GitHub Actions; inspect the first-attempt result and retained diagnostic artifact before declaring M27 complete.
+- The local 40/40 E2E result does not prove the hosted-runner failures are resolved. If the next authorized CI run fails, retain first-failure diagnostics and investigate without automatic retries, timeout increases, or worker changes unless separately approved.
 - No automatic retry is planned. Manual reruns remain the human's choice after inspecting diagnostics.
 - Do not classify runner/action deprecation notices as the cause of this failure; handle action-version maintenance separately.
 

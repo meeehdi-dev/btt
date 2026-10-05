@@ -1,6 +1,6 @@
 # M27 — Simplify CI E2E timeout failures
 
-**Status: Approved by the human via chat on 2026-10-06; implementation complete, human code review pending.**
+**Status: Approved by the human via chat on 2026-10-06; implementation and CI-driven local follow-up complete, human code review pending. No new remote CI run is authorized.**
 
 ## Context and diagnosis
 

@@ -64,9 +64,10 @@ const test = base.extend<{ agenda: AgendaFixture }>({
 
       await page.setViewportSize({ width: 1440, height: 2500 })
       await page.goto('/today')
-      const dateButton = page.getByRole('button', { name: /^Agenda date:/ })
-      await expect(dateButton).toHaveText(/^\d{4}-\d{2}-\d{2}$/)
-      const day = (await dateButton.textContent())!
+      const day = await page.evaluate(() => {
+        const now = new Date()
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      })
       const add = async (
         ticketId: string,
         startMinute: number,
