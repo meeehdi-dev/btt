@@ -33,7 +33,7 @@
     "@iconify-json/lucide": "^1.2.137",
     "@nuxt/test-utils": "4.3.2",
     "@playwright/test": "1.58.2",
-    "@types/node": "24.10.1",
+    "@types/node": "26.6.4",
     "@types/pg": "8.15.5",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "@vitejs/plugin-vue": "6.0.9",
