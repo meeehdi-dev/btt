@@ -29,17 +29,17 @@ async function submit() {
 </script>
 
 <template>
-  <div class="w-full space-y-6">
+  <div class="w-full space-y-4">
     <div>
       <NuxtLink to="/clients" class="inline-flex items-center gap-1 text-sm text-primary"
         >← <EntityIcon kind="clients" />Clients</NuxtLink
       >
-      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+      <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
         <EntityIcon kind="clients" />New client
       </h1>
     </div>
     <UCard>
-      <form class="space-y-5" @submit.prevent="submit">
+      <form class="space-y-3" @submit.prevent="submit">
         <UFormField label="Name" required hint="Up to 200 characters">
           <UInput v-model="name" class="w-full" autofocus placeholder="Acme Inc." />
         </UFormField>
@@ -49,7 +49,7 @@ async function submit() {
         <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create client">{{
           errorMessage
         }}</UAlert>
-        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div class="flex justify-end gap-2">
           <UButton to="/clients" color="neutral" variant="ghost" icon="lucide:x" label="Cancel" />
           <UButton type="submit" :loading="pending" icon="lucide:plus" label="Create client" />
         </div>

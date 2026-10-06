@@ -2,11 +2,7 @@
 import { Effect } from 'effect'
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
-import {
-  formatAgendaDate,
-  formatAgendaWeekRange,
-  formatAgendaWeekRangeShort,
-} from '~/utils/agenda-week'
+import { formatAgendaDate, formatAgendaWeekRange } from '~/utils/agenda-week'
 import { getWeekDates } from '#shared/agenda-week'
 import { entityIcons } from '~/utils/entity-icons'
 import { ticketStatuses } from '#shared/ticket-status'
@@ -93,11 +89,6 @@ const isCurrentPeriod = computed(() => {
 const weekRangeLabel = computed(() =>
   weekDates.value.length === 7
     ? formatAgendaWeekRange(weekDates.value[0]!, weekDates.value[6]!, locale.value)
-    : 'Loading week…',
-)
-const weekRangeShortLabel = computed(() =>
-  weekDates.value.length === 7
-    ? formatAgendaWeekRangeShort(weekDates.value[0]!, weekDates.value[6]!, locale.value)
     : 'Loading week…',
 )
 const {
@@ -601,11 +592,11 @@ const textClasses = {
 const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, target.value)])
 </script>
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-2">
     <h1 class="sr-only">{{ view === 'week' ? 'This week' : 'Today' }}</h1>
-    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div class="flex items-center justify-between gap-2">
       <div
-        class="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex"
+        class="flex items-center gap-2"
         :aria-label="view === 'week' ? 'Choose agenda week' : 'Choose agenda day'"
       >
         <UTooltip text="Previous day">
@@ -626,8 +617,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
             :aria-label="view === 'week' ? `Agenda week: ${weekRangeLabel}` : `Agenda date: ${day}`"
           >
             <template v-if="view === 'week'">
-              <span class="sm:hidden">{{ weekRangeShortLabel }}</span>
-              <span class="hidden sm:inline">{{ weekRangeLabel }}</span>
+              <span>{{ weekRangeLabel }}</span>
             </template>
             <template v-else>{{ day || 'Loading day…' }}</template>
           </UButton>
@@ -649,12 +639,12 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
           />
         </UTooltip>
         <div
-          class="flex rounded-md border border-default p-0.5"
+          class="flex rounded-md ring-1 ring-inset ring-default"
           role="group"
           aria-label="Agenda view"
         >
           <UButton
-            size="sm"
+            size="md"
             :color="view === 'day' ? 'primary' : 'neutral'"
             :variant="view === 'day' ? 'soft' : 'ghost'"
             :aria-pressed="view === 'day'"
@@ -662,7 +652,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
             @click="view = 'day'"
           />
           <UButton
-            size="sm"
+            size="md"
             :color="view === 'week' ? 'primary' : 'neutral'"
             :variant="view === 'week' ? 'soft' : 'ghost'"
             :aria-pressed="view === 'week'"
@@ -680,7 +670,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         />
         <span
           v-if="isCurrentPeriod && currentTimeLabel"
-          class="col-span-4 inline-flex items-center justify-center gap-1.5 rounded-md bg-elevated px-2 py-1 text-sm text-muted sm:col-span-1 sm:justify-start"
+          class="inline-flex items-center gap-2 rounded-md bg-elevated px-2 py-1 text-sm text-muted"
         >
           <UIcon name="lucide:clock-3" class="size-4" aria-hidden="true" />
           <time :datetime="currentTime?.toISOString()">{{ currentTimeLabel }}</time>
@@ -688,7 +678,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
       </div>
       <div
         v-if="view === 'day' && !activeAgendaError && !settingsError && agenda"
-        class="flex min-w-44 w-full items-center gap-3 text-sm text-muted md:flex-1 lg:max-w-[50%]"
+        class="flex min-w-44 w-full max-w-[50%] flex-1 items-center gap-2 text-sm text-muted"
         aria-label="Workday summary"
       >
         <UIcon name="lucide:clock-3" class="size-4 shrink-0" aria-hidden="true" />
@@ -727,7 +717,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
           @click="beginAdd(day, 'page')"
         />
         <template #body>
-          <form class="space-y-4" @submit.prevent="add">
+          <form class="space-y-3" @submit.prevent="add">
             <p v-if="!canChooseWeekAddDate" class="text-sm text-muted">
               Work date:
               {{ addDate ? formatAgendaDate(addDate.toString(), locale) : 'Choose a date' }}
@@ -788,7 +778,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
                   class="w-full"
                   @update:model-value="selectEntryTicket"
               /></UFormField>
-              <div class="grid gap-3 sm:grid-cols-2">
+              <div class="grid grid-cols-2 gap-2">
                 <UFormField label="Start time" required
                   ><UInputTime
                     v-model="startTime"
@@ -812,20 +802,18 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
                 :title="actionErrorTitle"
                 :description="actionError"
               />
-              <div class="flex flex-col gap-2 sm:flex-row">
+              <div class="flex items-center gap-2">
                 <UButton
                   type="submit"
                   icon="lucide:save"
                   label="Save time entry"
                   :loading="busy"
                   :disabled="!addDate || !ticketId || pageActionNeedsRefresh"
-                  class="w-full sm:w-auto"
                 /><UButton
                   color="neutral"
                   variant="ghost"
                   icon="lucide:x"
                   label="Cancel"
-                  class="w-full sm:w-auto"
                   @click="addOpen = false"
                 />
               </div>
@@ -845,8 +833,8 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
         scrollable
       >
         <template #body>
-          <form class="space-y-4" @submit.prevent="saveEdit">
-            <div class="grid gap-3 sm:grid-cols-3">
+          <form class="space-y-3" @submit.prevent="saveEdit">
+            <div class="grid grid-cols-3 gap-2">
               <UFormField label="Work date" required>
                 <UPopover v-model:open="editDatePickerOpen">
                   <UButton
@@ -893,14 +881,13 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
               :title="editingErrorTitle"
               :description="editingError"
             />
-            <div class="flex flex-col gap-2 sm:flex-row">
+            <div class="flex items-center gap-2">
               <UButton
                 type="submit"
                 icon="lucide:save"
                 label="Save correction"
                 :loading="busy && !deletingEdit"
                 :disabled="busy"
-                class="w-full sm:w-auto"
               />
               <UButton
                 type="button"
@@ -909,7 +896,6 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
                 icon="lucide:x"
                 label="Cancel"
                 :disabled="busy"
-                class="w-full sm:w-auto"
                 @click="editingOpen = false"
               />
               <UButton
@@ -920,7 +906,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
                 label="Delete time entry"
                 :loading="deletingEdit"
                 :disabled="busy"
-                class="w-full sm:ml-auto sm:w-auto"
+                class="ml-auto"
                 @click="deleteEdit"
               />
             </div>
@@ -986,9 +972,9 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
       <p class="text-muted">Loading agenda…</p>
     </UCard>
     <template v-else-if="!activeAgendaError">
-      <UCard :ui="{ body: 'p-2 sm:p-2' }">
-        <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
-          <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <UCard :ui="{ body: 'p-0.5' }">
+        <div class="flex items-center gap-0.5">
+          <div class="grid min-w-0 flex-1 grid-cols-5 gap-0.5">
             <div
               v-for="kind in ['client', 'project', 'release', 'ticket', 'status'] as const"
               :key="kind"
@@ -1027,7 +1013,7 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
               variant="ghost"
               icon="lucide:filter-x"
               aria-label="Clear filters"
-              class="self-end"
+              class="self-auto"
               @click="clearFilters"
           /></UTooltip>
         </div>
@@ -1043,11 +1029,11 @@ const trackedTextClass = computed(() => textClasses[usageColor(tracked.value, ta
           :title="dragErrorTitle"
           :description="dragError"
           role="alert"
-          class="mb-3"
+          class="mb-2"
         />
         <p
           v-if="!filtered.length && Object.values(filters).some(Boolean)"
-          class="mb-3 text-sm text-muted"
+          class="mb-2 text-sm text-muted"
         >
           No work matches these filters.
         </p>

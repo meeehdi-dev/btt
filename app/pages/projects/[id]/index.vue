@@ -5,11 +5,6 @@ const route = useRoute()
 const id = route.params.id as string
 const archived = route.query.archived === 'true'
 const showArchived = ref(route.query.archived === 'true')
-const donePending = ref<string | null>(null)
-const doneReleaseIds = ref(new Set<string>())
-const doneError = ref('')
-const doneErrorTitle = ref('Could not mark release as done')
-const releasesNeedRefresh = ref(false)
 const {
   data: projectData,
   error: projectError,
@@ -28,9 +23,7 @@ const {
   })),
 })
 const releases = computed(() =>
-  (releaseData.value?.releases ?? [])
-    .filter((item) => item.release.projectId === id)
-    .filter((item) => showArchived.value || !doneReleaseIds.value.has(item.release.id)),
+  (releaseData.value?.releases ?? []).filter((item) => item.release.projectId === id),
 )
 
 if (projectError.value && clientFailureStatus(projectError.value) === 404)
@@ -39,12 +32,7 @@ if (!project.value && !projectError.value)
   throw createError({ statusCode: 404, statusMessage: 'Project not found' })
 
 async function retryReleases() {
-  const result = await runClientEffect(refreshEffect(refreshReleases, () => releaseError.value))
-  if (result._tag === 'Success') {
-    releasesNeedRefresh.value = false
-    if (doneErrorTitle.value === 'Release marked done; refresh failed') doneError.value = ''
-    doneErrorTitle.value = 'Could not mark release as done'
-  }
+  await runClientEffect(refreshEffect(refreshReleases, () => releaseError.value))
 }
 
 function releaseProgressPercent(doneTicketCount: number, ticketCount: number) {
@@ -54,41 +42,11 @@ function releaseProgressPercent(doneTicketCount: number, ticketCount: number) {
 function releaseProgressText(releaseName: string, doneTicketCount: number, ticketCount: number) {
   return `${releaseName}: ${doneTicketCount} of ${ticketCount} active tickets done, ${releaseProgressPercent(doneTicketCount, ticketCount)}% complete`
 }
-
-async function markDone(releaseId: string) {
-  donePending.value = releaseId
-  doneError.value = ''
-  doneErrorTitle.value = 'Could not mark release as done'
-  try {
-    const result = await runClientRequest<unknown>((signal) =>
-      $fetch<unknown>(`/api/releases/${releaseId}`, {
-        method: 'PATCH',
-        body: { archived: true },
-        signal,
-      }),
-    )
-    if (result._tag === 'Failure') {
-      doneError.value = result.failure.userMessage
-      return
-    }
-    doneReleaseIds.value = new Set([...doneReleaseIds.value, releaseId])
-    const refreshed = await runClientEffect(
-      refreshEffect(refreshReleases, () => releaseError.value),
-    )
-    if (refreshed._tag === 'Failure') {
-      releasesNeedRefresh.value = true
-      doneErrorTitle.value = 'Release marked done; refresh failed'
-      doneError.value = `The release was marked done, but the release list could not be refreshed. ${refreshed.failure.userMessage}`
-    }
-  } finally {
-    donePending.value = null
-  }
-}
 </script>
 
 <template>
-  <div v-if="project" class="space-y-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <div v-if="project" class="space-y-4">
+    <div class="flex items-end justify-between gap-2">
       <div>
         <HierarchyBreadcrumbs
           :ancestors="[
@@ -113,7 +71,7 @@ async function markDone(releaseId: string) {
           </template>
         </HierarchyBreadcrumbs>
       </div>
-      <div class="flex flex-col gap-2 sm:flex-row">
+      <div class="flex items-center gap-2">
         <ArchiveFilterButton v-model="showArchived" />
         <UButton
           v-if="!project.clientArchivedAt"
@@ -131,7 +89,7 @@ async function markDone(releaseId: string) {
         />
       </div>
     </div>
-    <div v-if="projectError" class="space-y-3">
+    <div v-if="projectError" class="space-y-2">
       <UAlert
         role="alert"
         color="error"
@@ -146,7 +104,7 @@ async function markDone(releaseId: string) {
         @click="refreshProject()"
       />
     </div>
-    <div v-if="releaseError || releasesNeedRefresh" class="space-y-3">
+    <div v-if="releaseError" class="space-y-2">
       <UAlert
         v-if="releaseError"
         role="alert"
@@ -162,16 +120,13 @@ async function markDone(releaseId: string) {
         @click="retryReleases()"
       />
     </div>
-    <UAlert v-if="doneError" role="alert" color="error" :title="doneErrorTitle">
-      {{ doneError }}
-    </UAlert>
-    <UCard v-if="!releases.length && !releaseError && !releasesNeedRefresh">
+    <UCard v-if="!releases.length && !releaseError">
       <h2 class="font-medium text-highlighted">
         No {{ showArchived ? '' : 'active ' }}releases yet
       </h2>
       <p class="mt-2 text-muted">Add a release to organize tickets later.</p>
     </UCard>
-    <div v-else-if="releases.length" class="grid gap-4 sm:grid-cols-2">
+    <div v-else-if="releases.length" class="grid grid-cols-2 gap-2">
       <EntityCard
         v-for="item in releases"
         :key="item.release.id"
@@ -186,7 +141,7 @@ async function markDone(releaseId: string) {
           />
         </template>
         <template #heading>
-          <div data-release-card-heading class="flex min-w-0 items-center gap-3">
+          <div data-release-card-heading class="flex min-w-0 items-center gap-2">
             <h2
               class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted"
               :title="item.release.name"
@@ -196,18 +151,6 @@ async function markDone(releaseId: string) {
             <UBadge v-if="item.release.archivedAt" color="neutral" variant="subtle"
               >Archived</UBadge
             >
-            <UTooltip v-else text="Mark done">
-              <UButton
-                square
-                color="success"
-                variant="soft"
-                icon="lucide:check"
-                :loading="donePending === item.release.id"
-                aria-label="Mark release as done"
-                class="pointer-events-auto relative z-10 shrink-0 cursor-pointer"
-                @click.stop="markDone(item.release.id)"
-              />
-            </UTooltip>
           </div>
         </template>
         <template #context>
@@ -240,7 +183,7 @@ async function markDone(releaseId: string) {
                 !project.project.archivedAt && !project.clientArchivedAt && !item.release.archivedAt
               "
               data-release-card-metrics
-              class="flex h-6 shrink-0 items-center gap-1 rounded-md bg-default px-1.5 text-xs text-muted"
+              class="flex h-6 shrink-0 items-center gap-1 rounded-md bg-default px-2 text-xs text-muted"
             >
               <EntityIcon kind="tickets" data-release-card-ticket-icon />
               <span data-release-card-counts
@@ -261,7 +204,7 @@ async function markDone(releaseId: string) {
       </EntityCard>
     </div>
   </div>
-  <UCard v-else-if="projectError" class="space-y-3">
+  <UCard v-else-if="projectError" class="space-y-2">
     <UAlert
       role="alert"
       color="error"

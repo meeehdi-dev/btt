@@ -46,7 +46,7 @@ const icons: Record<HierarchyKind, EntityKind> = {
           :class="[
             compact
               ? '!h-5 !min-h-5 !px-1 text-[10px]'
-              : '!bg-default !px-1.5 !text-muted hover:!text-default',
+              : '!bg-default !px-2 !text-muted hover:!text-default',
             truncateLabels ? (compact ? 'max-w-24 shrink-0' : 'max-w-32 shrink-0') : 'shrink-0',
           ]"
           :aria-label="`${item.kind}: ${item.name}; actions`"
@@ -63,7 +63,7 @@ const icons: Record<HierarchyKind, EntityKind> = {
           >
         </UButton>
         <template #content>
-          <div class="flex min-w-36 flex-col gap-1 p-2">
+          <div class="flex min-w-36 flex-col gap-1 p-1">
             <UButton
               size="xs"
               variant="ghost"
@@ -93,7 +93,7 @@ const icons: Record<HierarchyKind, EntityKind> = {
         :class="[
           compact
             ? '!h-5 !min-h-5 !px-1 text-[10px]'
-            : '!bg-default !px-1.5 !text-muted hover:!text-default',
+            : '!bg-default !px-2 !text-muted hover:!text-default',
           truncateLabels ? (compact ? 'max-w-24 shrink-0' : 'max-w-32 shrink-0') : 'shrink-0',
         ]"
       >

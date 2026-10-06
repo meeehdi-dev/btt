@@ -145,8 +145,8 @@ async function markDone() {
 }
 </script>
 <template>
-  <div v-if="release" class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div v-if="release" class="space-y-4">
+    <div class="flex items-end justify-between gap-2">
       <div>
         <HierarchyBreadcrumbs
           :ancestors="[
@@ -171,7 +171,7 @@ async function markDone() {
           <ReleaseTargetDate :target-date="release.targetDate" />
         </div>
       </div>
-      <div class="flex flex-col gap-2 sm:flex-row">
+      <div class="flex items-center gap-2">
         <UButton
           v-if="!releaseData?.projectArchivedAt && !releaseData?.clientArchivedAt"
           :to="`/releases/${id}/edit${release.archivedAt ? '?archived=true' : ''}`"
@@ -202,7 +202,7 @@ async function markDone() {
         />
       </div>
     </div>
-    <div v-if="error" class="space-y-3">
+    <div v-if="error" class="space-y-2">
       <UAlert
         role="alert"
         color="error"
@@ -227,7 +227,7 @@ async function markDone() {
       "
     >
       <template #body>
-        <div class="space-y-4">
+        <div class="space-y-3">
           <UAlert
             v-if="doneError"
             role="alert"
@@ -246,13 +246,12 @@ async function markDone() {
                 : `${doneTicketCount} of ${tickets.length} tickets are done. Marking this release as done will archive it.`
             "
           />
-          <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <div class="flex justify-end gap-2">
             <UButton
               color="neutral"
               variant="ghost"
               icon="lucide:x"
               label="Cancel"
-              class="w-full sm:w-auto"
               @click="doneConfirmationOpen = false"
             />
             <UButton
@@ -261,7 +260,6 @@ async function markDone() {
               icon="lucide:check"
               label="Mark release as done"
               :loading="donePending"
-              class="w-full sm:w-auto"
               @click="markDone"
             />
           </div>
@@ -295,7 +293,7 @@ async function markDone() {
         @click="retryTicketStatusRefresh"
       />
     </div>
-    <div v-if="ticketsError && !ticketStatusNeedsRefresh" class="space-y-3">
+    <div v-if="ticketsError && !ticketStatusNeedsRefresh" class="space-y-2">
       <UAlert
         role="alert"
         color="error"
@@ -320,7 +318,7 @@ async function markDone() {
         }}
       </p></UCard
     >
-    <div v-else-if="!ticketsError" class="grid gap-3 sm:grid-cols-2">
+    <div v-else-if="!ticketsError" class="grid grid-cols-2 gap-2">
       <EntityCard
         v-for="item in tickets"
         :key="item.ticket.id"
@@ -420,7 +418,7 @@ async function markDone() {
       </EntityCard>
     </div>
   </div>
-  <UCard v-else-if="error" class="space-y-3">
+  <UCard v-else-if="error" class="space-y-2">
     <UAlert
       role="alert"
       color="error"

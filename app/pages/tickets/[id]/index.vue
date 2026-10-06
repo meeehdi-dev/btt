@@ -478,9 +478,9 @@ async function removeRelation(relationId: string) {
 </script>
 
 <template>
-  <div v-if="data" class="space-y-3">
+  <div v-if="data" class="space-y-2">
     <div class="space-y-2">
-      <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+      <div class="flex flex-wrap items-start justify-between gap-x-2 gap-y-2">
         <div class="min-w-0 flex-1">
           <HierarchyBreadcrumbs
             :ancestors="[
@@ -552,7 +552,7 @@ async function removeRelation(relationId: string) {
         </div>
       </div>
 
-      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ticket fields">
+      <div class="grid grid-cols-3 gap-2" aria-label="Ticket fields">
         <UFormField label="Status" class="min-w-0">
           <USelect
             :model-value="statusDraft"
@@ -655,7 +655,7 @@ async function removeRelation(relationId: string) {
     </div>
     <p class="sr-only" role="status" aria-live="polite">{{ actionMessage }}</p>
 
-    <UCard :ui="{ body: 'p-3 sm:p-4' }">
+    <UCard :ui="{ body: 'p-2' }">
       <UFormField
         label="Description"
         hint="Saves automatically when you leave the field"
@@ -683,8 +683,8 @@ async function removeRelation(relationId: string) {
       :can-create="false"
     />
 
-    <div class="grid gap-2 md:grid-cols-2">
-      <UCard :ui="{ body: 'p-3 sm:p-4' }">
+    <div class="grid grid-cols-2 gap-2">
+      <UCard :ui="{ body: 'p-2' }">
         <div class="flex items-center justify-between gap-2">
           <h2 class="font-medium text-highlighted">External links</h2>
           <UButton
@@ -697,11 +697,11 @@ async function removeRelation(relationId: string) {
             @click="openLinkModal"
           />
         </div>
-        <ul v-if="data.links.length" class="mt-2 space-y-1.5">
+        <ul v-if="data.links.length" class="mt-2 space-y-2">
           <li
             v-for="link in data.links"
             :key="link.id"
-            class="flex min-w-0 items-center justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-2 py-1.5"
+            class="flex min-w-0 items-center justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-2 py-2"
           >
             <a
               :href="link.url"
@@ -725,7 +725,7 @@ async function removeRelation(relationId: string) {
         <p v-else class="mt-2 text-sm text-muted">No external links yet.</p>
       </UCard>
 
-      <UCard :ui="{ body: 'p-3 sm:p-4' }">
+      <UCard :ui="{ body: 'p-2' }">
         <div class="flex items-center justify-between gap-2">
           <h2 class="font-medium text-highlighted">Related tickets</h2>
           <UButton
@@ -740,7 +740,7 @@ async function removeRelation(relationId: string) {
         </div>
         <UAlert
           v-if="choicesError && !relationModalOpen"
-          class="mt-3"
+          class="mt-2"
           role="alert"
           color="error"
           title="Could not load ticket choices"
@@ -756,11 +756,11 @@ async function removeRelation(relationId: string) {
           label="Retry loading ticket choices"
           @click="refreshChoices()"
         />
-        <ul v-if="data.related.length" class="mt-2 space-y-1.5">
+        <ul v-if="data.related.length" class="mt-2 space-y-2">
           <li
             v-for="other in data.related"
             :key="other.id"
-            class="flex min-w-0 items-center justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-2 py-1.5"
+            class="flex min-w-0 items-center justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-2 py-2"
           >
             <NuxtLink
               :to="`/tickets/${other.id}${other.archivedAt ? '?archived=true' : ''}`"
@@ -793,11 +793,11 @@ async function removeRelation(relationId: string) {
       :ui="{ footer: 'justify-end' }"
     >
       <template #body>
-        <form class="space-y-4" @submit.prevent="saveTitle">
+        <form class="space-y-3" @submit.prevent="saveTitle">
           <UFormField label="Title" required :error="titleError || undefined">
             <UInput v-model="titleDraft" class="w-full" maxlength="200" autofocus />
           </UFormField>
-          <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div class="flex justify-end gap-2">
             <UButton
               type="button"
               color="neutral"
@@ -826,7 +826,7 @@ async function removeRelation(relationId: string) {
       :dismissible="!pending"
     >
       <template #body>
-        <form class="space-y-4" @submit.prevent="addLink">
+        <form class="space-y-3" @submit.prevent="addLink">
           <UAlert
             v-if="linkError"
             role="alert"
@@ -846,7 +846,7 @@ async function removeRelation(relationId: string) {
               required
             />
           </UFormField>
-          <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div class="flex justify-end gap-2">
             <UButton
               type="button"
               color="neutral"
@@ -875,7 +875,7 @@ async function removeRelation(relationId: string) {
       :dismissible="!pending"
     >
       <template #body>
-        <form class="space-y-4" @submit.prevent="addRelation">
+        <form class="space-y-3" @submit.prevent="addRelation">
           <UAlert
             v-if="choicesError"
             role="alert"
@@ -913,7 +913,7 @@ async function removeRelation(relationId: string) {
               @update:model-value="selectRelatedTicket"
             />
           </UFormField>
-          <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div class="flex justify-end gap-2">
             <UButton
               type="button"
               color="neutral"
@@ -935,7 +935,7 @@ async function removeRelation(relationId: string) {
       </template>
     </UModal>
   </div>
-  <UCard v-else-if="error" class="space-y-3">
+  <UCard v-else-if="error" class="space-y-2">
     <UAlert
       role="alert"
       color="error"

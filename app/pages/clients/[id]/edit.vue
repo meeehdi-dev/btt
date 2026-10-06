@@ -61,18 +61,18 @@ async function remove() {
 </script>
 
 <template>
-  <div v-if="client" class="w-full space-y-6">
+  <div v-if="client" class="w-full space-y-4">
     <div>
       <NuxtLink
         :to="`/clients/${id}${archived ? '?archived=true' : ''}`"
         class="inline-flex items-center gap-1 text-sm text-primary"
         >← <EntityIcon kind="clients" />Client</NuxtLink
       >
-      <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+      <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
         <EntityIcon kind="clients" />Edit client
       </h1>
     </div>
-    <div v-if="clientError" class="space-y-3">
+    <div v-if="clientError" class="space-y-2">
       <UAlert
         role="alert"
         color="error"
@@ -88,7 +88,7 @@ async function remove() {
       />
     </div>
     <UCard>
-      <form class="space-y-5" @submit.prevent="save">
+      <form class="space-y-3" @submit.prevent="save">
         <UFormField label="Name" required
           ><UInput v-model="name" class="w-full" autofocus
         /></UFormField>
@@ -99,37 +99,29 @@ async function remove() {
         <UAlert v-if="errorMessage" role="alert" color="error" title="Could not save changes">{{
           errorMessage
         }}</UAlert>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center justify-between gap-2">
           <UButton
             v-if="archived"
             color="error"
             variant="ghost"
             icon="lucide:trash-2"
             label="Permanently delete"
-            class="w-full sm:w-auto"
             @click="remove"
           />
-          <div class="flex flex-col gap-2 sm:ml-auto sm:flex-row">
+          <div class="ml-auto flex items-center gap-2">
             <UButton
               :to="`/clients/${id}${archived ? '?archived=true' : ''}`"
               color="neutral"
               variant="ghost"
               icon="lucide:x"
               label="Cancel"
-              class="w-full sm:w-auto"
-            /><UButton
-              type="submit"
-              :loading="pending"
-              icon="lucide:save"
-              label="Save changes"
-              class="w-full sm:w-auto"
-            />
+            /><UButton type="submit" :loading="pending" icon="lucide:save" label="Save changes" />
           </div>
         </div>
       </form>
     </UCard>
   </div>
-  <UCard v-else-if="clientError" class="space-y-3">
+  <UCard v-else-if="clientError" class="space-y-2">
     <UAlert
       role="alert"
       color="error"
