@@ -202,6 +202,14 @@ No application dependency changes are proposed.
 - Verification: `pnpm db:migrate`, `pnpm format:check` (281 files), `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, and `git diff --check` passed. The intentional retired-route test emitted its existing non-fatal Vue Router no-match warning.
 - Evidence: all browser tests used an isolated disposable PostgreSQL 17 container. The temporary delayed test, `.env.development` override, and container were removed by a cleanup trap; existing development databases were not changed. No push or remote run was triggered. Human code review and CI confirmation of this newest change remain pending.
 
+### 2026-10-06 — Agenda readiness and hierarchy test split follow-up
+
+- Fact: GitHub Actions run [37454596653](https://github.com/meeehdi-dev/nxmr/actions/runs/37454596653), on commit `1445871397c9140e99a0a10bac0b7eb175a33302`, reported two `agenda-drag` visibility failures while the page still showed loading text; the expected agenda request had not started before those assertions. The `auth-shell` hierarchy scenario reached its 30-second test deadline at the final delete step, before a DELETE request started.
+- Decision: keep the E2E coverage and make only test changes. `openTodayAgenda` navigates to the seeded date, awaits the matching successful `/api/agenda` response, then confirms loading has ended. Split the long hierarchy flow into focused tests with isolated per-test hierarchy fixtures/cleanup; wait for the archive button's Vue component to mount before asserting its hover tooltip. No application code, assertions, timeout, worker, retry, dependency, or workflow policy was changed.
+- Verification: `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/nxmr pnpm db:migrate` passed; `CI=true DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/nxmr pnpm test:e2e --workers=2` passed all 39 tests in 1.5 minutes using the existing test timeout and no skips. The disposable container was removed by a cleanup trap; existing database containers were not modified.
+- Verification: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, `node scripts/check-workflow-docs.mjs`, and `git diff --check` all passed. The build emitted a non-failing Vite `PLUGIN_TIMINGS` advisory. Playwright logged the existing non-fatal `ResizeObserver` diagnostic and expected retired-route warnings.
+- Status: local implementation and verification are complete. Human code review and explicit authorization before any new remote run remain pending; no push or remote CI run was triggered.
+
 ## Verification
 
 Planning checks:
@@ -236,14 +244,14 @@ Implementation verification (authorized):
 ## Review status
 
 - Plan review: Original M27 plan and the E2E simplification plan approved by the human via chat on 2026-10-06; follow-up implementation authorized.
-- Code review: Original M27 implementation and conflict-assertion correction/documentation accepted by the human on 2026-10-06. The CI-driven test-readiness and scenario-splitting follow-up, including the latest two-line mobile mount wait, is awaiting human code review.
-- CI authorization: Run 37365101184 tested commit `2c7db9e`, not the latest mobile mount wait. No push or remote run was triggered during this correction; review and explicit authorization remain required before a new run.
+- Code review: Original M27 implementation and conflict-assertion correction/documentation accepted by the human on 2026-10-06. The CI-driven test-readiness and scenario-splitting follow-up, including the agenda readiness and hierarchy test changes, is awaiting human code review.
+- CI authorization: Run 37365101184 tested commit `2c7db9e`, not the subsequent local fixes. No push or remote run was triggered; review and explicit authorization remain required before a new run.
 - Milestone completion declaration: Pending.
 
 ## Follow-ups
 
 - Review [`plans/m27-e2e-test-simplification.md`](../../plans/m27-e2e-test-simplification.md) and the current full diff. After code review is accepted, obtain explicit human authorization before triggering GitHub Actions; inspect the first-attempt result and retained diagnostic artifact before declaring M27 complete.
-- The local 40/40 E2E result does not prove the hosted-runner failures are resolved. If the next authorized CI run fails, retain first-failure diagnostics and investigate without automatic retries, timeout increases, or worker changes unless separately approved.
+- Local full-suite results (40/40 on the earlier suite and 39/39 after the latest test edits) do not prove the hosted-runner failures are resolved. If the next authorized CI run fails, retain first-failure diagnostics and investigate without automatic retries, timeout increases, or worker changes unless separately approved.
 - No automatic retry is planned. Manual reruns remain the human's choice after inspecting diagnostics.
 - Do not classify runner/action deprecation notices as the cause of this failure; handle action-version maintenance separately.
 

@@ -1,6 +1,6 @@
 # M27 — Simplify CI E2E timeout failures
 
-**Status: Approved by the human via chat on 2026-10-06; implementation and CI-driven local follow-up complete. Run 37365101184 passed 39/40; its remaining mobile mount race is now corrected and locally verified, including delayed module loading. Human code review and CI confirmation of the newest fix are pending; no new remote run is authorized.**
+**Status: Approved by the human via chat on 2026-10-06. The CI-driven fixes and subsequent agenda-readiness/hierarchy-test follow-up are locally verified; the latest complete E2E run passed 39/39. Human code review and hosted CI confirmation remain pending; no new remote run is authorized.**
 
 ## Context and diagnosis
 

@@ -63,7 +63,6 @@ const test = base.extend<{ agenda: AgendaFixture }>({
       ticketIds.push(hiddenTicket.id)
 
       await page.setViewportSize({ width: 1440, height: 2500 })
-      await page.goto('/today')
       const day = await page.evaluate(() => {
         const now = new Date()
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -104,6 +103,20 @@ const test = base.extend<{ agenda: AgendaFixture }>({
   },
 })
 
+async function openTodayAgenda(page: Page, day: string) {
+  const agendaResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url())
+    return (
+      response.request().method() === 'GET' &&
+      url.pathname === '/api/agenda' &&
+      url.searchParams.get('date') === day
+    )
+  })
+  const [, response] = await Promise.all([page.goto(`/today?date=${day}`), agendaResponse])
+  expect(response.ok()).toBe(true)
+  await expect(page.getByText('Loading agenda…', { exact: true })).toHaveCount(0)
+}
+
 async function point(page: Page, timeline: Locator, minute: number, offset = 10) {
   const box = await timeline.boundingBox()
   if (!box) throw new Error('Timeline is not visible')
@@ -118,7 +131,7 @@ test('desktop day gestures create, move, resize, and reject overlapping entries'
   const blockerId = await add(ticketId, 600, 60, 'Visible blocker')
   const hiddenId = await add(hiddenTicketId, 750, 30, 'Filtered blocker')
   const movingId = await add(ticketId, 900, 60, 'Movable block')
-  await page.reload()
+  await openTodayAgenda(page, day)
 
   const timeline = page.getByRole('region', { name: 'Day timeline' })
   const moving = timeline.locator(`[data-agenda-entry="${movingId}"]`)
@@ -234,7 +247,7 @@ test('Today reports a server-side overlap when a blocker appears after loading',
 }) => {
   const { add, day, hiddenTicketId, ticketId } = agenda
   const movingId = await add(ticketId, 900, 60, 'Movable block')
-  await page.reload()
+  await openTodayAgenda(page, day)
   const timeline = page.getByRole('region', { name: 'Day timeline' })
   const moving = timeline.locator(`[data-agenda-entry="${movingId}"]`)
   await expect(moving).toBeVisible()
@@ -263,7 +276,7 @@ test('archived-parent top resize clamps at an adjacent time entry', async ({ pag
     data: { archived: true },
   })
   expect(archivedClient.ok()).toBe(true)
-  await page.reload()
+  await openTodayAgenda(page, day)
 
   const timeline = page.getByRole('region', { name: 'Day timeline' })
   const blocker = timeline.locator(`[data-agenda-entry="${blockerId}"]`)
