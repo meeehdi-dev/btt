@@ -58,8 +58,6 @@ const actionErrorTitle = ref('Could not update ticket')
 const statusMessage = ref('')
 const failedMove = ref<{ id: string; status: TicketStatus } | null>(null)
 const board = ref<HTMLElement | null>(null)
-const desktopDragEnabled = ref(false)
-let dragBreakpoint: MediaQueryList | undefined
 const draggingId = ref<string | null>(null)
 const overStatus = ref<TicketStatus | null>(null)
 const scrollDirection = ref(0)
@@ -74,16 +72,6 @@ function clearDrag() {
   scrollFrame = 0
 }
 
-function syncDragBreakpoint(event: MediaQueryListEvent) {
-  desktopDragEnabled.value = event.matches
-  if (!event.matches) clearDrag()
-}
-onMounted(() => {
-  dragBreakpoint = window.matchMedia('(min-width: 768px)')
-  desktopDragEnabled.value = dragBreakpoint.matches
-  dragBreakpoint.addEventListener('change', syncDragBreakpoint)
-})
-
 watch([releaseId, showArchived], () => {
   clearDrag()
   clearFilters()
@@ -96,10 +84,7 @@ watch(tickets, () => {
   )
     clearDrag()
 })
-onBeforeUnmount(() => {
-  dragBreakpoint?.removeEventListener('change', syncDragBreakpoint)
-  clearDrag()
-})
+onBeforeUnmount(clearDrag)
 
 async function retryTickets() {
   const result = await runClientEffect(refreshEffect(refresh, () => error.value))
@@ -138,13 +123,7 @@ function updateEdgeScroll(event: DragEvent) {
 
 function startDrag(event: DragEvent, id: string) {
   const source = tickets.value.find(({ ticket }) => ticket.id === id)
-  if (
-    !desktopDragEnabled.value ||
-    changing.value ||
-    !source ||
-    source.ticket.archivedAt ||
-    !event.dataTransfer
-  ) {
+  if (changing.value || !source || source.ticket.archivedAt || !event.dataTransfer) {
     event.preventDefault()
     return
   }
@@ -211,25 +190,6 @@ async function retryMove() {
 const hoveredTargetId = ref<string | null>(null)
 const pinnedTargetId = ref<string | null>(null)
 const highlightedId = computed(() => hoveredTargetId.value ?? pinnedTargetId.value)
-const openStatuses = reactive(
-  Object.fromEntries(ticketStatuses.map((status) => [status, false])) as Record<
-    (typeof ticketStatuses)[number],
-    boolean
-  >,
-)
-
-async function waitForCardAnimation(card: HTMLElement) {
-  const animations: Animation[] = []
-  for (let node = card.parentElement; node && node !== document.body; node = node.parentElement) {
-    animations.push(
-      ...node
-        .getAnimations({ subtree: false })
-        .filter((animation) => animation.playState === 'running'),
-    )
-  }
-  await Promise.allSettled(animations.map((animation) => animation.finished))
-}
-
 async function locateRelated(event: MouseEvent, id: string) {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
   event.preventDefault()
@@ -239,8 +199,6 @@ async function locateRelated(event: MouseEvent, id: string) {
     return
   }
   pinnedTargetId.value = id
-  const mobile = window.matchMedia('(max-width: 767px)').matches
-  if (mobile) openStatuses[target.ticket.status] = true
   await nextTick()
   await new Promise<void>((resolve) =>
     requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
@@ -248,8 +206,6 @@ async function locateRelated(event: MouseEvent, id: string) {
   const card = [...document.querySelectorAll<HTMLElement>('[data-board-ticket-id]')].find(
     (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
   )
-  // The expanded collapsible changes height during its opening animation.
-  if (mobile && card) await waitForCardAnimation(card)
   card?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
 }
 
@@ -292,38 +248,30 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
     changing.value = null
   }
   if (refreshed && restoreFocus) {
-    const mobile = window.matchMedia('(max-width: 767px)').matches
-    if (mobile) openStatuses[destination] = true
     await nextTick()
-    // Wait for the destination collapsible before restoring focus to its arrow or title.
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     )
     const card = [...document.querySelectorAll<HTMLElement>('[data-board-ticket-id]')].find(
       (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
     )
-    if (mobile && card) await waitForCardAnimation(card)
     card?.querySelector<HTMLElement>('[data-ticket-title-link]')?.focus()
   }
 }
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-2">
     <h1 class="sr-only">Tickets</h1>
-    <div
-      role="group"
-      aria-label="Ticket board controls"
-      class="flex flex-col gap-2 lg:flex-row lg:items-center"
-    >
+    <div role="group" aria-label="Ticket board controls" class="flex items-center gap-2">
       <UCard
         role="group"
         aria-label="Ticket filters"
         class="min-w-0 flex-1"
-        :ui="{ body: 'p-2 sm:p-2' }"
+        :ui="{ body: 'p-0.5' }"
       >
-        <div class="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center">
-          <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="flex min-w-0 flex-1 items-center gap-0.5">
+          <div class="grid min-w-0 flex-1 grid-cols-4 gap-0.5">
             <div v-for="kind in ['client', 'project', 'release', 'ticket'] as const" :key="kind">
               <USelectMenu
                 :model-value="filters[kind] || null"
@@ -355,12 +303,12 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
               variant="ghost"
               icon="lucide:filter-x"
               aria-label="Clear filters"
-              class="self-end lg:self-auto"
+              class="self-auto"
               @click="clearFilters"
           /></UTooltip>
         </div>
       </UCard>
-      <div class="flex flex-col gap-2 lg:flex-row lg:shrink-0 lg:items-center">
+      <div class="flex shrink-0 items-center gap-2">
         <ArchiveFilterButton v-model="showArchived" />
         <UButton
           :to="`/tickets/new${releaseId ? `?release=${releaseId}` : ''}`"
@@ -409,18 +357,18 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       </UCard>
       <div
         ref="board"
-        class="hidden w-full max-w-full overflow-x-auto pb-3 md:block"
+        class="w-full max-w-full overflow-x-auto pb-3"
         role="region"
         aria-label="Ticket board"
         tabindex="0"
         @dragover.capture="updateEdgeScroll"
         @dragleave.self="leaveBoard"
       >
-        <div class="grid min-w-[105rem] grid-cols-7 gap-4">
+        <div class="grid min-w-[105rem] grid-cols-7 gap-2">
           <section
             v-for="group in groups"
             :key="group.status"
-            class="min-w-0 space-y-3 rounded-lg border px-2 py-8 transition-colors"
+            class="min-w-0 space-y-2 rounded-lg border px-2 py-4 transition-colors"
             :class="
               overStatus === group.status ? 'border-primary bg-primary/5' : 'border-transparent'
             "
@@ -440,7 +388,6 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
               :item="item"
               :changing="changing === item.ticket.id"
               :busy="!!changing"
-              :can-drag="desktopDragEnabled"
               :highlighted="highlightedId === item.ticket.id"
               @drag-start="startDrag($event, item.ticket.id)"
               @drag-end="clearDrag"
@@ -450,62 +397,12 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
             />
             <p
               v-if="!group.items.length"
-              class="rounded-lg border border-dashed border-default p-4 text-sm text-muted"
+              class="rounded-lg border border-dashed border-default p-2 text-sm text-muted"
             >
               No tickets in {{ group.status }}.
             </p>
           </section>
         </div>
-      </div>
-      <div class="space-y-3 md:hidden" aria-label="Ticket statuses">
-        <section
-          v-for="group in groups"
-          :key="group.status"
-          :aria-label="`${group.status} tickets`"
-        >
-          <UCollapsible
-            v-model:open="openStatuses[group.status]"
-            class="rounded-lg border border-default bg-elevated p-3"
-          >
-            <UButton
-              block
-              color="neutral"
-              variant="ghost"
-              class="group w-full"
-              :aria-label="`${group.status}: ${group.items.length} tickets`"
-              :label="group.status"
-            >
-              <template #trailing
-                ><UBadge color="neutral" variant="subtle">{{ group.items.length }}</UBadge
-                ><UIcon
-                  name="lucide:chevron-down"
-                  class="size-4 group-data-[state=open]:rotate-180"
-                  aria-hidden="true"
-              /></template>
-            </UButton>
-            <template #content>
-              <div class="space-y-3 pt-3">
-                <TicketBoardCard
-                  v-for="item in group.items"
-                  :key="item.ticket.id"
-                  :item="item"
-                  :changing="changing === item.ticket.id"
-                  :busy="!!changing"
-                  :can-drag="desktopDragEnabled"
-                  :highlighted="highlightedId === item.ticket.id"
-                  @drag-start="startDrag($event, item.ticket.id)"
-                  @drag-end="clearDrag"
-                  @related-hover="hoveredTargetId = $event"
-                  @related-click="locateRelated"
-                  @filter="applyFilter"
-                />
-                <p v-if="!group.items.length" class="text-sm text-muted">
-                  No tickets in {{ group.status }}.
-                </p>
-              </div>
-            </template>
-          </UCollapsible>
-        </section>
       </div>
     </template>
   </div>

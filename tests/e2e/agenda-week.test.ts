@@ -62,6 +62,15 @@ async function pageDateLabels(page: import('@playwright/test').Page, dates: stri
   }, dates)
 }
 
+async function expectEndHourLabelInsideCard(page: import('@playwright/test').Page) {
+  const label = page.getByText('20:00', { exact: true })
+  const cardBody = page.locator('main [data-slot="body"]').last()
+  const [labelBox, bodyBox] = await Promise.all([label.boundingBox(), cardBody.boundingBox()])
+  if (!labelBox || !bodyBox) throw new Error('End-of-day label must be visible')
+  expect(labelBox.y).toBeGreaterThanOrEqual(bodyBox.y)
+  expect(labelBox.y + labelBox.height).toBeLessThanOrEqual(bodyBox.y + bodyBox.height)
+}
+
 function dateKey(value: { year: number; month: number; day: number }) {
   return `${value.year}-${String(value.month).padStart(2, '0')}-${String(value.day).padStart(2, '0')}`
 }
@@ -101,7 +110,21 @@ test('Today marks the current local date and time across Day and Week views', as
     await page.goto(`/today?date=${current.date}`)
     await page.waitForLoadState('networkidle')
 
+    const toolbarControls = [
+      page.getByRole('button', { name: 'Previous day' }),
+      page.getByRole('button', { name: `Agenda date: ${current.date}` }),
+      page.getByRole('button', { name: 'Next day' }),
+      page.getByRole('group', { name: 'Agenda view' }),
+      page.getByRole('button', { name: 'Today', exact: true }),
+    ]
+    const toolbarBoxes = await Promise.all(toolbarControls.map((control) => control.boundingBox()))
+    if (toolbarBoxes.some((box) => !box)) throw new Error('Agenda toolbar controls must be visible')
+    const toolbarHeights = toolbarBoxes.map((box) => box!.height)
+    expect(Math.max(...toolbarHeights) - Math.min(...toolbarHeights)).toBeLessThan(2)
+    expect(Math.min(...toolbarHeights)).toBeGreaterThanOrEqual(32)
+
     await expect(page.getByText(`Now ${current.label}`, { exact: true })).toBeVisible()
+    await expectEndHourLabelInsideCard(page)
     let marker = page.locator('[data-current-time-marker]:visible')
     await expect(marker).toHaveCount(1)
     await expect(marker).toHaveAttribute('aria-label', `Current time ${current.label}`)
@@ -119,15 +142,10 @@ test('Today marks the current local date and time across Day and Week views', as
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
     await page.getByRole('button', { name: 'Today', exact: true }).click()
     await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
-    await page.setViewportSize({ width: 390, height: 844 })
-    await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
-    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-    ).toBe(true)
-    await page.setViewportSize({ width: 1280, height: 720 })
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(1)
     await page.getByRole('button', { name: 'Week', exact: true }).click()
     await expect(page.getByRole('region', { name: 'Week timeline' })).toBeVisible()
+    await expectEndHourLabelInsideCard(page)
     const currentDateHeading = page.locator('time[aria-current="date"]:visible')
     await expect(currentDateHeading).toHaveCount(1)
     await expect(currentDateHeading).toHaveAttribute('datetime', current.date)
@@ -155,13 +173,9 @@ test('Today marks the current local date and time across Day and Week views', as
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(1)
 
-    await page.setViewportSize({ width: 390, height: 844 })
     await expect(page.getByText('Now 08:00', { exact: true })).toBeVisible()
-    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(1)
     await expect(page.locator('time[aria-current="date"]:visible')).toHaveCount(1)
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-    ).toBe(true)
 
     await page.clock.setSystemTime(new Date(2024, 8, 19, 0, 1))
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
@@ -181,7 +195,7 @@ test('Today marks the current local date and time across Day and Week views', as
   }
 })
 
-test('weekly agenda reads seven owner-scoped dates with per-day progress and localized mobile controls', async ({
+test('weekly agenda reads seven owner-scoped dates with per-day progress and localized controls', async ({
   page,
   context,
   browser,
@@ -390,48 +404,12 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await page.getByRole('button', { name: 'Clear filters' }).click()
     await page.keyboard.press('Escape')
 
-    await page.setViewportSize({ width: 390, height: 844 })
-    const mobileDayHeader = page.getByRole('region', { name: labels[0]!, exact: true })
-    const mobileHeading = mobileDayHeader.getByRole('heading', { name: labels[0]!, exact: true })
-    const mobileHeaderRow = mobileHeading.locator('..')
-    const mobileAdd = mobileHeaderRow.getByRole('button', {
-      name: `Add time entry on ${labels[0]}`,
-    })
-    const mobileProgress = mobileDayHeader.getByRole('progressbar', {
-      name: `${labels[0]} workday progress`,
-    })
-    const mobileProgressText = mobileProgress.locator('..').locator('span').first()
-    const [mobileHeadingBox, mobileAddBox, mobileProgressBox, mobileProgressTextBox] =
-      await Promise.all([
-        mobileHeading.boundingBox(),
-        mobileAdd.boundingBox(),
-        mobileProgress.boundingBox(),
-        mobileProgressText.boundingBox(),
-      ])
-    if (!mobileHeadingBox || !mobileAddBox || !mobileProgressBox || !mobileProgressTextBox)
-      throw new Error('Narrow weekly day header rows must be visible')
-    expect(
-      Math.abs(
-        mobileHeadingBox.y +
-          mobileHeadingBox.height / 2 -
-          (mobileAddBox.y + mobileAddBox.height / 2),
-      ),
-    ).toBeLessThan(6)
-    expect(mobileProgressBox.y).toBeGreaterThanOrEqual(
-      mobileHeadingBox.y + mobileHeadingBox.height - 1,
-    )
-    expect(
-      Math.abs(
-        mobileProgressBox.y +
-          mobileProgressBox.height / 2 -
-          (mobileProgressTextBox.y + mobileProgressTextBox.height / 2),
-      ),
-    ).toBeLessThan(6)
-    const shortRange = await page.evaluate(
+    const formattedRange = await page.evaluate(
       (range) => {
         const formatter = new Intl.DateTimeFormat(navigator.language, {
           month: 'numeric',
           day: 'numeric',
+          year: 'numeric',
         })
         return formatter.formatRange(
           new Date(`${range[0]}T12:00:00`),
@@ -440,8 +418,7 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
       },
       [dates[0]!, dates[6]!],
     )
-    expect(await weekRange.innerText()).toBe(shortRange)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    expect(await weekRange.innerText()).toBe(formattedRange)
     await expect(page.getByRole('region', { name: labels[0] })).toBeVisible()
     await page.getByRole('button', { name: `Add time entry on ${labels[2]}` }).click()
     const addDialog = page.getByRole('dialog', { name: 'Add completed work' })
@@ -453,14 +430,13 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await addDialog.getByRole('textbox', { name: 'Work description' }).fill('Weekly quick add')
     await addDialog.getByRole('button', { name: 'Save time entry' }).click()
     await expect(addDialog).toHaveCount(0)
-    const tuesday = page.getByRole('region', { name: labels[2] })
-    await expect(tuesday).toContainText('Weekly first ticket')
+    const tuesday = page.locator(`[data-week-date="${dates[2]}"]`)
+    const quickAdd = tuesday.locator('[data-agenda-entry]').filter({ hasText: 'Weekly quick add' })
+    await expect(quickAdd).toContainText('Weekly first ticket')
     await expect(
       page.getByRole('progressbar', { name: `${labels[2]} workday progress` }),
     ).toHaveAttribute('aria-valuenow', '30')
-    await tuesday
-      .getByRole('button', { name: new RegExp(`Edit time entry on ${dates[2]}`) })
-      .click()
+    await quickAdd.dblclick()
     const correction = page.getByRole('dialog', { name: 'Correct time entry' })
     await expect(correction).toBeVisible()
     await correction.getByRole('button', { name: `Work date: ${dates[2]}` }).click()
@@ -471,10 +447,10 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await expect(correction.getByRole('button', { name: `Work date: ${dates[3]}` })).toBeVisible()
     await correction.getByRole('button', { name: 'Save correction' }).click()
     await expect(correction).toHaveCount(0)
-    await expect(page.getByRole('region', { name: labels[2] })).not.toContainText(
+    await expect(page.locator(`[data-week-date="${dates[2]}"]`)).not.toContainText(
       'Weekly quick add',
     )
-    await expect(page.getByRole('region', { name: labels[3] })).toContainText('Weekly quick add')
+    await expect(page.locator(`[data-week-date="${dates[3]}"]`)).toContainText('Weekly quick add')
     await expect(
       page.getByRole('progressbar', { name: `${labels[2]} workday progress` }),
     ).toHaveAttribute('aria-valuenow', '0')

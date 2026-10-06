@@ -49,7 +49,6 @@ async function cleanup(userId: string) {
 test('ticket detail edits fields in place and creates links and relations in modals', async ({
   page,
   context,
-  browser,
 }) => {
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
@@ -59,7 +58,6 @@ test('ticket detail edits fields in place and creates links and relations in mod
   await helpers.saveUser(owner)
   let ticketId = ''
   let relatedTicketId = ''
-  let mobileContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
 
   try {
     await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
@@ -195,6 +193,9 @@ test('ticket detail edits fields in place and creates links and relations in mod
 
     await page.getByRole('button', { name: 'Add external link' }).click()
     const linkDialog = page.getByRole('dialog', { name: 'Add external link' })
+    await linkDialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(linkDialog).toHaveCount(0)
+    await page.getByRole('button', { name: 'Add external link' }).click()
     await linkDialog
       .getByRole('textbox', { name: 'URL*', exact: true })
       .fill('https://jira.atlassian.com/browse/DETAIL-1')
@@ -212,26 +213,6 @@ test('ticket detail edits fields in place and creates links and relations in mod
       expect.arrayContaining([expect.objectContaining({ id: relatedTicketId })]),
     )
 
-    mobileContext = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      isMobile: true,
-      hasTouch: true,
-    })
-    await mobileContext.addCookies(
-      await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }),
-    )
-    const mobilePage = await mobileContext.newPage()
-    await mobilePage.goto(`/tickets/${ticketId}`)
-    await mobilePage.waitForLoadState('networkidle')
-    expect(
-      await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-    ).toBe(true)
-    await mobilePage.getByRole('button', { name: 'Add external link' }).tap()
-    const mobileDialog = mobilePage.getByRole('dialog', { name: 'Add external link' })
-    await expect(mobileDialog.getByRole('textbox', { name: 'URL*', exact: true })).toBeVisible()
-    await mobileDialog.getByRole('button', { name: 'Cancel' }).tap()
-    await expect(mobileDialog).toHaveCount(0)
-
     await page.getByRole('button', { name: 'Archive ticket' }).click()
     await expect(page).toHaveURL(`/tickets/${ticketId}?archived=true`)
     await expect(page.getByText('Archived', { exact: true })).toBeVisible()
@@ -246,7 +227,6 @@ test('ticket detail edits fields in place and creates links and relations in mod
     await expect(page).toHaveURL('/tickets')
     expect((await page.request.get(`/api/tickets/${ticketId}?archived=true`)).status()).toBe(404)
   } finally {
-    await mobileContext?.close()
     await cleanup(owner.id)
     await helpers.deleteUser(owner.id)
   }

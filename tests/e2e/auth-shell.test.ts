@@ -11,6 +11,66 @@ import { eq, inArray } from 'drizzle-orm'
 
 const uuidv7Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+async function cleanupOwnedHierarchy(userId: string) {
+  const ownedClients = await db
+    .select({ id: clientTable.id })
+    .from(clientTable)
+    .where(eq(clientTable.userId, userId))
+  const ownedClientIds = ownedClients.map(({ id }) => id)
+  const ownedProjects = ownedClientIds.length
+    ? await db
+        .select({ id: projectTable.id })
+        .from(projectTable)
+        .where(inArray(projectTable.clientId, ownedClientIds))
+    : []
+  const ownedProjectIds = ownedProjects.map(({ id }) => id)
+  if (ownedProjectIds.length)
+    await db.delete(releaseTable).where(inArray(releaseTable.projectId, ownedProjectIds))
+  if (ownedClientIds.length)
+    await db.delete(projectTable).where(inArray(projectTable.clientId, ownedClientIds))
+  if (ownedClientIds.length)
+    await db.delete(clientTable).where(inArray(clientTable.id, ownedClientIds))
+}
+
+const hierarchyTest = test.extend<{ hierarchyUser: { id: string } }>({
+  hierarchyUser: async ({ context }, use) => {
+    const helpers = (await testAuth.$context).test
+    const user = helpers.createUser({
+      name: 'Hierarchy E2E User',
+      email: `nxmr-hierarchy-${crypto.randomUUID()}@example.com`,
+    })
+    try {
+      await helpers.saveUser(user)
+      await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
+      await use({ id: user.id })
+    } finally {
+      await cleanupOwnedHierarchy(user.id)
+      await helpers.deleteUser(user.id)
+    }
+  },
+})
+
+async function createHierarchy(page: Page, userId: string, prefix: string) {
+  const create = async (path: string, data: unknown) => {
+    const response = await page.request.post(path, { data })
+    if (!response.ok()) throw new Error(`Could not seed ${path}: ${response.status()}`)
+    return response.json()
+  }
+  const client = await create('/api/clients', { name: `${prefix} Client`, color: '#ABC123' })
+  expect(client.userId).toBe(userId)
+  const project = await create('/api/projects', {
+    clientId: client.id,
+    name: `${prefix} Project`,
+    color: '#abcdef',
+  })
+  const release = await create('/api/releases', {
+    projectId: project.id,
+    name: `${prefix} Release`,
+    targetDate: '2030-02-01',
+  })
+  return { client, project, release }
+}
+
 async function expectTooltip(page: Page, text: string) {
   await expect(page.locator('[data-slot="content"]').filter({ hasText: text })).toBeVisible()
 }
@@ -29,16 +89,16 @@ async function expectLoginCardCentered(page: Page) {
   expect(centerOffset).toBeLessThanOrEqual(1)
 }
 
-async function expectLeftAlignedProjectSummary(card: Locator) {
-  const clientButton = card.getByRole('link', { name: 'M2 Client' })
+async function expectLeftAlignedProjectSummary(card: Locator, clientName: string) {
+  const clientButton = card.getByRole('link', { name: clientName })
   const countsList = card.getByRole('list', { name: 'Active project contents' })
   const countPill = countsList.locator('li').first()
   await expect(clientButton).toHaveClass(/bg-default/)
-  await expect(clientButton).toHaveClass(/px-1\.5/)
+  await expect(clientButton).toHaveClass(/px-2/)
   await expect(clientButton).toHaveClass(/text-muted/)
   await expect(countsList).toHaveClass(/text-muted/)
   await expect(countPill).toHaveClass(/bg-default/)
-  await expect(countPill).toHaveClass(/px-1\.5/)
+  await expect(countPill).toHaveClass(/px-1/)
   await expect(clientButton.locator('[aria-hidden="true"]')).toBeVisible()
   const [cardSurface, linkSurface, countSurface] = await Promise.all([
     card.evaluate((element) => getComputedStyle(element).backgroundColor),
@@ -67,12 +127,8 @@ async function expectEditBeforeNew(page: Page, editLabel: string, newLabel: stri
   await expect(create).toBeVisible()
   const [editBox, newBox] = await Promise.all([edit.boundingBox(), create.boundingBox()])
   if (!editBox || !newBox) throw new Error('Header actions must be visible')
-  if (Math.abs(editBox.y - newBox.y) < 4) {
-    expect(editBox.x + editBox.width).toBeLessThanOrEqual(newBox.x)
-  } else {
-    expect(editBox.y + editBox.height).toBeLessThanOrEqual(newBox.y)
-    expect(Math.abs(editBox.x - newBox.x)).toBeLessThan(2)
-  }
+  expect(Math.abs(editBox.y - newBox.y)).toBeLessThan(4)
+  expect(editBox.x + editBox.width).toBeLessThanOrEqual(newBox.x)
 }
 
 test('redirects unauthenticated users and supports an authenticated shell session', async ({
@@ -84,9 +140,6 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
   await expect(page).toHaveURL(/\/login\?redirect=\/today$/)
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
   await expectLoginCardCentered(page)
-  await page.setViewportSize({ width: 390, height: 844 })
-  await expectLoginCardCentered(page)
-  await page.setViewportSize({ width: 1280, height: 900 })
 
   const helpers = (await testAuth.$context).test
   const user = helpers.createUser({
@@ -151,6 +204,16 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
 
     await mainNavigation.getByRole('link', { name: 'Clients' }).click()
     await expect(page).toHaveURL(/\/clients$/)
+    const archiveToggle = page.locator(
+      'button[aria-label="Show archived"], button[aria-label="Hide archived"]',
+    )
+    await expect(archiveToggle).toBeVisible()
+    await page.waitForFunction(() => {
+      const button = document.querySelector('button[aria-label="Show archived"]')
+      return button !== null && '__vueParentComponent' in button
+    })
+    await archiveToggle.hover()
+    await expectTooltip(page, 'Show archived')
     await mainNavigation.getByRole('link', { name: 'Tickets' }).click()
     await expect(page).toHaveURL(/\/tickets$/)
     await header.getByRole('link', { name: 'Settings' }).click()
@@ -167,27 +230,6 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
       'src',
       'https://avatars.githubusercontent.com/u/12345?v=4',
     )
-    for (const width of [390, 320]) {
-      await page.setViewportSize({ width, height: 844 })
-      await expect(mainNavigation.getByRole('link', { name: 'Today' })).toBeVisible()
-      await expect(mainNavigation.getByRole('link', { name: 'Tickets' })).toBeVisible()
-      await expect(mainNavigation.getByRole('link', { name: 'Clients' })).toBeVisible()
-      await expect(headerSearch).toBeVisible()
-      await expect(header.getByRole('link', { name: 'Settings' })).toBeVisible()
-      await expect(header.getByRole('button', { name: 'Sign out' })).toBeVisible()
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-        true,
-      )
-      const blockTops = await Promise.all(
-        ['left', 'search', 'account'].map(async (block) =>
-          header
-            .locator(`[data-header-block="${block}"]`)
-            .evaluate((element) => element.getBoundingClientRect().top),
-        ),
-      )
-      expect(blockTops[0]).toBeLessThan(blockTops[1]!)
-      expect(blockTops[1]).toBeLessThan(blockTops[2]!)
-    }
     await page.setViewportSize({ width: 1280, height: 900 })
     await header.getByRole('button', { name: 'Sign out' }).click({ noWaitAfter: true })
     await page.waitForURL(/\/login$/)
@@ -196,29 +238,36 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
   }
 })
 
-test('creates and archives the client hierarchy', async ({ page, context }) => {
-  const helpers = (await testAuth.$context).test
-  const user = helpers.createUser({
-    name: 'E2E M2 User',
-    email: `nxmr-m2-${crypto.randomUUID()}@example.com`,
-  })
-  await helpers.saveUser(user)
-
-  try {
-    await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
+hierarchyTest(
+  'hierarchy prerequisites and contextual project creation work',
+  async ({ page, hierarchyUser }) => {
     await page.goto('/releases/new')
     await expect(page.getByRole('heading', { name: 'Create a project first' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Go to clients' })).toHaveAttribute(
       'href',
       '/clients',
     )
+    await page.goto('/projects/new')
+    await expect(page.getByRole('heading', { name: 'Create a client first' })).toBeVisible()
+    await page.goto('/clients/new')
+    const createButton = page.getByRole('button', { name: 'Create client' })
+    const cancelButton = page.getByRole('link', { name: 'Cancel' })
+    const [createBounds, cancelBounds] = await Promise.all([
+      createButton.boundingBox(),
+      cancelButton.boundingBox(),
+    ])
+    if (!createBounds || !cancelBounds) throw new Error('Desktop form actions must be visible')
+    expect(Math.abs(createBounds.y - cancelBounds.y)).toBeLessThan(4)
+    expect(cancelBounds.x + cancelBounds.width).toBeLessThanOrEqual(createBounds.x)
+
     const clientResponse = await page.request.post('/api/clients', {
       data: { name: 'M2 Client', color: '#ABC123' },
     })
     expect(clientResponse.ok()).toBeTruthy()
     const client = await clientResponse.json()
     expect(client.id).toMatch(uuidv7Pattern)
-    expect(client.userId).toBe(user.id)
+    expect(client.userId).toBe(hierarchyUser.id)
+
     await page.goto('/projects/new')
     await waitForClientMount(page)
     await page.getByRole('link', { name: 'Cancel' }).click()
@@ -240,25 +289,30 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await page.getByRole('textbox', { name: 'Name' }).fill('M2 Project')
     await page.getByRole('button', { name: 'Create project' }).click()
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/)
-    const project = {
-      id: new URL(page.url()).pathname.split('/').at(-1)!,
-      clientId: client.id,
-    }
-    expect(project.id).toMatch(uuidv7Pattern)
+    const projectId = new URL(page.url()).pathname.split('/').at(-1)!
+    expect(projectId).toMatch(uuidv7Pattern)
+
     await page.goto('/releases/new')
     await page.getByRole('link', { name: 'Cancel' }).click()
     await expect(page).toHaveURL('/clients')
-    await page.goto(`/releases/new?project=${project.id}`)
+    await page.goto(`/releases/new?project=${projectId}`)
     await waitForClientMount(page)
     await page.getByRole('link', { name: 'Cancel' }).click()
-    await expect(page).toHaveURL(`/projects/${project.id}`)
+    await expect(page).toHaveURL(`/projects/${projectId}`)
     const releaseResponse = await page.request.post('/api/releases', {
-      data: { projectId: project.id, name: 'M2 Release', targetDate: '2030-02-01' },
+      data: { projectId, name: 'M2 Release', targetDate: '2030-02-01' },
     })
     expect(releaseResponse.ok()).toBeTruthy()
     const release = await releaseResponse.json()
     expect(release.id).toMatch(uuidv7Pattern)
-    expect(release.projectId).toBe(project.id)
+    expect(release.projectId).toBe(projectId)
+  },
+)
+
+hierarchyTest(
+  'client, project, and release details show their hierarchy actions',
+  async ({ page, hierarchyUser }) => {
+    const { client, project, release } = await createHierarchy(page, hierarchyUser.id, 'Detail')
 
     await page.goto('/clients')
     const clientsTitle = page.getByRole('heading', { name: 'Clients', exact: true })
@@ -268,12 +322,9 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await expect(archiveToggle).toBeVisible()
     await expect(page.getByText('View projects and releases', { exact: true })).toHaveCount(0)
     await expect(archiveToggle).not.toHaveAttribute('title')
-    await waitForClientMount(page)
-    await archiveToggle.hover()
-    await expectTooltip(page, 'Show archived')
+
     await page.goto(`/clients/${client.id}`)
-    const clientHeading = page.getByRole('heading', { name: 'M2 Client' })
-    await expect(clientHeading).toBeVisible()
+    await expect(page.getByRole('heading', { name: client.name })).toBeVisible()
     await expect(
       page.getByText('Projects and releases for this client.', { exact: true }),
     ).toHaveCount(0)
@@ -282,36 +333,24 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
       page.getByRole('main').getByRole('link', { name: 'Clients', exact: true }),
     ).toHaveCount(0)
     await expectEditBeforeNew(page, 'Edit client', 'New project')
-    await page.setViewportSize({ width: 390, height: 844 })
-    await expectEditBeforeNew(page, 'Edit client', 'New project')
     const clientProjectCard = page.locator(`[data-project-card-id="${project.id}"]`)
-    await expect(clientProjectCard.getByText('M2 Project')).toBeVisible()
-    await expect(clientProjectCard.getByRole('link', { name: 'M2 Client' })).toBeVisible()
+    await expect(clientProjectCard.getByText(project.name)).toBeVisible()
+    await expect(clientProjectCard.getByRole('link', { name: client.name })).toBeVisible()
     await expect(clientProjectCard.getByText('1 release')).toBeVisible()
     await expect(clientProjectCard.getByText('0 tickets')).toBeVisible()
     await expect(page.getByText('View releases', { exact: true })).toHaveCount(0)
-    await expectLeftAlignedProjectSummary(clientProjectCard)
+    await expectLeftAlignedProjectSummary(clientProjectCard, client.name)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await clientProjectCard.getByRole('link', { name: 'Open project M2 Project' }).click()
+    await clientProjectCard.getByRole('link', { name: `Open project ${project.name}` }).click()
     await expect(page).toHaveURL(`/projects/${project.id}`)
     await expectEditBeforeNew(page, 'Edit project', 'New release')
-    await page.setViewportSize({ width: 1280, height: 844 })
-    await expectEditBeforeNew(page, 'Edit project', 'New release')
-    await page.setViewportSize({ width: 390, height: 844 })
-    await expect(page.getByText('M2 Release')).toBeVisible()
+    await expect(page.getByText(release.name)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Show archived' })).toBeVisible()
-    const markDone = page.getByRole('button', { name: 'Mark release as done' })
-    await expect(markDone).toBeVisible()
-    await expect(markDone).not.toHaveAttribute('title')
-    await waitForClientMount(page)
-    await markDone.hover()
-    await expectTooltip(page, 'Mark done')
+    await expect(page.getByRole('button', { name: 'Mark release as done' })).toHaveCount(0)
+
     await page.goto(`/releases/${release.id}`)
     await waitForClientMount(page)
     await expectEditBeforeNew(page, 'Edit release', 'New ticket')
-    await page.setViewportSize({ width: 1280, height: 844 })
-    await expectEditBeforeNew(page, 'Edit release', 'New ticket')
-    await page.setViewportSize({ width: 390, height: 844 })
     await page.getByRole('button', { name: 'Mark release as done' }).click()
     const emptyReleaseWarning = page.getByRole('dialog', { name: 'Mark release as done?' })
     await expect(
@@ -323,15 +362,24 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
       }),
     ).toBeVisible()
     await emptyReleaseWarning.getByRole('button', { name: 'Cancel' }).click()
+  },
+)
+
+hierarchyTest(
+  'archived hierarchy can be restored and permanently deleted',
+  async ({ page, hierarchyUser }) => {
+    const { client, project, release } = await createHierarchy(page, hierarchyUser.id, 'Archive')
+
     await page.goto(`/projects/${project.id}`)
+    await expect(page.getByRole('button', { name: 'Show archived' })).toBeVisible()
     expect(
       (await page.request.patch(`/api/releases/${release.id}`, { data: { archived: true } })).ok(),
     ).toBeTruthy()
     await page.reload()
-    await expect(page.getByText('M2 Release')).toBeHidden()
+    await expect(page.getByText(release.name)).toBeHidden()
     await page.goto(`/projects/${project.id}?archived=true`)
     await expect(page.getByRole('button', { name: 'Hide archived' })).toBeVisible()
-    await expect(page.getByText('M2 Release')).toBeVisible()
+    await expect(page.getByText(release.name)).toBeVisible()
 
     expect(
       (await page.request.patch(`/api/clients/${client.id}`, { data: { archived: true } })).ok(),
@@ -353,6 +401,7 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     expect(
       (await page.request.patch(`/api/clients/${client.id}`, { data: { archived: true } })).ok(),
     ).toBeTruthy()
+
     await page.goto(`/releases/${release.id}/edit?archived=true`)
     await waitForClientMount(page)
     page.once('dialog', (dialog) => dialog.accept())
@@ -366,6 +415,7 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     ])
     expect(releaseDeleteResponse.ok()).toBeTruthy()
     await expect(page).toHaveURL(`/projects/${project.id}?archived=true`)
+
     await page.goto(`/projects/${project.id}/edit?archived=true`)
     await waitForClientMount(page)
     page.once('dialog', (dialog) => dialog.accept())
@@ -379,39 +429,5 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     ])
     expect(projectDeleteResponse.ok()).toBeTruthy()
     await expect(page).toHaveURL(`/clients/${client.id}?archived=true`)
-    await page.goto('/projects/new')
-    await expect(page.getByRole('heading', { name: 'Create a client first' })).toBeVisible()
-    await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto('/clients/new')
-    const createButton = page.getByRole('button', { name: 'Create client' })
-    const cancelButton = page.getByRole('link', { name: 'Cancel' })
-    const [createBounds, cancelBounds] = await Promise.all([
-      createButton.boundingBox(),
-      cancelButton.boundingBox(),
-    ])
-    if (!createBounds || !cancelBounds) throw new Error('Mobile form actions must be visible')
-    expect(createBounds.y).toBeLessThan(cancelBounds.y)
-    expect(Math.abs(createBounds.x - cancelBounds.x)).toBeLessThan(1)
-    expect(createBounds.width).toBe(cancelBounds.width)
-  } finally {
-    const ownedClients = await db
-      .select({ id: clientTable.id })
-      .from(clientTable)
-      .where(eq(clientTable.userId, user.id))
-    const ownedClientIds = ownedClients.map(({ id }) => id)
-    const ownedProjects = ownedClientIds.length
-      ? await db
-          .select({ id: projectTable.id })
-          .from(projectTable)
-          .where(inArray(projectTable.clientId, ownedClientIds))
-      : []
-    const ownedProjectIds = ownedProjects.map(({ id }) => id)
-    if (ownedProjectIds.length)
-      await db.delete(releaseTable).where(inArray(releaseTable.projectId, ownedProjectIds))
-    if (ownedClientIds.length)
-      await db.delete(projectTable).where(inArray(projectTable.clientId, ownedClientIds))
-    if (ownedClientIds.length)
-      await db.delete(clientTable).where(inArray(clientTable.id, ownedClientIds))
-    await helpers.deleteUser(user.id)
-  }
-})
+  },
+)

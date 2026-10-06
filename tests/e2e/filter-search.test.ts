@@ -25,16 +25,8 @@ async function expectSameToolbarRow(toolbar: Locator) {
   expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(2)
 }
 
-async function expectStackedToolbar(toolbar: Locator) {
-  const boxes = await Promise.all(
-    boardToolbarControls(toolbar).map((control) => control.boundingBox()),
-  )
-  if (boxes.some((box) => !box))
-    throw new Error('All ticket-board toolbar controls must be visible')
-  const tops = boxes.map((box) => box!.y)
-  for (let index = 1; index < tops.length; index++) {
-    expect(tops[index]).toBeGreaterThan(tops[index - 1]!)
-  }
+async function expectCompactPageSpacing(page: import('@playwright/test').Page) {
+  await expect(page.locator('main > .flex.flex-col.gap-2')).toHaveCSS('row-gap', '8px')
 }
 
 async function cleanup(userId: string) {
@@ -57,14 +49,13 @@ async function cleanup(userId: string) {
   if (clientIds.length) await db.delete(client).where(inArray(client.id, clientIds))
 }
 
-test('Today and ticket-board filters accept typed searches', async ({ page, context, browser }) => {
+test('Today and ticket-board filters accept typed searches', async ({ page, context }) => {
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
     name: 'Filter search owner',
     email: `filter-search-${crypto.randomUUID()}@example.com`,
   })
   await helpers.saveUser(owner)
-  let mobileContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
 
   try {
     await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
@@ -129,14 +120,12 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
     const toolbar = page.getByRole('group', { name: 'Ticket board controls' })
     const filterGroup = toolbar.getByRole('group', { name: 'Ticket filters' })
     await expect(toolbar).toBeVisible()
+    await expectCompactPageSpacing(page)
     await expect(filterGroup.getByRole('button', { name: 'Filter client' })).toBeVisible()
     await expect(filterGroup.getByRole('button', { name: 'Clear filters' })).toBeVisible()
     await expect(filterGroup.getByRole('button', { name: 'Show archived' })).toHaveCount(0)
     await expect(filterGroup.getByRole('link', { name: 'New ticket' })).toHaveCount(0)
     await expectSameToolbarRow(toolbar)
-    await page.setViewportSize({ width: 1024, height: 900 })
-    await expectSameToolbarRow(toolbar)
-    await page.setViewportSize({ width: 1440, height: 900 })
     await expect(toolbar.getByRole('link', { name: 'New ticket' })).toHaveAttribute(
       'href',
       '/tickets/new',
@@ -215,6 +204,7 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
 
     await page.goto('/today')
     await page.waitForLoadState('networkidle')
+    await expectCompactPageSpacing(page)
     for (const filter of [
       {
         kind: 'client',
@@ -277,42 +267,7 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
     await expect(page.getByRole('button', { name: 'Filter ticket' })).toContainText('All tickets')
     await page.getByRole('button', { name: 'Clear filters' }).click()
     await expect(page.getByRole('button', { name: 'Filter status' })).toContainText('All statuses')
-
-    mobileContext = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      isMobile: true,
-      hasTouch: true,
-    })
-    await mobileContext.addCookies(
-      await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }),
-    )
-    const mobile = await mobileContext.newPage()
-    await mobile.goto('/tickets')
-    await mobile.waitForLoadState('networkidle')
-    const mobileToolbar = mobile.getByRole('group', { name: 'Ticket board controls' })
-    await expect(mobileToolbar).toBeVisible()
-    await expectStackedToolbar(mobileToolbar)
-    await expect(mobileToolbar.getByRole('link', { name: 'New ticket' })).toHaveAttribute(
-      'href',
-      '/tickets/new',
-    )
-    expect(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-      true,
-    )
-    await mobile.getByRole('button', { name: 'Filter client' }).tap()
-    const mobileSearch = mobile.getByPlaceholder('Search clients…')
-    await expect(mobileSearch).toBeVisible()
-    expect(await mobileSearch.evaluate((element) => element === document.activeElement)).toBe(false)
-    await mobile.goto('/today')
-    await mobile.waitForLoadState('networkidle')
-    await mobile.getByRole('button', { name: 'Filter client' }).tap()
-    const mobileTodaySearch = mobile.getByPlaceholder('Search clients…')
-    await expect(mobileTodaySearch).toBeVisible()
-    expect(await mobileTodaySearch.evaluate((element) => element === document.activeElement)).toBe(
-      false,
-    )
   } finally {
-    await mobileContext?.close()
     await cleanup(owner.id)
   }
 })

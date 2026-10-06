@@ -56,25 +56,25 @@ function safeRedirect(value: unknown) {
     <UAlert
       v-if="sessionError"
       role="alert"
-      class="mt-6"
+      class="mt-4"
       color="error"
       title="Could not verify your session"
       :description="clientFailureMessage(sessionError)"
     />
     <UButton
       v-if="sessionError"
-      class="mt-3"
+      class="mt-2"
       color="neutral"
       variant="outline"
       icon="lucide:refresh-cw"
       label="Retry session verification"
       @click="refreshNuxtData()"
     />
-    <UAlert v-if="errorMessage" role="alert" class="mt-6" color="error" title="Sign-in failed">
+    <UAlert v-if="errorMessage" role="alert" class="mt-4" color="error" title="Sign-in failed">
       {{ errorMessage }}
     </UAlert>
     <UButton
-      class="mt-6 w-full justify-center"
+      class="mt-4 w-full justify-center"
       :loading="pending"
       :disabled="pending"
       icon="lucide:github"

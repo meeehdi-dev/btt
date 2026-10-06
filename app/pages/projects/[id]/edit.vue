@@ -61,7 +61,7 @@ async function remove() {
 }
 </script>
 <template>
-  <div v-if="project" class="w-full space-y-6">
+  <div v-if="project" class="w-full space-y-4">
     <HierarchyBreadcrumbs
       :ancestors="[
         {
@@ -77,7 +77,7 @@ async function remove() {
       ]"
       :current="{ kind: 'projects', label: 'Edit project' }"
     />
-    <div v-if="projectError" class="space-y-3">
+    <div v-if="projectError" class="space-y-2">
       <UAlert
         role="alert"
         color="error"
@@ -93,7 +93,7 @@ async function remove() {
       />
     </div>
     <UCard
-      ><form class="space-y-5" @submit.prevent="save">
+      ><form class="space-y-3" @submit.prevent="save">
         <UFormField label="Name" required><UInput v-model="name" class="w-full" /></UFormField
         ><UFormField label="Color" required><ColorSelector v-model="color" /></UFormField
         ><UCheckbox v-model="archived" label="Archived" /><UAlert
@@ -103,36 +103,28 @@ async function remove() {
           title="Could not save changes"
           >{{ errorMessage }}</UAlert
         >
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center justify-between gap-2">
           <UButton
             v-if="archived"
             color="error"
             variant="ghost"
             icon="lucide:trash-2"
             label="Permanently delete"
-            class="w-full sm:w-auto"
             @click="remove"
           />
-          <div class="flex flex-col gap-2 sm:ml-auto sm:flex-row">
+          <div class="ml-auto flex items-center gap-2">
             <UButton
               :to="`/projects/${id}${archived ? '?archived=true' : ''}`"
               color="neutral"
               variant="ghost"
               icon="lucide:x"
               label="Cancel"
-              class="w-full sm:w-auto"
-            /><UButton
-              type="submit"
-              :loading="pending"
-              icon="lucide:save"
-              label="Save changes"
-              class="w-full sm:w-auto"
-            />
+            /><UButton type="submit" :loading="pending" icon="lucide:save" label="Save changes" />
           </div>
         </div></form
     ></UCard>
   </div>
-  <UCard v-else-if="projectError" class="space-y-3">
+  <UCard v-else-if="projectError" class="space-y-2">
     <UAlert
       role="alert"
       color="error"

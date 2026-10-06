@@ -33,7 +33,7 @@ defineProps<{
           class="inline-flex min-w-0 max-w-full items-center gap-1 text-sm text-muted hover:text-primary"
         >
           <EntityIcon :kind="item.kind" />
-          <span class="max-w-48 truncate sm:max-w-64" :title="item.label">{{ item.label }}</span>
+          <span class="max-w-64 truncate" :title="item.label">{{ item.label }}</span>
         </NuxtLink>
         <UIcon name="lucide:chevron-right" class="size-4 shrink-0 text-muted" aria-hidden="true" />
       </li>

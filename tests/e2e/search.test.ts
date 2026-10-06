@@ -124,7 +124,6 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     await page.keyboard.press('t')
     await expect(page).toHaveURL(/\/today$/)
 
-    await page.setViewportSize({ width: 390, height: 844 })
     const header = page.getByRole('banner')
     const mainNavigation = header.getByRole('navigation', { name: 'Main navigation' })
     expect(
@@ -147,21 +146,8 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     await expect(workdaySummary).toContainText('30m')
     await expect(workdaySummary.locator('.text-info')).toHaveText('30m')
     await expect(workdaySummary.locator('.text-muted')).toHaveText('/ 8hr')
-    const controlRow = page.getByLabel('Choose agenda day').locator('..')
-    await expect
-      .poll(() => controlRow.evaluate((node) => getComputedStyle(node).flexDirection))
-      .toBe('column')
     await expect(page.getByRole('button', { name: 'Add time entry' })).toBeVisible()
     await page.goto('/clients')
-    await expect
-      .poll(() =>
-        page
-          .getByRole('button', { name: 'Show archived' })
-          .locator('..')
-          .evaluate((node) => getComputedStyle(node).flexDirection),
-      )
-      .toBe('column')
-    await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto('/today?date=2030-02-10')
     await expect
       .poll(() =>
@@ -211,13 +197,16 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
       .getByRole('link', { name: 'Open project Needle project own' })
       .click({ position: { x: 170, y: 55 } })
     await expect(page).toHaveURL(new RegExp(`/projects/${own.p.id}$`))
-    await page
-      .getByRole('link', { name: 'Open release Needle release own' })
-      .locator('..')
-      .click({ position: { x: 12, y: 85 } })
+    await page.getByRole('link', { name: 'Open release Needle release own' }).click()
     await expect(page).toHaveURL(new RegExp(`/releases/${own.r.id}$`))
     await page.goto(`/projects/${own.p.id}`)
     await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('button', { name: 'Mark release as done' })).toHaveCount(0)
+    await page.goto(`/releases/${own.r.id}`)
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: 'Mark release as done' }).click()
+    const completionWarning = page.getByRole('dialog', { name: 'Mark release as done?' })
+    await expect(completionWarning).toBeVisible()
     const [doneResponse] = await Promise.all([
       page.waitForResponse(
         (response) =>
@@ -225,7 +214,7 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
           response.request().method() === 'PATCH',
         { timeout: 5000 },
       ),
-      page.getByRole('button', { name: 'Mark release as done' }).click(),
+      completionWarning.getByRole('button', { name: 'Mark release as done' }).click(),
     ])
     expect(doneResponse.ok()).toBe(true)
     await expect(page).toHaveURL(new RegExp(`/projects/${own.p.id}$`))
