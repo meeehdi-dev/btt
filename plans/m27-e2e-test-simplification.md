@@ -1,6 +1,6 @@
 # M27 — Simplify CI E2E timeout failures
 
-**Status: Approved by the human via chat on 2026-10-06. The CI-driven fixes and subsequent agenda-readiness/hierarchy-test follow-up are locally verified; the latest complete E2E run passed 39/39. Human code review and hosted CI confirmation remain pending; no new remote run is authorized.**
+**Status: Complete by human declaration on 2026-10-06. The CI-driven fixes and subsequent agenda-readiness/hierarchy-test follow-up are locally verified; the latest complete E2E run passed 39/39, and the human accepted code review. The human plans to push and check GitHub Actions; no hosted result is recorded or claimed here.**
 
 ## Context and diagnosis
 
@@ -61,4 +61,4 @@ The strongest source-level cause is test design, not a demonstrated application/
 
 ## Approval
 
-The human said “go” on 2026-10-06, approving this plan and authorizing implementation within the stated scope. Human code review is required before accepting the changes; explicit authorization is required before triggering CI.
+The human said “go” on 2026-10-06, approving this plan and authorizing implementation within the stated scope. On 2026-10-06 the human accepted the current code review (“all good”) and declared the milestone complete. The human plans to push and check GitHub Actions; hosted CI confirmation remains unrecorded and is not claimed by this plan.

@@ -210,6 +210,11 @@ No application dependency changes are proposed.
 - Verification: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, `node scripts/check-workflow-docs.mjs`, and `git diff --check` all passed. The build emitted a non-failing Vite `PLUGIN_TIMINGS` advisory. Playwright logged the existing non-fatal `ResizeObserver` diagnostic and expected retired-route warnings.
 - Status: local implementation and verification are complete. Human code review and explicit authorization before any new remote run remain pending; no push or remote CI run was triggered.
 
+### 2026-10-06 — Human review and completion declaration
+
+- Decision (human): the user said, “all good, i declare this milestone complete.” This accepts the current code review and declares M27 complete.
+- Status: Complete by human declaration on 2026-10-06. The human plans to push and check GitHub Actions; no hosted result is recorded or claimed. The pending hosted check is a user-owned follow-up, not evidence of a passing remote run.
+
 ## Verification
 
 Planning checks:
@@ -238,27 +243,26 @@ Implementation verification (authorized):
 - [x] Formatting, lint, both typechecks, unit tests, build, workflow checks, workflow-document checks, and diff checks passed after the CI-driven follow-up.
 - [x] Inspected the first-attempt result and retained artifact from run 37365101184: 39/40 passed; the remaining mobile failure is a client-mount race.
 - [x] Reproduced the mobile assertion failure under delayed module loading; the two-line readiness fix passed 3/3 delayed scenarios, 5/5 real mobile repetitions, and the full 40-test suite without skipped tests or policy changes.
-- [ ] Human code review of this follow-up accepted.
-- [ ] After review, explicit human authorization to trigger CI and verification of the first remote result recorded.
+- [x] Human code review of this follow-up accepted by the user on 2026-10-06 (“all good”).
+- [ ] Hosted GitHub Actions result for the latest fixes inspected — pending the human's planned push/check; no remote result is claimed here.
 
 ## Review status
 
 - Plan review: Original M27 plan and the E2E simplification plan approved by the human via chat on 2026-10-06; follow-up implementation authorized.
-- Code review: Original M27 implementation and conflict-assertion correction/documentation accepted by the human on 2026-10-06. The CI-driven test-readiness and scenario-splitting follow-up, including the agenda readiness and hierarchy test changes, is awaiting human code review.
-- CI authorization: Run 37365101184 tested commit `2c7db9e`, not the subsequent local fixes. No push or remote run was triggered; review and explicit authorization remain required before a new run.
-- Milestone completion declaration: Pending.
+- Code review: Original M27 implementation, conflict-assertion correction/documentation, and the latest agenda-readiness/hierarchy-test follow-up accepted by the human on 2026-10-06 (“all good”).
+- CI status: Run 37365101184 tested commit `2c7db9e`, not the subsequent local fixes. The human plans to push and check GitHub Actions. No result for the latest fixes is recorded here; no hosted pass is claimed.
+- Milestone completion declaration: Complete. The user stated, “all good, i declare this milestone complete,” on 2026-10-06.
 
 ## Follow-ups
 
-- Review [`plans/m27-e2e-test-simplification.md`](../../plans/m27-e2e-test-simplification.md) and the current full diff. After code review is accepted, obtain explicit human authorization before triggering GitHub Actions; inspect the first-attempt result and retained diagnostic artifact before declaring M27 complete.
-- Local full-suite results (40/40 on the earlier suite and 39/39 after the latest test edits) do not prove the hosted-runner failures are resolved. If the next authorized CI run fails, retain first-failure diagnostics and investigate without automatic retries, timeout increases, or worker changes unless separately approved.
+- The human plans to push and inspect GitHub Actions for the latest changes. Record the result when available; local full-suite results (40/40 on the earlier suite and 39/39 after the latest test edits) do not prove hosted-runner reliability. If CI fails, retain first-failure diagnostics and investigate without automatic retries, timeout increases, or worker changes unless separately approved.
 - No automatic retry is planned. Manual reruns remain the human's choice after inspecting diagnostics.
 - Do not classify runner/action deprecation notices as the cause of this failure; handle action-version maintenance separately.
 
 ## Closeout checklist
 
-- [ ] Approved scope complete or explicitly deferred.
+- [x] Approved scope complete or explicitly deferred; hosted CI confirmation remains a user-owned follow-up.
 - [x] Verification evidence recorded.
 - [x] Human code review accepted for the original M27 implementation and conflict-assertion correction.
-- [ ] Human code review accepted for the E2E simplification follow-up.
-- [ ] Human completion declaration recorded in the journal and review status.
+- [x] Human code review accepted for the E2E simplification follow-up.
+- [x] Human completion declaration recorded in the journal and review status.
