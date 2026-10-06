@@ -55,10 +55,9 @@ async function openItem(
   await expect(page).toHaveURL(new RegExp(`/${kind === 'client' ? 'clients' : `${kind}s`}/[^/?]+$`))
 }
 
-test('ticket board hierarchy badges filter by or open their item on desktop and mobile', async ({
+test('ticket board hierarchy badges filter by or open their item on desktop', async ({
   page,
   context,
-  browser,
 }) => {
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
@@ -66,7 +65,6 @@ test('ticket board hierarchy badges filter by or open their item on desktop and 
     email: `board-hierarchy-actions-${crypto.randomUUID()}@example.com`,
   })
   await helpers.saveUser(owner)
-  let mobileContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
 
   try {
     await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
@@ -169,43 +167,7 @@ test('ticket board hierarchy badges filter by or open their item on desktop and 
     await page.waitForLoadState('networkidle')
     await openItem(boardCard(page, ticketA.id), page, 'release', releaseAName)
     await expect(page.getByRole('heading', { name: releaseAName })).toBeVisible()
-
-    mobileContext = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      isMobile: true,
-      hasTouch: true,
-    })
-    await mobileContext.addCookies(
-      await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }),
-    )
-    const mobilePage = await mobileContext.newPage()
-    await mobilePage.goto('/tickets')
-    await mobilePage.waitForLoadState('networkidle')
-    await mobilePage.getByRole('button', { name: 'Idea: 3 tickets' }).tap()
-    const mobileTarget = boardCard(mobilePage, ticketA.id)
-    await expect(mobileTarget).toBeVisible()
-    await expectNoHorizontalOverflow(mobileTarget.getByLabel('Ticket hierarchy'))
-    await expectNoHorizontalOverflow(mobileTarget.getByLabel('Ticket context'))
-    await mobileTarget.getByRole('button', { name: `client: ${clientAName}; actions` }).tap()
-    await expect(
-      mobilePage.getByRole('button', { name: `Filter by ${clientAName}`, exact: true }),
-    ).toBeVisible()
-    await mobilePage.getByRole('button', { name: `Filter by ${clientAName}`, exact: true }).tap()
-    await expect(mobilePage.getByRole('button', { name: 'Filter client' })).toContainText(
-      clientAName,
-    )
-    await expect(boardCard(mobilePage, ticketA2.id)).toBeVisible()
-    await expect(boardCard(mobilePage, ticketB.id)).toHaveCount(0)
-    expect(
-      await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-    ).toBe(true)
-
-    await mobileTarget.getByRole('button', { name: `project: ${projectAName}; actions` }).tap()
-    await mobilePage.getByRole('link', { name: `Open ${projectAName}`, exact: true }).tap()
-    await expect(mobilePage).toHaveURL(`/projects/${projectA.id}`)
-    await expect(mobilePage.getByRole('heading', { name: projectAName })).toBeVisible()
   } finally {
-    await mobileContext?.close()
     await cleanup(owner.id)
   }
 })

@@ -143,6 +143,17 @@ test('day read and settings are owner scoped, include archived history, and vali
     }
     await page.goto('/today')
     await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('region', { name: 'Day timeline' })).toBeVisible()
+    const agendaFilterBody = page
+      .locator('main .grid-cols-5')
+      .locator('xpath=ancestor::*[@data-slot="body"]')
+    await expect(agendaFilterBody).toHaveCSS('padding', '2px')
+    const filterTriggers = page.locator('main .grid-cols-5 button[aria-label^="Filter "]')
+    await expect(filterTriggers).toHaveCount(5)
+    const filterHeights = await filterTriggers.evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect().height),
+    )
+    expect(Math.min(...filterHeights)).toBeGreaterThanOrEqual(32)
     const todayButton = page.getByRole('button', { name: 'Today', exact: true })
     await expect(todayButton).toHaveAttribute('aria-current', 'date')
     await expect(todayButton).toHaveClass(/bg-primary/)
@@ -314,27 +325,27 @@ test('day read and settings are owner scoped, include archived history, and vali
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Previous day' }).click()
     await expect(todayButton).toHaveAttribute('aria-current', 'date')
-    await page.setViewportSize({ width: 390, height: 844 })
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-    ).toBe(true)
-    await expect(page.getByRole('list', { name: 'Work in visible hours' })).toContainText(
-      'From Today',
-    )
-    await expect(page.getByRole('button', { name: 'ticket: Agenda ticket; actions' })).toHaveCount(
-      0,
-    )
-    const ticketTitle = page
-      .getByRole('list', { name: 'Work in visible hours' })
-      .getByRole('link', { name: 'Agenda ticket' })
-      .first()
+    const desktopEntry = page.locator('[data-agenda-entry]').filter({ hasText: 'From Today' })
+    await expect(desktopEntry).toBeVisible()
+    const ticketTitle = desktopEntry.getByRole('link', { name: 'Agenda ticket' }).first()
     await expect(ticketTitle).toHaveAttribute('href', `/tickets/${t.id}`)
     await ticketTitle.click()
     await expect(page).toHaveURL(new RegExp(`/tickets/${t.id}`))
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
-    await expect(page.getByRole('button', { name: 'Save settings' })).toBeVisible()
-    await page.getByRole('button', { name: 'Save settings' }).click()
+    const saveSettings = page.getByRole('button', { name: 'Save settings' })
+    await expect(saveSettings).toBeVisible()
+    const [settingsMain, settingsPanel] = await Promise.all([
+      page.locator('main').boundingBox(),
+      saveSettings.locator('xpath=../../..').boundingBox(),
+    ])
+    if (!settingsMain || !settingsPanel) throw new Error('Settings panel must be visible')
+    expect(
+      Math.abs(
+        settingsPanel.y + settingsPanel.height / 2 - (settingsMain.y + settingsMain.height / 2),
+      ),
+    ).toBeLessThanOrEqual(2)
+    await saveSettings.click()
     await expect(page.getByRole('status').filter({ hasText: 'Settings saved.' })).toBeVisible()
     const spacious = await page.request.post('/api/time-entries', {
       data: {
@@ -359,10 +370,7 @@ test('day read and settings are owner scoped, include archived history, and vali
       'aria-valuetext',
       'Worked 3hr of 1hr 30m target; 1hr 30m overtime',
     )
-    const spaciousCard = page
-      .getByRole('list', { name: 'Work in visible hours' })
-      .getByRole('article')
-      .filter({ hasText: 'Spacious comment' })
+    const spaciousCard = page.locator('[data-agenda-entry]').filter({ hasText: 'Spacious comment' })
     const entryContext = spaciousCard.locator('[aria-label="Entry context"]')
     expect(
       await entryContext.evaluate((element) => element.scrollWidth <= element.clientWidth),

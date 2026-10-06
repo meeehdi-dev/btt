@@ -4,6 +4,7 @@
 - Date: 2026-09-28
 - Supersedes: ADR 0014's invalid-move snapback presentation only, if accepted
 - Superseded by: None
+- Partial supersession by ADR 0042: narrow-screen stacked presentation and touch-specific alternatives are retired; date semantics, per-day Add, correction forms, mouse interactions, and conflict behavior remain authoritative.
 
 ## Context
 

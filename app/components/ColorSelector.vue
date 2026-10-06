@@ -32,7 +32,7 @@ function selectPreset(color: string) {
       <span class="font-mono text-xs uppercase">{{ model }}</span>
     </UButton>
     <template #content>
-      <div class="w-56 space-y-4 p-3">
+      <div class="w-56 space-y-3 p-2">
         <div>
           <p class="mb-2 text-xs font-medium text-muted">Preset colors</p>
           <div class="grid grid-cols-8 gap-2" aria-label="Preset colors">

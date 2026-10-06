@@ -170,10 +170,6 @@ test('owned historical time entries enforce daily slots, overlap, archive and us
     await expect(page.getByLabel('Tracked: 0m')).toBeVisible()
     await expect(page.getByLabel(/Estimate usage:/)).toHaveCount(0)
     await page.goto(`/tickets/${a.id}`)
-    await page.setViewportSize({ width: 390, height: 844 })
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-    ).toBe(true)
     const foreign = await browser.newContext()
     try {
       await foreign.addCookies(

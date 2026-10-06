@@ -4,6 +4,7 @@
 - Date: 2026-09-29
 - Supersedes: ADR 0015 — compact navigation and mobile control columns
 - Superseded by: None
+- Partial supersession by ADR 0042: narrow-screen stacking and responsive overflow commitments are retired; the single three-block header, visible navigation/account actions, destinations, search, and keyboard shortcuts remain authoritative.
 
 ## Context
 
