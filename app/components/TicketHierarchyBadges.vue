@@ -40,23 +40,30 @@ const icons: Record<HierarchyKind, EntityKind> = {
       <UPopover v-if="mode === 'filter-actions'" :content="{ side: 'top', avoidCollisions: false }">
         <UButton
           size="xs"
-          color="neutral"
+          :color="compact ? 'secondary' : 'neutral'"
           variant="soft"
           :title="truncateLabels ? item.name : undefined"
           :class="[
-            '!bg-default !text-muted hover:!text-default',
-            compact ? '!h-5 !min-h-5 !px-1 text-[10px]' : '!px-1.5',
+            compact
+              ? '!h-5 !min-h-5 !px-1 text-[10px]'
+              : '!bg-default !px-2 !text-muted hover:!text-default',
             truncateLabels ? (compact ? 'max-w-24 shrink-0' : 'max-w-32 shrink-0') : 'shrink-0',
           ]"
           :aria-label="`${item.kind}: ${item.name}; actions`"
         >
-          <EntityIcon :kind="icons[item.kind]" /><span
-            :class="truncateLabels ? 'min-w-0 truncate' : ''"
+          <EntityIcon
+            :kind="icons[item.kind]"
+            :class="compact ? '!size-3 text-secondary-700 dark:text-secondary-300' : ''"
+          /><span
+            :class="[
+              truncateLabels ? 'min-w-0 truncate' : '',
+              compact ? 'text-secondary-700 dark:text-secondary-300' : '',
+            ]"
             >{{ item.name }}</span
           >
         </UButton>
         <template #content>
-          <div class="flex min-w-36 flex-col gap-1 p-2">
+          <div class="flex min-w-36 flex-col gap-1 p-1">
             <UButton
               size="xs"
               variant="ghost"
@@ -80,20 +87,28 @@ const icons: Record<HierarchyKind, EntityKind> = {
         v-else
         :to="item.to"
         size="xs"
-        color="neutral"
+        :color="compact ? 'secondary' : 'neutral'"
         variant="soft"
         :title="truncateLabels ? item.name : undefined"
         :class="[
-          '!bg-default !text-muted hover:!text-default',
-          compact ? '!h-5 !min-h-5 !px-1 text-[10px]' : '!px-1.5',
+          compact
+            ? '!h-5 !min-h-5 !px-1 text-[10px]'
+            : '!bg-default !px-2 !text-muted hover:!text-default',
           truncateLabels ? (compact ? 'max-w-24 shrink-0' : 'max-w-32 shrink-0') : 'shrink-0',
         ]"
       >
-        <EntityIcon :kind="icons[item.kind]" /><span
-          :class="truncateLabels ? 'min-w-0 truncate' : ''"
+        <EntityIcon
+          :kind="icons[item.kind]"
+          :class="compact ? '!size-3 text-secondary-700 dark:text-secondary-300' : ''"
+        /><span
+          :class="[
+            truncateLabels ? 'min-w-0 truncate' : '',
+            compact ? 'text-secondary-700 dark:text-secondary-300' : '',
+          ]"
           >{{ item.name }}</span
         >
       </UButton>
     </template>
+    <slot name="trailing" />
   </div>
 </template>

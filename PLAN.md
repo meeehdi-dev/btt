@@ -14,6 +14,10 @@ The MVP should focus on:
 
 No personal tasks, habits, streaks, broad tag system, billable flag, calendar sync, or reporting/export features are needed for the MVP.
 
+### Current UI support direction (M28)
+
+The human-approved M28 plan establishes one desktop presentation at 1280 CSS px and wider; narrower viewports are unsupported and may overflow. Its implementation retires mobile/tablet-specific layouts and touch branches while preserving desktop workflows, keyboard accessibility, and domain behavior. A Plannotator-approved amendment now directs a compact 2px-based role scale for app-authored spacing, including 2px agenda-filter wrapper padding, smaller section gaps, and equal reduced page insets; standard Nuxt UI select-trigger sizing and hit targets remain. M28 implementation, local verification, human review, and completion declaration are complete. Earlier responsive milestones and feature entries below record historical scope; they do not override M28's current UI support target. M27 is a separate milestone and is now declared complete based on local verification; the human plans to check hosted CI after pushing, and no hosted result is claimed here. M28 makes no claim about runner assignment and authorized no remote CI run or policy change. See [`docs/milestones/m28-desktop-only-ui-cleanup.md`](docs/milestones/m28-desktop-only-ui-cleanup.md) and accepted [ADR 0042](docs/decisions/0042-desktop-only-ui-and-spacing.md).
+
 ## Approach
 
 Create a concise product plan for a work-only tool that combines:
@@ -48,12 +52,12 @@ Create a concise product plan for a work-only tool that combines:
 
 Define the technical baseline before starting MVP milestones so every milestone is built on the same quality foundation.
 
-### Current version snapshot
+### Version snapshot at planning
 
 Checked via npm on 2026-09-20:
 
 - **Node:** 24.18.0 locally; use Node 24+ in CI unless bootstrap chooses newer.
-- **pnpm:** 10.33.2 locally; use the latest stable pnpm selected at bootstrap.
+- **pnpm:** 10.33.2 locally at the snapshot date; M21 later set the exact current package-manager pin to 12.8.1 (ADR 0034). Recheck versions before future implementation.
 - **Nuxt:** 4.5.2.
 - **Nuxt UI:** 4.11.1.
 - **TypeScript:** 7.0.2.
@@ -96,17 +100,14 @@ No local Nuxt, Nuxt UI, or Effect TS skill is currently installed in the scanned
 
 ### CI, release, and deploy
 
-Follow the existing `../tt` GitHub workflow shape unless a later implementation spike finds a clearly better replacement:
+- Dependabot is intended for npm, Docker, and GitHub Actions with grouped minor/patch updates.
+- GitHub Actions run push/PR quality checks for lint, format, typecheck, tests, and build on Node 24+.
+- M0 established quality checks and Dependabot; it deferred release/deployment automation until a separately approved follow-up.
+- For the first production deployment, Coolify connects to the Git repository and builds the repository Dockerfile directly on the Coolify host. No image registry, GHCR publishing, release-please, or Coolify API deployment workflow is required (ADR 0036).
+- Keep GitHub Actions as the quality gate. Prefer required checks on protected `main` before enabling Coolify auto-deploy; otherwise deploy manually in Coolify after checks pass. A CI-success Coolify webhook can be considered later if needed, without adding image publishing.
+- Use a repository Dockerfile to make Node/pnpm setup, Nuxt/Nitro server startup, migrations, and health checking explicit. Coolify's buildpack/Nixpacks remains a valid simpler alternative, but is not the selected first-release path.
 
-- Dependabot enabled for npm, Docker, and GitHub Actions with grouped minor/patch updates.
-- Push/PR checks for lint, format, typecheck, tests, and build.
-- CI should use Node 24+ or the latest supported runtime chosen at bootstrap.
-- Add Vitest to CI from M0, not later.
-- M0 automation scope is quality checks and Dependabot only.
-- Keep release-please for release automation, GHCR Docker image publishing, and Coolify deployment triggered from the release workflow as the intended direction, but defer their implementation to a separately approved follow-up after M0.
-- Potential improvement to consider later: combine repeated install/setup steps with reusable workflows or a matrix, but keep clarity over cleverness.
-
-Relevant `tt` references:
+Relevant `tt` references (reference only; its release/deploy flow is not adopted):
 
 - `../tt/.github/workflows/check.yml` — lint/format/typecheck/build on push and PR.
 - `../tt/.github/workflows/release-please.yml` — release-please and deploy trigger.
@@ -133,7 +134,7 @@ Relevant `tt` references:
   - `id`, `projectId`, `name`, optional `targetDate`, timestamps
 - `Ticket`
   - `id`, `releaseId`, `title`, `description`, `status`, optional `estimateMinutes`, timestamps
-  - Status changes are available through the ticket edit form, Today status badge, Release detail status selector, and desktop board drag-and-drop; no dedicated next-status action is added to ticket detail, and the board control policy remains unchanged.
+  - Ticket status uses the fixed status set. The initial interaction surfaces were the ticket edit form, Today status badge, Release detail selector, and desktop board drag-and-drop. M25 makes a direct ticket-detail selector the normal edit surface; board and Today/Release policies remain unchanged.
 - `TicketLink`
   - `id`, `ticketId`, optional `label`, `url`
 - `TicketRelation`
@@ -222,22 +223,17 @@ Acceptance:
 
 ### M2.5 — UUIDv7 identifier migration
 
+Status: Complete. See [`docs/milestones/m2.5-uuidv7-identifier-migration.md`](docs/milestones/m2.5-uuidv7-identifier-migration.md).
+
 Goal: establish one time-ordered identifier strategy before adding more product tables.
 
-- Decide whether application and Better Auth identifiers use UUIDv7.
-- Inventory all existing auth/domain IDs and foreign keys.
-- Design and approve a safe backfill/cutover migration for existing records.
-- Configure Better Auth ID generation or an adapter/database boundary where supported.
-- Replace domain ID creation with the approved UUIDv7 generator.
+- Use UUIDv7 for generated Better Auth and domain IDs, backed by native PostgreSQL UUID columns.
+- Use the shared UUIDv7 generator across auth and domain creation paths.
+- Verify local auth/domain fixtures, sessions, hierarchy foreign keys, and ownership/archive behavior after migration.
 
-Acceptance:
+Acceptance: new auth/domain records use UUIDv7 consistently; session fixtures, ownership checks, hierarchy foreign keys, and archive flows pass.
 
-- Existing auth and domain records remain addressable after migration.
-- New records use the approved UUIDv7 strategy across all ID-producing paths.
-- Session fixtures, ownership checks, and foreign keys pass against the migrated schema.
-- Rollback and deployment procedures are documented and reviewed.
-
-Status: Planning placeholder; requires a separate approved milestone plan before implementation.
+Deployment caveat: M2.5 was completed before production deployment using a local database reset. It did not implement production backfill, cutover, or rollback procedures. Before deploying against data that must be preserved, assess the target database and plan the migration and rollback separately.
 
 ### M3 — Tickets MVP
 
@@ -305,6 +301,8 @@ Acceptance:
 
 ### M7 — Search and compact UI polish
 
+Status: Complete. See [`docs/milestones/m7-search-and-ui-polish.md`](docs/milestones/m7-search-and-ui-polish.md).
+
 Goal: make the MVP fast to navigate and compact for daily work without losing existing interactions.
 
 - Universal owner-scoped search across clients, projects, releases, tickets, and time entries, with grouped results and keyboard-friendly focus/navigation (including `/` and Ctrl/⌘K).
@@ -343,6 +341,48 @@ Acceptance:
 - Existing time-entry geometry, overlap and persistence rules, estimate calculations, status rules, ownership, archive behavior, and interactions remain unchanged.
 - Missing labels persist as `NULL` without rewriting existing custom labels; blank forms normalize to an absent label.
 - Today and board share visual card layout, hierarchy badge styling/placement, and colors while retaining distinct actions and time semantics; release cards retain their shared presentation. Project cards use the two-row layout under client detail. Searchable filters, hierarchy counts, release progress, and icon-only relation/link popovers remain accessible and usable across desktop and mobile.
+
+### M9 — Shared card composition and hierarchy filters
+
+Status: Complete (2026-09-27). See [`docs/milestones/m9-shared-card-composition.md`](docs/milestones/m9-shared-card-composition.md).
+
+- Standardized shared entity-card presentation, hierarchy metrics/progress, and Today/Tickets hierarchy filters while preserving page/card interaction ownership.
+
+### M10 — Effect for server-side fallible operations
+
+Status: Complete (2026-09-27). See [`docs/milestones/m10-server-effect-reliability.md`](docs/milestones/m10-server-effect-reliability.md) and ADR 0023.
+
+- Added typed failures for fallible server work and a shared HTTP boundary for expected and unexpected errors.
+
+### M11 — Effect for client-side fallible workflows
+
+Status: Complete (2026-09-27). See [`docs/milestones/m11-client-effect-workflows.md`](docs/milestones/m11-client-effect-workflows.md) and ADR 0024.
+
+- Added Effect-aware client requests and accessible, cause-safe read/mutation failure handling while preserving Nuxt SSR and hydration.
+
+### M12 — Ticket board hierarchy badge actions
+
+Status: Complete (2026-09-27). See [`docs/milestones/m12-ticket-board-hierarchy-actions.md`](docs/milestones/m12-ticket-board-hierarchy-actions.md) and ADR 0025.
+
+- Board client/project/release badges offer filter-or-open actions using existing hierarchy filters.
+
+### M13 — Hierarchy breadcrumb consistency
+
+Status: Complete (2026-09-28). See [`docs/milestones/m13-hierarchy-breadcrumbs.md`](docs/milestones/m13-hierarchy-breadcrumbs.md) and ADR 0026.
+
+- Added reusable, archive-aware hierarchy breadcrumbs to entity details and hierarchy-aware create/edit pages.
+
+### M14 — Release ticket status badge actions
+
+Status: Complete (2026-09-28). See [`docs/milestones/m14-release-ticket-status-actions.md`](docs/milestones/m14-release-ticket-status-actions.md) and ADR 0027.
+
+- Release detail ticket badges directly select a fixed status and refresh through the existing ticket API.
+
+### M15 — API item ordering
+
+Status: Complete (2026-09-28). See [`docs/milestones/m15-api-item-ordering.md`](docs/milestones/m15-api-item-ordering.md) and ADR 0028.
+
+- Established deterministic collection and nested-item ordering; global search intentionally retains update-recency ordering.
 
 ### M16 — Weekly agenda and cross-day moves
 
@@ -451,6 +491,84 @@ Acceptance:
 - Only the human-approved package-version-specific install scripts run; other unreviewed build scripts remain blocked.
 - No application source or test changes occur, and no unrelated dependency versions change.
 
+### M23 — Three-block header navigation
+
+Status: Complete — implementation, verification, Plannotator code review, and human completion declaration recorded on 2026-09-29. See `docs/milestones/m23-three-block-header-navigation.md`.
+
+Goal: remove the width-consuming sidebar and make the authenticated shell a responsive three-block header.
+
+- Left block: `nxmr` and navigation ordered Today, Tickets, Clients.
+- Middle block: existing universal search, centered on roomy desktop widths and full-width on narrow layouts.
+- Right block: signed-in user's avatar/name and direct Settings and Sign out controls; no account popover.
+- Stack the same blocks on narrow screens without hiding navigation/account actions or introducing page-level horizontal overflow.
+- Preserve owner-scoped search, current destinations, search/navigation keyboard shortcuts and POST logout semantics; no auth/API/schema/dependency changes.
+
+Acceptance:
+
+- There is no sidebar or mobile navigation drawer; app content uses the full viewport width.
+- Desktop shows the three blocks in one row with centered search; mobile stacks left/search/right with all actions accessible and no horizontal overflow.
+- Navigation order is Today, Tickets, Clients; avatar/name, Settings and Sign out are directly available.
+- Existing search, shortcut, session and logout behavior remains intact.
+
+### M24 — First production deployment via Coolify
+
+Status: Complete — implementation, local verification, code review, and human completion declaration recorded on 2026-09-30. The human reports the production deployment works. See [`docs/milestones/m24-first-release-deployment.md`](docs/milestones/m24-first-release-deployment.md); itemized backup/restore and remote CI verification remain follow-ups.
+
+- Added direct Coolify Dockerfile builds, startup migrations, a health endpoint, and a deployment/operations runbook without GHCR or release-publishing automation.
+
+### M25 — Ticket detail page overhaul
+
+Status: Implementation in progress after plan approval on 2026-10-03. See [`docs/milestones/m25-ticket-detail-overhaul.md`](docs/milestones/m25-ticket-detail-overhaul.md).
+
+Goal: make ticket detail the compact, normal surface for ticket edits while keeping Today as the only time-entry creation surface.
+
+- Edit status, description, estimate, and release association directly with field-scoped updates; keep title editing in a title-only modal.
+- Move external-link and related-ticket creation into separate modals; retain their lists and existing remove/navigation behavior.
+- Retain compact tracked-time history and correction/deletion, but disable new entry creation on ticket detail.
+- Retire `/tickets/:id/edit` with a 404 and no redirect; preserve archive/restore/delete rules and archived hierarchy context.
+- Keep inputs and the archive action standard-sized; achieve compactness through reduced page/card padding, margins, and gaps, with Archive at the upper-right of the detail header.
+
+Acceptance: focused desktop/mobile browser coverage passes for field updates, modal flows, failure/retry handling, archive lifecycle, time-entry restrictions, and the retired editor route; full project checks and human code review are recorded in M25.
+
+### M26 — Today current-day and current-time indicators
+
+Status: Complete — implementation, verification, Plannotator code review, and human completion declaration recorded on 2026-10-05. See [`docs/milestones/m26-today-current-day-and-time-indicators.md`](docs/milestones/m26-today-current-day-and-time-indicators.md).
+
+Goal: make today's date and current local time easy to locate in the Day and Week agenda without changing agenda data or geometry.
+
+- Show a live `Now HH:mm` cue when the selected Day/Week contains today; keep it in the page controls when current time is outside visible hours.
+- Mark the current time in the desktop Day timeline and today's desktop Week column only while the minute falls within configured visible hours.
+- Label today's Week header on desktop and narrow stacked layouts; show the `Now` cue on narrow Day/Week layouts where there is no time-scaled grid.
+- Preserve local date semantics, visible-hours settings, time-entry interactions, and per-day progress.
+
+Acceptance: deterministic browser coverage verifies current-date marking, minute updates, Day/Week selection, visible-hours boundaries, narrow layouts, and unchanged timeline interactions; full project checks and human code review are recorded in M26.
+
+### M27 — CI browser-test reliability and diagnostics
+
+Status: Complete by human declaration on 2026-10-06. The latest local E2E suite passed all 39 tests without skips, and the code review was accepted. The human plans to push and check GitHub Actions; no hosted CI result is recorded or claimed. See [`docs/milestones/m27-ci-browser-test-reliability.md`](docs/milestones/m27-ci-browser-test-reliability.md) and [`plans/m27-e2e-test-simplification.md`](plans/m27-e2e-test-simplification.md).
+
+Goal: fix the recurring archived-entry resize E2E failure and make future failures diagnosable without weakening the CI gate.
+
+- Stabilize the top-edge resize browser interaction; assert its preview and persisted result. Make a focused `TodayAgenda` correction only if reproduction shows a real pointer hit-target bug.
+- Retain Playwright traces/reports and upload E2E artifacts from the existing GitHub Actions job.
+- Do not automatically retry Playwright failures. CI remains failed until manually rerun, if needed.
+
+Acceptance: the focused gesture test is repeatable and the full project quality gates pass; CI retains useful artifacts for a failure while still failing the first attempt. No agenda persistence, overlap, archive, or authentication behavior changes.
+
+### M28 — Desktop-only UI cleanup and spacing harmonization
+
+Status: Complete (2026-10-06); implementation, local verification, final human review, and the completion declaration are recorded in the M28 milestone journal. ADRs 0042 and 0043 are Accepted. M27 was separate from M28 and is now recorded complete based on local verification; the hosted CI result remains for the human to check. M28 authorized no remote CI run. See [`docs/milestones/m28-desktop-only-ui-cleanup.md`](docs/milestones/m28-desktop-only-ui-cleanup.md), [`plans/m28-compact-spacing-amendment.md`](plans/m28-compact-spacing-amendment.md), [ADR 0042](docs/decisions/0042-desktop-only-ui-and-spacing.md), and [ADR 0043](docs/decisions/0043-release-completion-action-location.md).
+
+Goal: support one desktop presentation at 1280 CSS px and wider, retire mobile/narrow layouts and touch branches, and make the full UI materially more compact using M28's approved 2px-based spacing roles.
+
+- Keep the desktop three-block header, Day/Week time grids, horizontally scrollable seven-lane Ticket Board, hierarchy workflows, forms, pointer interactions, and keyboard access.
+- Remove mobile-only markup, responsive layout variants, viewport/touch branches, and mobile-only E2E scenarios. Preserve domain behavior coverage in desktop tests.
+- Use compact role-based spacing: 16px page inset/largest section gap, 8px standard card/form padding, 4px compact-card padding/related-control gaps, and 2px border-only filter wrappers. Override generated Nuxt UI responsive surface padding where needed; preserve standard select-trigger sizing and fixed time-grid geometry.
+- Keep historical completed milestone scopes intact. Do not change APIs, data, auth, dependencies, deployment, or CI policy; do not assume M28 addresses M27 runner assignment.
+- Live-app follow-up: Today and Ticket Board page gaps are 8px; the Agenda view group matches the adjacent 32px controls; end-of-hours labels stay visible without changing agenda geometry; Settings is vertically centered. Release completion is available only from Release detail; project cards remain navigable progress surfaces, as recorded in ADR 0043.
+
+Acceptance: app UI and E2E coverage target desktop widths of 1280 CSS px and wider; spacing is audited across Vue UI; local quality gates and manual route checks are recorded; ADR 0042 was accepted after human review on 2026-10-06. No remote CI run was authorized.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.
@@ -460,76 +578,78 @@ Acceptance:
 - Command palette / quick switcher.
 - Optional richer integrations via generic external links only; no calendar sync or Jira API sync planned for MVP.
 
-## Feature list draft
+## Feature inventory and delivery status
+
+`[x]` means delivered as recorded in a completed milestone; `[ ]` means not delivered or explicitly deferred. Detailed scope, verification, and review evidence remain in the linked milestone records. Responsive/mobile references below may describe historical delivery; M28 defines the current support target.
 
 ### Core foundations
 
-- [ ] Work-only solo workspace.
-- [ ] Client catalog.
-- [ ] Project catalog under clients, with names and colors.
-- [ ] Release/milestone catalog under projects, with optional target date.
-- [ ] Universal search across clients, projects, releases, tickets, and time entries, available from the dashboard top bar (mobile full-screen menu) with keyboard access.
-- [ ] Desktop keyboard-friendly interactions, including search focus/results navigation and accessible icon-rail navigation.
-- [ ] Collapsible left sidebar (collapsed by default; persistent expansion) and full-screen mobile navigation menu, with user/settings at the bottom.
-- [ ] Mobile-friendly touch interactions for the today agenda.
+- [x] Work-only solo workspace.
+- [x] Client catalog.
+- [x] Project catalog under clients, with names and colors (the top-level Projects collection was removed in M19).
+- [x] Release/milestone catalog under projects, with optional target date.
+- [x] Universal owner-scoped search across clients, projects, releases, tickets, and time entries, with keyboard access.
+- [x] Desktop keyboard-friendly interactions, including search focus/results navigation and accessible header navigation.
+- [x] Responsive three-block authenticated header: Today/Tickets/Clients navigation on the left, universal search in the middle, and avatar/name with direct Settings/sign-out controls on the right; no sidebar or mobile drawer.
+- [x] Mobile-friendly touch interactions for the Today/Week agenda, using non-drag controls.
 
 ### Time tracking
 
-- [ ] Today agenda as the primary MVP UI.
-- [ ] Customizable visible hours, e.g. 8am–8pm by default.
-- [x] Start-of-week setting, inspired by `tt`.
-- [ ] Work day duration setting, used to display daily progress/overtime.
-- [ ] Bottom-of-day progress bar showing worked time against configured work day duration.
-- [ ] Manual time entries with date, start time, duration, mandatory ticket, and description.
-- [ ] Easy start time and duration pickers.
-- [ ] Calendar blocks with create/edit/resize/move interactions (desktop drag; mobile non-drag controls).
-- [ ] Desktop click-and-drag block creation in both directions: start-to-finish and finish-to-start.
-- [ ] Overlap prevention or warning for scheduled blocks.
-- [ ] Agenda filters by client, project, release, ticket, and status.
-- [ ] Today hierarchy badges and ticket-board client/project/release badges offer popover actions to filter the current view by that hierarchy item or open its detail page; Today status actions remain Today-specific.
+- [x] Day agenda as the primary work surface, with a weekly view.
+- [x] Customizable visible hours, defaulting to 8am–8pm.
+- [x] Configurable first day of the week, defaulting to Monday.
+- [x] Configurable workday duration used for daily progress/overtime.
+- [x] Daily progress indicator showing worked time against the configured workday target (positioned in the agenda controls, not at the bottom of the day).
+- [x] Manual ticket-linked time entries with date, start time, duration, and description.
+- [x] Date and time pickers for entry creation/correction.
+- [x] Create, edit, resize, and move agenda entries with desktop drag interactions and non-drag mobile/keyboard controls.
+- [x] Desktop click-drag creation in both start-to-finish and finish-to-start directions.
+- [x] Overlap prevention and invalid-move feedback.
+- [x] Agenda filters by client, project, release, ticket, and status.
+- [x] Today and ticket-board hierarchy badges offer filter/open actions; status changes remain surface-specific.
 
 ### Projects and tickets
 
-- [ ] Client list.
-- [ ] Project list under clients with color and basic metadata.
-- [ ] Release/milestone list under projects with optional target date.
-- [ ] Ticket board/list with fixed MVP statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
-- [ ] Change ticket status via edit form, Today status badge, Release detail ticket selector, or desktop board drag-and-drop; no dedicated ticket-detail next-status action.
-- [ ] Ticket fields: title, description, client, project, release, status, estimate, external links, linked items.
-- [ ] Generic external links field: required URL with an optional custom label; display the hostname when no label is set.
-- [ ] Time estimate field only; no complexity or target date.
-- [ ] Linked items: allow tickets to link to other tickets/items without parent-child hierarchy.
-- [ ] Comments/notes/activity timeline if still simple enough for MVP; otherwise move to later.
-- [ ] Require every tracked time entry to link to a ticket.
-- [ ] Show tracked time together with its estimate when available; omit percentage badges on board and release cards but retain the ticket-detail percentage.
-- [ ] Color estimate usage ratio: blue under 80%, green from 80% to under 100%, orange from 100% through 120%, red above 120%.
+- [x] Client list and client-scoped project discovery.
+- [x] Projects under clients, with color and basic metadata; there is no top-level Projects collection.
+- [x] Release/milestone lists under projects, with optional target dates.
+- [x] Ticket board grouped by the fixed statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
+- [x] Change ticket status through the initial edit form, Today status action, Release detail selector, or desktop board drag-and-drop (the initial ticket-detail policy is superseded by M25).
+- [ ] Ticket detail becomes the normal edit surface: title-only modal, live status/description/estimate/release fields, and no `/tickets/:id/edit` route (M25 in progress).
+- [x] Ticket title/description, required release association (with client/project context), status, estimate, external links, and related tickets.
+- [x] External links require a URL, allow an optional custom label, and display the hostname when unlabeled.
+- [x] Ticket time estimates only; no complexity or ticket-level target date.
+- [x] Ticket relations without parent-child hierarchy.
+- [ ] Comments/activity timeline; project/ticket notes are deferred to post-MVP.
+- [x] Every tracked time entry requires a ticket.
+- [x] Tracked time is shown with estimates when available; board/release cards omit the percentage badge while ticket detail retains it.
+- [x] Estimate usage uses blue below 80%, green from 80% to below 100%, orange from 100% through 120%, and red above 120%.
 
 ### Unified views
 
-- [ ] Today dashboard / agenda: completed time blocks, scheduled work blocks, quick add for completed work, and day progress/overtime bar; compact date + progress + add control row.
-- [ ] Client detail page: projects and recent tracked time.
-- [ ] Project detail page: releases, tickets, linked time entries, estimate usage.
-- [ ] Release detail page: tickets, optional target date, progress, linked tracked time.
-- [ ] Ticket detail page: status, required release, estimate, linked time, estimate ratio, links, related tickets/items.
-- [ ] Ticket board/list grouped by fixed statuses; omit duplicate status on cards and use relation/external-link icon popovers on board, release and Today ticket cards, including single items; omit count overlays for all items. Keep board highlight/locate controls.
-- [ ] Weekly planning view inspired by `tt`.
-- [ ] Later: time summaries and review pages.
+- [x] Today agenda for recorded work, with quick add/correction, filters, and daily progress/overtime; there is no separate scheduled-work state or active timer.
+- [x] Client detail for projects.
+- [ ] Recent tracked-time summary on client detail (not implemented).
+- [x] Project detail for releases and hierarchy navigation.
+- [ ] Project-wide ticket/time summaries; ticket and tracked-usage details are available through the associated release/ticket views instead.
+- [x] Release detail for tickets, target date, completion progress, status changes, and ticket-linked tracked-time/estimate usage.
+- [x] Ticket detail for status, required release, estimate, linked time, estimate usage, external links, and related tickets.
+- [ ] Compact ticket-detail time history with correction/deletion retained and new-entry creation disabled (M25 in progress).
+- [x] Ticket board grouped by status, with related-ticket/external-link popovers, no duplicate card status, and highlight/locate behavior.
+- [x] Weekly planning view with per-day progress and cross-day moves.
+- [x] Current-day and current-time indicators on Today.
 
 ### Later ideas, not MVP
 
-- [ ] Weekly/monthly summaries by client/project/release/ticket.
-- [ ] Templates for recurring project/client workflows.
+- [ ] Weekly/monthly summaries and review pages by client/project/release/ticket.
+- [ ] Templates for recurring client/project workflows.
 - [ ] Notes/journal entries connected to projects/tickets.
 - [ ] Command palette / quick switcher.
-- [ ] Optional richer integrations via generic external links only; no calendar sync or Jira API sync planned for MVP.
+- [ ] Optional richer integrations through generic external links only; no calendar sync or Jira API sync is planned.
 
-## Files to modify
+## Roadmap ownership
 
-This planning task only creates/updates:
-
-- `PLAN.md`
-
-No application implementation files are planned yet.
+`PLAN.md` records product scope and milestone sequencing. Each milestone's file under `docs/milestones/` is the source for its approved implementation scope, verification evidence, review, completion status, and follow-ups. This roadmap does not authorize implementation; future work requires a separately reviewed milestone plan.
 
 ## Reuse
 
@@ -560,14 +680,15 @@ Specific findings already folded into this plan:
 - [x] Confirm start time + duration manual entries and desktop bidirectional drag creation.
 - [x] Convert this product plan into an implementation plan when ready.
 - [x] Define the LLM-assisted workflow before M0.
-- [ ] Create and approve the M0 milestone file from `docs/templates/milestone-template.md` before bootstrap implementation.
+- [x] Create and approve the M0 milestone file from `docs/templates/milestone-template.md` before bootstrap implementation.
 
-## Verification
+## Planning history
 
-Because this is currently a product feature plan, verification means:
+- [x] Confirmed the narrowed work-only scope and excluded personal tasks, habits, streaks, and generic tags from MVP.
+- [x] Confirmed the `tt`-inspired time-tracking direction, lightweight tickets/releases, fixed ticket statuses, ticket-linked time entries, estimate-only tickets, optional release target dates, and estimate-usage colors.
+- [x] Converted the product direction into incremental milestones and established the LLM-assisted workflow before M0.
+- [x] Created and approved the M0 milestone plan before bootstrap implementation; see `docs/milestones/m0-project-bootstrap.md`.
 
-- [ ] User confirms the feature list reflects the narrowed work-only product direction.
-- [ ] User confirms the milestone roadmap is small enough to review incrementally.
-- [ ] MVP scope is clear: `tt`-style time tracking plus lightweight releases, tickets, and estimates.
-- [ ] Relationship between clients, projects, releases, tickets, estimates, and time entries is understandable.
-- [ ] Future implementation can trace time-tracking inspiration back to `../tt` while using the updated technical direction: latest Nuxt/Nuxt UI, Effect TS, latest TypeScript/possible tsgo, VoidZero/OXC tooling, Vitest, Better Auth GitHub login, Dependabot, release-please, GHCR, and Coolify.
+## Status and verification
+
+The product direction is implemented incrementally and reviewed through the milestone lifecycle. This roadmap is not a substitute for milestone verification: delivered items are marked in the feature inventory above, and each milestone file records its actual checks, review, completion declaration, and outstanding follow-ups. The initial planning questions are historical and are no longer open approval gates.

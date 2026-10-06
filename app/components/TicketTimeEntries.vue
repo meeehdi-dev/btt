@@ -5,7 +5,6 @@ import { usageColor } from '#shared/time-entry'
 
 const props = defineProps<{
   ticketId: string
-  title: string
   estimateMinutes: number | null
   canCreate: boolean
 }>()
@@ -28,6 +27,17 @@ const actionErrorTitle = ref('Could not save time entry')
 const minutes = computed(() => data.value?.trackedMinutes ?? 0)
 const percentage = computed(() =>
   props.estimateMinutes ? Math.floor((minutes.value / props.estimateMinutes) * 100) : null,
+)
+const textClasses = {
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning',
+  error: 'text-error',
+} as const
+const trackedTextClass = computed(() =>
+  props.estimateMinutes
+    ? textClasses[usageColor(minutes.value, props.estimateMinutes)]
+    : 'text-default',
 )
 const durations = Array.from({ length: 48 }, (_, i) => ({
   label: formatTicketEstimate((i + 1) * 30),
@@ -135,16 +145,23 @@ async function remove(id: string) {
 }
 </script>
 <template>
-  <UCard>
+  <UCard :ui="{ body: 'p-2' }">
     <div
       v-if="data && !error && !actionNeedsRefresh"
-      class="flex flex-wrap items-center justify-between gap-3"
+      class="flex flex-wrap items-center justify-between gap-2"
     >
       <h2 class="font-medium text-highlighted">Tracked time</h2>
-      <div class="flex flex-wrap items-center gap-2">
-        <span :aria-label="`Tracked: ${formatTicketEstimate(minutes)}`">{{
-          formatTicketEstimate(minutes)
-        }}</span>
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        <span
+          :aria-label="`Tracked: ${formatTicketEstimate(minutes)}${estimateMinutes ? ` of ${formatTicketEstimate(estimateMinutes)}` : ''}`"
+          class="inline-flex items-center gap-1"
+          ><span :class="trackedTextClass" class="font-medium">{{
+            formatTicketEstimate(minutes)
+          }}</span
+          ><span v-if="estimateMinutes" class="text-muted"
+            >/ {{ formatTicketEstimate(estimateMinutes) }}</span
+          ></span
+        >
         <UBadge
           v-if="percentage !== null"
           :color="usageColor(minutes, estimateMinutes!)"
@@ -155,7 +172,7 @@ async function remove(id: string) {
     </div>
     <UAlert
       v-if="error"
-      class="mt-3"
+      class="mt-2"
       role="alert"
       color="error"
       title="Could not load time entries"
@@ -170,65 +187,67 @@ async function remove(id: string) {
       label="Retry loading time entries"
       @click="retryEntries()"
     />
-    <ul v-else-if="data?.entries.length" class="mt-4 space-y-3">
+    <ul v-else-if="data?.entries.length" class="mt-2 space-y-2">
       <li
         v-for="entry in data.entries"
         :key="entry.id"
-        class="flex flex-wrap items-start justify-between gap-3 rounded-md border border-muted bg-elevated/50 p-3"
+        class="flex min-w-0 items-start justify-between gap-2 rounded-md border border-muted bg-elevated/50 p-2"
       >
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
+        <div class="min-w-0 flex-1">
+          <p class="flex flex-wrap items-center gap-x-2 text-sm font-medium text-highlighted">
+            <span>{{ entry.date }}</span>
+            <span class="text-muted" aria-hidden="true">·</span>
             <span
-              >{{ entry.date }} · {{ clock(entry.startMinute) }}–{{
-                clock(entry.startMinute + entry.durationMinutes)
-              }}
-              · {{ formatTicketEstimate(entry.durationMinutes) }}</span
-            >
-            <NuxtLink :to="`/tickets/${ticketId}?archived=true`" class="text-primary underline">{{
-              title
-            }}</NuxtLink>
-          </div>
-          <p v-if="entry.description" class="mt-1 whitespace-pre-wrap break-words text-muted">
+              >{{ clock(entry.startMinute) }}–{{ clock(entry.startMinute + entry.durationMinutes) }}
+            </span>
+            <span class="text-muted">{{ formatTicketEstimate(entry.durationMinutes) }}</span>
+          </p>
+          <p
+            v-if="entry.description"
+            class="mt-1 whitespace-pre-wrap break-words text-sm text-muted"
+          >
             {{ entry.description }}
           </p>
         </div>
-        <div class="flex flex-col gap-1 sm:flex-row">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :disabled="busy"
-            :aria-label="`Edit time entry ${entry.date} ${clock(entry.startMinute)}`"
-            icon="lucide:pencil"
-            label="Edit"
-            class="w-full sm:w-auto"
-            @click="beginEdit(entry)"
-          />
-          <UButton
-            color="error"
-            variant="ghost"
-            :disabled="busy"
-            :aria-label="`Delete time entry ${entry.date} ${clock(entry.startMinute)}`"
-            icon="lucide:trash-2"
-            label="Delete"
-            class="w-full sm:w-auto"
-            @click="remove(entry.id)"
-          />
+        <div class="flex shrink-0 items-center gap-1">
+          <UTooltip :text="`Edit time entry ${entry.date} ${clock(entry.startMinute)}`">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :disabled="busy"
+              :aria-label="`Edit time entry ${entry.date} ${clock(entry.startMinute)}`"
+              icon="lucide:pencil"
+              @click="beginEdit(entry)"
+            />
+          </UTooltip>
+          <UTooltip :text="`Delete time entry ${entry.date} ${clock(entry.startMinute)}`">
+            <UButton
+              color="error"
+              variant="ghost"
+              size="sm"
+              :disabled="busy"
+              :aria-label="`Delete time entry ${entry.date} ${clock(entry.startMinute)}`"
+              icon="lucide:trash-2"
+              @click="remove(entry.id)"
+            />
+          </UTooltip>
         </div>
       </li>
     </ul>
-    <p v-else-if="!error && !actionNeedsRefresh && data" class="mt-3 text-muted">
+    <p v-else-if="!error && !actionNeedsRefresh && data" class="mt-2 text-muted">
       No tracked time yet.
     </p>
     <form
       v-if="(canCreate || editingId) && !actionNeedsRefresh"
-      class="mt-5 space-y-3"
+      class="mt-2 space-y-2"
       @submit.prevent="save"
     >
       <h3 class="font-medium">{{ editingId ? 'Correct time entry' : 'Add completed work' }}</h3>
       <p class="text-sm text-muted">
         30-minute slots; entries may end at midnight but cannot overlap your other work.
       </p>
-      <div class="grid gap-3 sm:grid-cols-3">
+      <div class="grid grid-cols-3 gap-2">
         <UFormField label="Work date" required>
           <UPopover v-model:open="datePickerOpen">
             <UButton
@@ -273,27 +292,25 @@ async function remove(id: string) {
         :title="actionErrorTitle"
         :description="actionError"
       />
-      <div class="flex flex-col gap-2 sm:flex-row">
+      <div class="flex items-center gap-2">
         <UButton
           type="submit"
           :loading="busy"
           :icon="editingId ? 'lucide:save' : 'lucide:plus'"
           :label="editingId ? 'Save correction' : 'Add time entry'"
-          class="w-full sm:w-auto"
         /><UButton
           v-if="editingId"
           color="neutral"
           variant="ghost"
           icon="lucide:x"
           label="Cancel"
-          class="w-full sm:w-auto"
           @click="reset"
         />
       </div>
     </form>
     <UAlert
       v-else-if="actionError"
-      class="mt-3"
+      class="mt-2"
       role="alert"
       color="error"
       :title="actionErrorTitle"

@@ -1,4 +1,4 @@
-import { computed, onMounted, reactive, ref, type ComputedRef } from 'vue'
+import { computed, reactive, type ComputedRef } from 'vue'
 
 export const hierarchyFilterKinds = ['client', 'project', 'release', 'ticket'] as const
 export type HierarchyFilterKind = (typeof hierarchyFilterKinds)[number]
@@ -34,11 +34,6 @@ export function useHierarchyFilters<T extends HierarchyFilterState>(
   sources: ComputedRef<readonly HierarchyFilterSource[]>,
   filters: T = reactive({ client: '', project: '', release: '', ticket: '' }) as T,
 ) {
-  const isTouchDevice = ref(false)
-  onMounted(() => {
-    isTouchDevice.value = window.matchMedia('(pointer: coarse)').matches
-  })
-
   const searchInputs = computed<Record<HierarchyFilterKind, FilterSearchInput>>(
     () =>
       Object.fromEntries(
@@ -47,7 +42,7 @@ export function useHierarchyFilters<T extends HierarchyFilterState>(
           {
             placeholder: `Search ${kind}s…`,
             icon: 'lucide:search',
-            autofocus: !isTouchDevice.value,
+            autofocus: true,
           },
         ]),
       ) as Record<HierarchyFilterKind, FilterSearchInput>,

@@ -1,9 +1,9 @@
 # ADR 0015: Compact navigation and mobile control columns
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-26
 - Supersedes: None
-- Superseded by: None
+- Superseded by: ADR 0035 — three-block header navigation
 
 ## Context
 

@@ -9,10 +9,10 @@ const clients = computed(() => data.value?.clients ?? [])
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+  <div class="space-y-4">
+    <div class="flex items-center justify-between gap-2">
       <h1 class="text-2xl font-semibold text-highlighted">Clients</h1>
-      <div class="flex flex-col gap-2 sm:flex-row">
+      <div class="flex items-center gap-2">
         <ArchiveFilterButton v-model="showArchived" />
         <UButton to="/clients/new" icon="lucide:plus" label="New client" />
       </div>
@@ -39,7 +39,7 @@ const clients = computed(() => data.value?.clients ?? [])
       </h2>
       <p class="mt-2 text-muted">Create a client to start organizing work.</p>
     </UCard>
-    <div v-else-if="!error" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-else-if="!error" class="grid grid-cols-3 gap-2">
       <ClientCard v-for="item in clients" :key="item.id" :item="item" />
     </div>
   </div>

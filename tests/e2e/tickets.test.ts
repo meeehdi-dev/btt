@@ -169,13 +169,18 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page
       .getByRole('textbox', { name: 'Link 2 URL' })
       .fill('https://jira.atlassian.com/browse/NXMR-CREATE')
-    await page.getByRole('combobox', { name: 'Choose related ticket' }).click()
+    await page.getByRole('button', { name: 'Choose related ticket' }).click()
+    const relatedTicketSearch = page.getByPlaceholder('Search tickets…')
+    await relatedTicketSearch.fill('Second ticket')
+    await expect(page.getByRole('option', { name: /Second ticket/ })).toBeVisible()
     await page.getByRole('option', { name: /Second ticket/ }).click()
     await page.getByRole('button', { name: 'Add related ticket' }).click()
     await page.getByRole('button', { name: 'Create ticket' }).click()
     await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]+$/)
     await expect(page.getByRole('heading', { name: 'Created in browser' })).toBeVisible()
-    await expect(page.getByLabel('Estimated: 1hr 30m')).toBeVisible()
+    await expect(
+      page.getByRole('textbox', { name: 'Estimate for Created in browser' }),
+    ).toHaveValue('1hr 30m')
     await expect(page.getByRole('link', { name: 'Brief' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'jira.atlassian.com', exact: true })).toBeVisible()
     const browserTicketId = page.url().split('/').at(-1)!
@@ -191,6 +196,10 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await expect(page.getByRole('link', { name: 'Second ticket' })).toBeVisible()
     await page.goto('/tickets')
     await page.waitForLoadState('networkidle')
+    const ticketFilterBody = page
+      .getByRole('group', { name: 'Ticket filters' })
+      .locator('[data-slot="body"]')
+    await expect(ticketFilterBody).toHaveCSS('padding', '2px')
     await expect(
       page.getByRole('region', { name: 'Idea tickets' }).getByText('First ticket'),
     ).toBeVisible()
@@ -202,11 +211,11 @@ test('release tickets, workflow, links and relations respect auth and archive li
       page.getByRole('region', { name: 'Estimate tickets' }).getByText('First ticket'),
     ).toBeVisible()
     await page.goto(`/tickets/${a.id}`)
-    const metadata = page.getByLabel('Ticket metadata')
-    const status = metadata.getByLabel('Status: Estimate')
-    const estimate = metadata.getByLabel('Estimated: 45m')
-    await expect(status.locator('[aria-hidden="true"]')).toBeVisible()
-    await expect(estimate).toBeVisible()
+    const metadata = page.getByLabel('Ticket fields')
+    const status = metadata.getByRole('combobox', { name: 'Ticket status for First ticket' })
+    const estimate = metadata.getByRole('textbox', { name: 'Estimate for First ticket' })
+    await expect(status).toContainText('Estimate')
+    await expect(estimate).toHaveValue('45m')
     const [statusBox, estimateBox] = await Promise.all([
       status.boundingBox(),
       estimate.boundingBox(),
@@ -215,9 +224,8 @@ test('release tickets, workflow, links and relations respect auth and archive li
     expect(
       Math.abs(statusBox.y + statusBox.height / 2 - (estimateBox.y + estimateBox.height / 2)),
     ).toBeLessThan(5)
-    const editTicket = page.getByRole('link', { name: 'Edit ticket' })
-    await expect(editTicket).toHaveAttribute('href', `/tickets/${a.id}/edit`)
-    await expect(editTicket).toHaveClass(/ring-accented/)
+    await expect(page.getByRole('button', { name: 'Edit ticket title' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Edit ticket' })).toHaveCount(0)
     const link = await page.request.post(`/api/tickets/${a.id}/links`, {
       data: { label: 'PR', url: 'https://example.com/pr' },
     })
@@ -260,14 +268,24 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page.waitForLoadState('networkidle')
     await expect(page.getByRole('link', { name: 'PR', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Second ticket' })).toBeVisible()
-    await page.getByRole('textbox', { name: 'Link label' }).fill('')
-    await page
+    await page.getByRole('button', { name: 'Link ticket', exact: true }).click()
+    const relationDialog = page.getByRole('dialog', { name: 'Link a related ticket' })
+    await relationDialog.getByRole('button', { name: 'Related ticket' }).click()
+    await page.getByPlaceholder('Search tickets…').fill('Cross-release ticket')
+    await expect(page.getByRole('option', { name: /Cross-release ticket/ })).toBeVisible()
+    await page.getByRole('option', { name: /Cross-release ticket/ }).click()
+    await relationDialog.getByRole('button', { name: 'Link ticket', exact: true }).click()
+    await expect(page.getByRole('link', { name: 'Cross-release ticket' })).toBeVisible()
+    await page.getByRole('button', { name: 'Add external link' }).click()
+    const linkDialog = page.getByRole('dialog', { name: 'Add external link' })
+    await linkDialog.getByRole('textbox', { name: 'Link label' }).fill('')
+    await linkDialog
       .getByRole('textbox', { name: 'URL*', exact: true })
       .fill('https://jira.atlassian.com/browse/NXMR-FORM')
-    await expect(page.getByRole('textbox', { name: 'URL*', exact: true })).toHaveValue(
+    await expect(linkDialog.getByRole('textbox', { name: 'URL*', exact: true })).toHaveValue(
       'https://jira.atlassian.com/browse/NXMR-FORM',
     )
-    await page.getByRole('button', { name: 'Add link' }).click()
+    await linkDialog.getByRole('button', { name: 'Add link' }).click()
     const fallbackLink = page.locator('a[href="https://jira.atlassian.com/browse/NXMR-FORM"]')
     await expect(fallbackLink).toHaveText('jira.atlassian.com')
     const ticketLinks = (await (await page.request.get(`/api/tickets/${a.id}`)).json()).links
@@ -430,44 +448,6 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page.goto('/clients/new')
     expect((await page.locator('main').boundingBox())?.width).toBeGreaterThan(1800)
     expect((await page.locator('main > div').boundingBox())?.width).toBeGreaterThan(1800)
-    const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } })
-    try {
-      await mobile
-        .context()
-        .addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
-      await mobile.goto('/tickets')
-      await mobile.waitForLoadState('networkidle')
-      expect(await mobile.evaluate(() => innerWidth)).toBe(390)
-      await expect(mobile.getByRole('heading', { name: 'Tickets' })).toBeVisible()
-      for (const laneStatus of [
-        'Idea',
-        'Estimate',
-        'Develop',
-        'Review',
-        'Test',
-        'Deploy',
-        'Done',
-      ]) {
-        const trigger = mobile.getByRole('button', {
-          name: new RegExp(`^${laneStatus}: \\d+ tickets$`),
-        })
-        await expect(trigger).toBeVisible()
-        await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-      }
-      const doneSection = mobile.getByRole('region', { name: 'Done tickets' })
-      await expect(doneSection.getByRole('link', { name: 'Second ticket' })).toBeHidden()
-      await doneSection.getByRole('button', { name: 'Done: 1 tickets' }).click()
-      await expect(doneSection.getByRole('button', { name: 'Done: 1 tickets' })).toHaveAttribute(
-        'aria-expanded',
-        'true',
-      )
-      await expect(doneSection.getByRole('link', { name: 'Second ticket' })).toBeVisible()
-      expect(
-        await mobile.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBeTruthy()
-    } finally {
-      await mobile.close()
-    }
     expect(linkId).toMatch(uuidv7)
   } finally {
     await cleanup(owner.id)

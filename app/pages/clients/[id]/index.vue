@@ -28,9 +28,9 @@ if (!client.value && !clientError.value)
 </script>
 
 <template>
-  <div v-if="client" class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div class="flex min-w-0 flex-wrap items-center gap-3">
+  <div v-if="client" class="space-y-4">
+    <div class="flex items-end justify-between gap-2">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
         <span
           class="size-4 shrink-0 rounded-full border border-default"
           :style="{ backgroundColor: client.color }"
@@ -40,7 +40,7 @@ if (!client.value && !clientError.value)
         </h1>
         <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">Archived</UBadge>
       </div>
-      <div class="flex flex-col gap-2 sm:flex-row">
+      <div class="flex items-center gap-2">
         <UButton
           :to="`/clients/${id}/edit${client.archivedAt ? '?archived=true' : ''}`"
           color="neutral"
@@ -51,7 +51,7 @@ if (!client.value && !clientError.value)
         <UButton :to="`/projects/new?client=${id}`" icon="lucide:plus" label="New project" />
       </div>
     </div>
-    <div v-if="clientError" class="space-y-3">
+    <div v-if="clientError" class="space-y-2">
       <UAlert
         role="alert"
         color="error"
@@ -66,7 +66,7 @@ if (!client.value && !clientError.value)
         @click="refreshClient()"
       />
     </div>
-    <div v-if="projectsError" class="space-y-3">
+    <div v-if="projectsError" class="space-y-2">
       <UAlert
         role="alert"
         color="error"
@@ -85,11 +85,11 @@ if (!client.value && !clientError.value)
       <h2 class="font-medium text-highlighted">No projects yet</h2>
       <p class="mt-2 text-muted">Add a project to start planning releases.</p>
     </UCard>
-    <div v-else class="grid gap-4 sm:grid-cols-2">
+    <div v-else class="grid grid-cols-2 gap-2">
       <ProjectCard v-for="item in projects" :key="item.project.id" :item="item" />
     </div>
   </div>
-  <UCard v-else-if="clientError" class="space-y-3">
+  <UCard v-else-if="clientError" class="space-y-2">
     <UAlert
       role="alert"
       color="error"

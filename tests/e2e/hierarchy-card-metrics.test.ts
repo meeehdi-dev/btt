@@ -38,9 +38,10 @@ async function cleanup(userId: string) {
 }
 
 async function expectCompactReleaseCard(card: Locator, name: string, count: string) {
+  await expect(card).toHaveClass(/p-1/)
   const heading = card.locator('[data-release-card-heading]')
   const title = heading.getByRole('heading', { name })
-  const button = heading.getByRole('button', { name: 'Mark release as done' })
+  await expect(card.getByRole('button', { name: 'Mark release as done' })).toHaveCount(0)
   const summary = card.locator('[data-release-card-summary]')
   const hierarchy = summary.getByLabel('Release hierarchy')
   await expect
@@ -57,10 +58,10 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
   await expect(card.locator('[data-release-card-percent]')).toHaveCount(0)
   await expect(hierarchy.getByRole('link')).toHaveCount(2)
   await expect(hierarchy.getByRole('link').first()).toHaveClass(/bg-default/)
-  await expect(hierarchy.getByRole('link').first()).toHaveClass(/px-1\.5/)
+  await expect(hierarchy.getByRole('link').first()).toHaveClass(/px-2/)
   await expect(hierarchy.getByRole('link').first()).toHaveClass(/text-muted/)
   await expect(metrics).toHaveClass(/bg-default/)
-  await expect(metrics).toHaveClass(/px-1\.5/)
+  await expect(metrics).toHaveClass(/px-2/)
   await expect(metrics).toHaveClass(/text-muted/)
   const [cardSurface, metricsSurface] = await Promise.all([
     card.evaluate((element) => getComputedStyle(element).backgroundColor),
@@ -81,7 +82,7 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
   const [
     cardBox,
     titleBox,
-    buttonBox,
+    headingBox,
     summaryBox,
     hierarchyBox,
     metricsBox,
@@ -91,7 +92,7 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
   ] = await Promise.all([
     card.boundingBox(),
     title.boundingBox(),
-    button.boundingBox(),
+    heading.boundingBox(),
     summary.boundingBox(),
     hierarchy.boundingBox(),
     metrics.boundingBox(),
@@ -102,7 +103,7 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
   if (
     !cardBox ||
     !titleBox ||
-    !buttonBox ||
+    !headingBox ||
     !summaryBox ||
     !hierarchyBox ||
     !metricsBox ||
@@ -111,12 +112,8 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
     !ringBox
   )
     throw new Error('Release card rows must be visible')
-  expect(buttonBox.x - (titleBox.x + titleBox.width)).toBeLessThanOrEqual(16)
-  expect(buttonBox.x).toBeGreaterThanOrEqual(titleBox.x + titleBox.width)
-  expect(
-    Math.abs(buttonBox.y + buttonBox.height / 2 - (titleBox.y + titleBox.height / 2)),
-  ).toBeLessThan(4)
-  expect(summaryBox.y).toBeGreaterThanOrEqual(buttonBox.y + buttonBox.height)
+  expect(Math.abs(headingBox.x - titleBox.x)).toBeLessThan(2)
+  expect(summaryBox.y).toBeGreaterThanOrEqual(headingBox.y + headingBox.height)
   expect(Math.abs(hierarchyBox.x - titleBox.x)).toBeLessThan(2)
   const metricsOnHierarchyRow =
     metricsBox.x >= hierarchyBox.x + hierarchyBox.width - 1 &&
@@ -137,7 +134,6 @@ async function expectCompactReleaseCard(card: Locator, name: string, count: stri
 test('hierarchy cards show active counts and accessible release completion progress', async ({
   page,
   context,
-  browser,
 }) => {
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
@@ -145,7 +141,6 @@ test('hierarchy cards show active counts and accessible release completion progr
     email: `hierarchy-metrics-${crypto.randomUUID()}@example.com`,
   })
   await helpers.saveUser(owner)
-  let mobileContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
 
   try {
     await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
@@ -251,8 +246,8 @@ test('hierarchy cards show active counts and accessible release completion progr
     )
 
     await page.goto('/clients')
-    await page.waitForLoadState('networkidle')
     const clientCard = page.locator(`[data-client-card-id="${clientRecord.id}"]`)
+    await expect(clientCard).toHaveClass(/p-1/)
     const clientTitle = clientCard.locator('[data-client-card-title]')
     const clientCounts = clientCard.getByRole('list', { name: 'Active client contents' })
     await expect(clientTitle.getByRole('heading', { name: 'Metrics client' })).toBeVisible()
@@ -271,8 +266,8 @@ test('hierarchy cards show active counts and accessible release completion progr
     await expectBorderOnlyHover(page, clientCard, clientTitle.getByRole('heading'))
 
     await page.goto(`/clients/${clientRecord.id}`)
-    await page.waitForLoadState('networkidle')
     const projectCard = page.locator(`[data-project-card-id="${projectRecord.id}"]`)
+    await expect(projectCard).toHaveClass(/p-1/)
     const projectSummary = projectCard.locator('[data-project-card-summary]')
     await expect
       .poll(() => projectSummary.evaluate((element) => element.scrollWidth <= element.clientWidth))
@@ -290,7 +285,6 @@ test('hierarchy cards show active counts and accessible release completion progr
     )
 
     await page.goto(`/projects/${projectRecord.id}`)
-    await page.waitForLoadState('networkidle')
     const activeReleaseCard = page.locator(`[data-release-card-id="${activeRelease.id}"]`)
     const releaseHierarchy = activeReleaseCard.getByLabel('Release hierarchy')
     await expectCompactReleaseCard(activeReleaseCard, 'Metrics release', '1 / 2')
@@ -326,56 +320,12 @@ test('hierarchy cards show active counts and accessible release completion progr
     await releaseHierarchy.getByRole('link', { name: 'Metrics client' }).click()
     await expect(page).toHaveURL(`/clients/${clientRecord.id}`)
     await page.goto(`/projects/${projectRecord.id}`)
-    await page.waitForLoadState('networkidle')
     await page
       .locator(`[data-release-card-id="${activeRelease.id}"]`)
       .getByLabel('Release hierarchy')
       .getByRole('link', { name: 'Metrics project' })
       .click()
     await expect(page).toHaveURL(`/projects/${projectRecord.id}`)
-
-    mobileContext = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      isMobile: true,
-      hasTouch: true,
-    })
-    await mobileContext.addCookies(
-      await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }),
-    )
-    const mobilePage = await mobileContext.newPage()
-    await mobilePage.goto('/clients')
-    await mobilePage.waitForLoadState('networkidle')
-    await expect(
-      mobilePage
-        .locator(`[data-client-card-id="${clientRecord.id}"]`)
-        .getByRole('list', { name: 'Active client contents' }),
-    ).toContainText('2 tickets')
-    expect(
-      await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-    ).toBe(true)
-    await mobilePage.goto(`/clients/${clientRecord.id}`)
-    await mobilePage.waitForLoadState('networkidle')
-    const mobileProjectCard = mobilePage.locator(`[data-project-card-id="${projectRecord.id}"]`)
-    await expect
-      .poll(() =>
-        mobileProjectCard
-          .locator('[data-project-card-summary]')
-          .evaluate((element) => element.scrollWidth <= element.clientWidth),
-      )
-      .toBe(true)
-    await expect(
-      mobileProjectCard.getByRole('list', { name: 'Active project contents' }),
-    ).toContainText('2 tickets')
-    await mobilePage.goto(`/projects/${projectRecord.id}`)
-    await mobilePage.waitForLoadState('networkidle')
-    await expectCompactReleaseCard(
-      mobilePage.locator(`[data-release-card-id="${activeRelease.id}"]`),
-      'Metrics release',
-      '1 / 2',
-    )
-    expect(
-      await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-    ).toBe(true)
 
     expect(
       (
@@ -401,10 +351,8 @@ test('hierarchy cards show active counts and accessible release completion progr
       ),
     ).toBe(false)
     await page.goto(`/clients/${clientRecord.id}?archived=true`)
-    await page.waitForLoadState('networkidle')
     await expect(page.locator(`[data-project-card-id="${projectRecord.id}"]`)).toHaveCount(0)
     await page.goto(`/projects/${projectRecord.id}?archived=true`)
-    await page.waitForLoadState('networkidle')
     await expect(page.locator(`[data-release-card-id="${activeRelease.id}"]`)).toHaveCount(0)
     expect(
       (
@@ -415,7 +363,6 @@ test('hierarchy cards show active counts and accessible release completion progr
     ).toBeTruthy()
 
     await page.goto(`/projects/${projectRecord.id}?archived=true`)
-    await page.waitForLoadState('networkidle')
     const archivedReleaseCard = page.locator(`[data-release-card-id="${archivedRelease.id}"]`)
     await expect(archivedReleaseCard).toBeVisible()
     await expect(archivedReleaseCard.getByRole('list')).toHaveCount(0)
@@ -446,7 +393,6 @@ test('hierarchy cards show active counts and accessible release completion progr
       }),
     )
     await page.goto(`/clients/${clientRecord.id}`)
-    await page.waitForLoadState('networkidle')
     const archivedProjectCard = page.locator(`[data-project-card-id="${projectRecord.id}"]`)
     await expect(archivedProjectCard).toBeVisible()
     await expect(archivedProjectCard.getByText('Archived', { exact: true })).toBeVisible()
@@ -462,7 +408,6 @@ test('hierarchy cards show active counts and accessible release completion progr
       ),
     ).toBe(false)
     await page.goto(`/projects/${projectRecord.id}?archived=true`)
-    await page.waitForLoadState('networkidle')
     await expect(page.locator(`[data-release-card-id="${activeRelease.id}"]`)).toHaveCount(0)
 
     expect(
@@ -484,7 +429,6 @@ test('hierarchy cards show active counts and accessible release completion progr
       }),
     )
   } finally {
-    await mobileContext?.close()
     await cleanup(owner.id)
   }
 })

@@ -1,4 +1,4 @@
-# M7 — Search and compact UI polish (Approved; implementation in progress)
+# M7 — Search and compact UI polish (Complete)
 
 ## Context
 
@@ -41,7 +41,7 @@ See focused plan. Reuse current auth-scoped DB joins and UI interactions; add a 
 - [x] Search endpoint and grouped, accessible keyboard/touch search UI with tests.
 - [x] Responsive shell and compact Today/list/Settings presentation with tests.
 - [x] Project/release navigation and board relation/status presentation with tests.
-- [ ] Final state polish, verification evidence, human code review and completion declaration (review pending).
+- [x] Final state polish and verification evidence recorded; human code review accepted and completion declared.
 
 ## Journal
 
