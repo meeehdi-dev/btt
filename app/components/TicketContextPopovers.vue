@@ -26,7 +26,6 @@ const emit = defineEmits<{
       <UPopover
         v-model:open="relatedOpen"
         mode="hover"
-        enable-touch
         :close-delay="500"
         :content="{ side: 'bottom', align: 'start' }"
       >
@@ -46,13 +45,13 @@ const emit = defineEmits<{
           <EntityIcon kind="related" :class="compact ? '!size-3' : ''" />
         </UButton>
         <template #content>
-          <div class="max-h-64 min-w-48 max-w-72 overflow-y-auto p-2" aria-label="Related tickets">
+          <div class="max-h-64 min-w-48 max-w-72 overflow-y-auto p-1" aria-label="Related tickets">
             <NuxtLink
               v-for="related in relatedTickets"
               :key="related.id"
               :data-related-ticket-id="related.id"
               :to="`/tickets/${related.id}${related.archived ? '?archived=true' : ''}`"
-              class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-default hover:bg-accented hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+              class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-default hover:bg-accented hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
               @mouseenter="emit('related-hover', related.id)"
               @mouseleave="emit('related-hover', null)"
               @focus="emit('related-hover', related.id)"
@@ -70,7 +69,6 @@ const emit = defineEmits<{
       <UPopover
         v-model:open="externalOpen"
         mode="hover"
-        enable-touch
         :close-delay="500"
         :content="{ side: 'bottom', align: 'end' }"
       >
@@ -94,14 +92,14 @@ const emit = defineEmits<{
           />
         </UButton>
         <template #content>
-          <div class="max-h-64 min-w-40 max-w-72 overflow-y-auto p-2" aria-label="External links">
+          <div class="max-h-64 min-w-40 max-w-72 overflow-y-auto p-1" aria-label="External links">
             <a
               v-for="link in externalLinks"
               :key="link.id"
               :href="link.url"
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-default hover:bg-accented hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+              class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-default hover:bg-accented hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
             >
               <UIcon name="lucide:external-link" class="size-4 shrink-0" aria-hidden="true" />
               <span class="min-w-0 truncate">{{ ticketLinkLabel(link.label, link.url) }}</span>

@@ -95,7 +95,7 @@ async function submit() {
 }
 </script>
 <template>
-  <div class="w-full space-y-6">
+  <div class="w-full space-y-4">
     <div>
       <HierarchyBreadcrumbs
         v-if="selectedRelease"
@@ -122,7 +122,7 @@ async function submit() {
         <NuxtLink to="/tickets" class="inline-flex items-center gap-1 text-sm text-primary"
           >← <EntityIcon kind="tickets" />Tickets</NuxtLink
         >
-        <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+        <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
           <EntityIcon kind="tickets" />New ticket
         </h1>
       </template>
@@ -146,10 +146,10 @@ async function submit() {
     <UCard v-else-if="!releases.length"
       ><h2 class="font-medium text-highlighted">Create a release first</h2>
       <p class="mt-2 text-muted">Tickets must belong to an active release.</p>
-      <UButton to="/releases/new" class="mt-4" icon="lucide:plus" label="Create release"
+      <UButton to="/releases/new" class="mt-2" icon="lucide:plus" label="Create release"
     /></UCard>
     <UCard v-else
-      ><form class="space-y-5" @submit.prevent="submit">
+      ><form class="space-y-3" @submit.prevent="submit">
         <UFormField label="Release" required
           ><USelectMenu
             :model-value="releaseId"
@@ -176,12 +176,12 @@ async function submit() {
         <UFormField label="Estimate" hint="Optional · try 1hr 30m or 90 (minutes)"
           ><UInput v-model="estimate" type="text" class="w-full" placeholder="1hr 30m"
         /></UFormField>
-        <div class="space-y-3 border-t border-muted pt-5">
+        <div class="space-y-2 border-t border-muted pt-4">
           <h2 class="font-medium text-highlighted">External links</h2>
           <div
             v-for="(link, index) in links"
             :key="index"
-            class="flex flex-col gap-2 rounded-lg border border-default bg-elevated/50 p-3 sm:flex-row sm:items-end"
+            class="flex items-end gap-2 rounded-lg border border-default bg-elevated/50 p-2"
           >
             <UFormField :label="`Link ${index + 1} label`" hint="Optional" class="flex-1"
               ><UInput v-model="link.label" class="w-full" placeholder="PR"
@@ -210,7 +210,7 @@ async function submit() {
             @click="links.push({ label: '', url: '' })"
           />
         </div>
-        <div class="space-y-3 border-t border-muted pt-5">
+        <div class="space-y-2 border-t border-muted pt-4">
           <h2 class="font-medium text-highlighted">Related tickets</h2>
           <div v-if="ticketsError" class="space-y-2">
             <UAlert
@@ -230,7 +230,7 @@ async function submit() {
           <div
             v-for="relatedId in relatedTicketIds"
             :key="relatedId"
-            class="flex flex-col items-start gap-2 rounded-lg border border-muted bg-elevated/50 p-3 sm:flex-row sm:items-center sm:justify-between"
+            class="flex items-center justify-between gap-2 rounded-lg border border-muted bg-elevated/50 p-2"
           >
             <span>{{ tickets.find((item) => item.ticket.id === relatedId)?.ticket.title }}</span>
             <UButton
@@ -242,10 +242,7 @@ async function submit() {
               @click="relatedTicketIds = relatedTicketIds.filter((id) => id !== relatedId)"
             />
           </div>
-          <div
-            v-if="availableRelations.length"
-            class="flex flex-col gap-2 sm:flex-row sm:items-end"
-          >
+          <div v-if="availableRelations.length" class="flex items-end gap-2">
             <UFormField label="Choose related ticket" class="flex-1"
               ><USelectMenu
                 :model-value="selectedRelation"
@@ -279,7 +276,7 @@ async function submit() {
         <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create ticket">{{
           errorMessage
         }}</UAlert>
-        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div class="flex justify-end gap-2">
           <UButton
             to="/tickets"
             color="neutral"

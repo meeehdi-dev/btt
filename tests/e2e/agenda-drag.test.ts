@@ -3,7 +3,6 @@ import { eq } from 'drizzle-orm'
 import { db } from '../../server/db'
 import { client, project, release, ticket, timeEntry } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
-import { waitForClientMount } from './wait-for-client-mount'
 
 type AgendaFixture = {
   clientId: string
@@ -64,7 +63,6 @@ const test = base.extend<{ agenda: AgendaFixture }>({
       ticketIds.push(hiddenTicket.id)
 
       await page.setViewportSize({ width: 1440, height: 2500 })
-      await page.goto('/today')
       const day = await page.evaluate(() => {
         const now = new Date()
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -105,6 +103,20 @@ const test = base.extend<{ agenda: AgendaFixture }>({
   },
 })
 
+async function openTodayAgenda(page: Page, day: string) {
+  const agendaResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url())
+    return (
+      response.request().method() === 'GET' &&
+      url.pathname === '/api/agenda' &&
+      url.searchParams.get('date') === day
+    )
+  })
+  const [, response] = await Promise.all([page.goto(`/today?date=${day}`), agendaResponse])
+  expect(response.ok()).toBe(true)
+  await expect(page.getByText('Loading agenda…', { exact: true })).toHaveCount(0)
+}
+
 async function point(page: Page, timeline: Locator, minute: number, offset = 10) {
   const box = await timeline.boundingBox()
   if (!box) throw new Error('Timeline is not visible')
@@ -119,7 +131,7 @@ test('desktop day gestures create, move, resize, and reject overlapping entries'
   const blockerId = await add(ticketId, 600, 60, 'Visible blocker')
   const hiddenId = await add(hiddenTicketId, 750, 30, 'Filtered blocker')
   const movingId = await add(ticketId, 900, 60, 'Movable block')
-  await page.reload()
+  await openTodayAgenda(page, day)
 
   const timeline = page.getByRole('region', { name: 'Day timeline' })
   const moving = timeline.locator(`[data-agenda-entry="${movingId}"]`)
@@ -229,41 +241,13 @@ test('desktop day gestures create, move, resize, and reject overlapping entries'
     .toBeGreaterThan(60)
 })
 
-test('mobile agenda correction can edit and delete a time entry without overflow', async ({
-  page,
-  agenda,
-}) => {
-  const { add, day, hiddenTicketId } = agenda
-  const deletableId = await add(hiddenTicketId, 1140, 30, 'Delete correction')
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.reload()
-  await waitForClientMount(page)
-
-  const workList = page.getByRole('list', { name: 'Work in visible hours' })
-  const deletableEntry = workList.getByText('Delete correction')
-  await expect(deletableEntry).toBeVisible()
-  await deletableEntry.dblclick()
-  const correctionDialog = page.getByRole('dialog', { name: 'Correct time entry' })
-  await expect(correctionDialog.getByRole('button', { name: 'Delete time entry' })).toBeVisible()
-  page.once('dialog', (dialog) => dialog.accept())
-  await correctionDialog.getByRole('button', { name: 'Delete time entry' }).click()
-  await expect(correctionDialog).toHaveCount(0)
-  expect(
-    (await (await page.request.get('/api/agenda', { params: { date: day } })).json()).entries.some(
-      (row: { entry: { id: string } }) => row.entry.id === deletableId,
-    ),
-  ).toBe(false)
-  await expect(workList.getByRole('button', { name: /Edit time entry/ })).toHaveCount(0)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-})
-
 test('Today reports a server-side overlap when a blocker appears after loading', async ({
   page,
   agenda,
 }) => {
   const { add, day, hiddenTicketId, ticketId } = agenda
   const movingId = await add(ticketId, 900, 60, 'Movable block')
-  await page.reload()
+  await openTodayAgenda(page, day)
   const timeline = page.getByRole('region', { name: 'Day timeline' })
   const moving = timeline.locator(`[data-agenda-entry="${movingId}"]`)
   await expect(moving).toBeVisible()
@@ -292,7 +276,7 @@ test('archived-parent top resize clamps at an adjacent time entry', async ({ pag
     data: { archived: true },
   })
   expect(archivedClient.ok()).toBe(true)
-  await page.reload()
+  await openTodayAgenda(page, day)
 
   const timeline = page.getByRole('region', { name: 'Day timeline' })
   const blocker = timeline.locator(`[data-agenda-entry="${blockerId}"]`)

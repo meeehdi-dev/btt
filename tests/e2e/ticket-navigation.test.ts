@@ -15,7 +15,6 @@ import { testAuth } from '../../server/utils/auth-test'
 test('board hierarchy actions and related-ticket icons locate visible targets', async ({
   page,
   context,
-  browser,
 }) => {
   const helpers = (await testAuth.$context).test
   const user = helpers.createUser({
@@ -199,63 +198,6 @@ test('board hierarchy actions and related-ticket icons locate visible targets', 
     await expect(
       page.getByRole('button', { name: 'Unlink Target ticket' }).locator('..'),
     ).not.toContainText('>')
-
-    // Put another card before the target so the target shifts while its status expands.
-    expect(
-      (
-        await page.request.post('/api/tickets', {
-          data: { releaseId: r.id, title: 'Earlier done', status: 'Done' },
-        })
-      ).ok(),
-    ).toBeTruthy()
-    const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } })
-    try {
-      await mobile
-        .context()
-        .addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
-      await mobile.goto('/tickets')
-      await waitForClientMount(mobile)
-      await mobile.getByRole('button', { name: 'Idea: 1 tickets' }).click()
-      const idea = mobile.getByRole('region', { name: 'Idea tickets' })
-      const done = mobile.getByRole('region', { name: 'Done tickets' })
-      const ideaContent = idea.locator('[data-slot="content"]')
-      await expect(ideaContent).toHaveAttribute('data-state', 'open')
-      await ideaContent.evaluate(async (element) => {
-        await Promise.all(element.getAnimations().map((animation) => animation.finished))
-      })
-      await expect(idea.getByRole('button', { name: 'Related tickets' })).toBeVisible()
-      await expect(done.getByRole('button', { name: 'Done: 2 tickets' })).toHaveAttribute(
-        'aria-expanded',
-        'false',
-      )
-      await idea.getByRole('button', { name: 'Related tickets' }).click()
-      await expect(mobile.locator(`[data-related-ticket-id="${target.id}"]`)).toBeVisible({
-        timeout: 3000,
-      })
-      await mobile
-        .locator(`[data-related-ticket-id="${target.id}"]`)
-        .click({ noWaitAfter: true, timeout: 5000 })
-      await expect(done.getByRole('button', { name: 'Done: 2 tickets' })).toHaveAttribute(
-        'aria-expanded',
-        'true',
-      )
-      const mobileTarget = done.locator(`[data-board-ticket-id="${target.id}"]`)
-      await expect(mobileTarget).toHaveClass(/border-primary/)
-      await expect
-        .poll(() =>
-          mobileTarget.evaluate((element) => {
-            const rect = element.getBoundingClientRect()
-            return rect.top >= 0 && rect.top < innerHeight
-          }),
-        )
-        .toBeTruthy()
-      await expect(mobile).toHaveURL(/\/tickets$/)
-      expect(
-        await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-      ).toBeTruthy()
-    } finally {
-      await mobile.close()
-    }
   } finally {
     const clients = await db
       .select({ id: client.id })

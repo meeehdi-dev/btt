@@ -8,7 +8,6 @@ import { testAuth } from '../../server/utils/auth-test'
 test('release ticket status selector changes status and handles failures', async ({
   page,
   context,
-  browser,
 }) => {
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
@@ -20,7 +19,6 @@ test('release ticket status selector changes status and handles failures', async
   let projectId = ''
   let releaseId = ''
   let ticketId = ''
-  let mobileContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
   try {
     await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
     const create = async (path: string, data: unknown) => {
@@ -140,42 +138,14 @@ test('release ticket status selector changes status and handles failures', async
     await expect(status).toContainText('Done')
     await expect(page.getByRole('status')).toHaveText('Release ticket data refreshed.')
 
-    mobileContext = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      isMobile: true,
-      hasTouch: true,
-    })
-    await mobileContext.addCookies(
-      await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }),
-    )
-    const mobilePage = await mobileContext.newPage()
-    await mobilePage.goto(`/releases/${releaseId}`)
-    await mobilePage.waitForLoadState('networkidle')
-    const mobileCard = mobilePage.locator(`[data-release-ticket-id="${ticketId}"]`)
-    const mobileStatus = mobileCard.getByRole('combobox', { name: `Ticket status for ${title}` })
-    await mobileStatus.tap()
-    const mobileOption = (value: string) =>
-      mobilePage.getByRole('option', { name: value, exact: true })
-    for (const value of ticketStatuses) {
-      await expect(mobileOption(value)).toBeVisible()
-      const label = mobileOption(value).locator('[data-slot="itemLabel"]')
-      const labelFits = await label.evaluate(
-        (element) => element.scrollWidth <= element.clientWidth,
-      )
-      expect(labelFits, `${value} mobile status option should not be truncated`).toBe(true)
-    }
-
-    await mobileOption('Deploy').tap()
-    await expect(mobileStatus).toContainText('Deploy')
-    expect(
-      await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-    ).toBe(true)
-    await expect(mobilePage).toHaveURL(`/releases/${releaseId}`)
+    await status.click()
+    await option('Deploy').click()
+    await expect(status).toContainText('Deploy')
+    await expect(page).toHaveURL(`/releases/${releaseId}`)
 
     await card.getByRole('link', { name: `Open ticket ${title}` }).click()
     await expect(page).toHaveURL(`/tickets/${ticketId}`)
   } finally {
-    await mobileContext?.close()
     if (ticketId) await db.delete(ticket).where(eq(ticket.id, ticketId))
     if (releaseId) await db.delete(release).where(eq(release.id, releaseId))
     if (projectId) await db.delete(project).where(eq(project.id, projectId))

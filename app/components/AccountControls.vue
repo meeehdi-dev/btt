@@ -8,7 +8,7 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-wrap items-center justify-end gap-2">
+  <div class="flex min-w-0 items-center justify-end gap-2">
     <div
       role="group"
       :aria-label="`Signed in as ${props.name ?? 'User'}`"
@@ -35,7 +35,7 @@ const props = defineProps<{
         aria-label="Settings"
         class="shrink-0 cursor-pointer px-2 py-2 hover:bg-accented hover:text-highlighted"
       >
-        <span class="hidden sm:inline">Settings</span>
+        <span>Settings</span>
       </UButton>
     </UTooltip>
     <form action="/api/logout" method="post" class="shrink-0">
@@ -49,7 +49,7 @@ const props = defineProps<{
           aria-label="Sign out"
           class="shrink-0 cursor-pointer px-2 py-2 hover:bg-accented hover:text-highlighted"
         >
-          <span class="hidden sm:inline">Sign out</span>
+          <span>Sign out</span>
         </UButton>
       </UTooltip>
     </form>

@@ -53,7 +53,6 @@ async function cleanup(userId: string) {
 test('collection APIs keep their approved order when records are edited', async ({
   page,
   context,
-  browser,
 }) => {
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
@@ -283,26 +282,18 @@ test('collection APIs keep their approved order when records are edited', async 
       tickets.plainOld!.id,
     ])
 
-    const mobilePage = await browser.newPage({ viewport: { width: 390, height: 844 } })
-    try {
-      await mobilePage
-        .context()
-        .addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
-      await mobilePage.goto(`/projects/${newerProject.id}`)
-      expect(
-        await mobilePage
-          .locator('[data-release-card-id]')
-          .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-release-card-id'))),
-      ).toEqual(expectedReleaseIds)
-      await mobilePage.goto(`/releases/${releases.soon!.id}`)
-      expect(
-        await mobilePage
-          .locator('[data-release-ticket-id]')
-          .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-release-ticket-id'))),
-      ).toEqual(expectedTicketIds)
-    } finally {
-      await mobilePage.close()
-    }
+    await page.goto(`/projects/${newerProject.id}`)
+    expect(
+      await page
+        .locator('[data-release-card-id]')
+        .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-release-card-id'))),
+    ).toEqual(expectedReleaseIds)
+    await page.goto(`/releases/${releases.soon!.id}`)
+    expect(
+      await page
+        .locator('[data-release-ticket-id]')
+        .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-release-ticket-id'))),
+    ).toEqual(expectedTicketIds)
 
     const movedToEstimated = await page.request.patch(`/api/tickets/${tickets.plainNew!.id}`, {
       data: { estimateMinutes: 45 },

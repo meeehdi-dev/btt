@@ -4,6 +4,7 @@
 - Date: 2026-09-25
 - Supersedes: None
 - Superseded by: None
+- Partial supersession by ADR 0042: the stacked mobile lanes and responsive gutters are retired; the seven-lane desktop board, local horizontal scrolling, estimate behavior, and ticket-extra mutation rules remain authoritative.
 
 ## Context
 

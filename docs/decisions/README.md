@@ -76,3 +76,5 @@ NNNN-short-descriptive-slug.md
 | [0039](0039-today-agenda-context-control-flow.md)              | Accepted   | Keep Today agenda context controls in one flow             |
 | [0040](0040-ticket-detail-inline-editing.md)                   | Proposed   | Make ticket detail the normal edit surface                 |
 | [0041](0041-ci-e2e-failure-diagnostics.md)                     | Accepted   | Keep CI E2E failures visible and diagnosable               |
+| [0042](0042-desktop-only-ui-and-spacing.md)                    | Accepted   | Desktop-only UI and compact spacing system                 |
+| [0043](0043-release-completion-action-location.md)             | Accepted   | Keep release completion on release detail                  |
