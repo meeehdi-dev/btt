@@ -3,7 +3,6 @@ import { eq } from 'drizzle-orm'
 import { db } from '../../server/db'
 import { client, project, release, ticket, timeEntry } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
-import { waitForClientMount } from './wait-for-client-mount'
 
 type AgendaFixture = {
   clientId: string
@@ -227,34 +226,6 @@ test('desktop day gestures create, move, resize, and reject overlapping entries'
           .durationMinutes,
     )
     .toBeGreaterThan(60)
-})
-
-test('mobile agenda correction can edit and delete a time entry without overflow', async ({
-  page,
-  agenda,
-}) => {
-  const { add, day, hiddenTicketId } = agenda
-  const deletableId = await add(hiddenTicketId, 1140, 30, 'Delete correction')
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.reload()
-  await waitForClientMount(page)
-
-  const workList = page.getByRole('list', { name: 'Work in visible hours' })
-  const deletableEntry = workList.getByText('Delete correction')
-  await expect(deletableEntry).toBeVisible()
-  await deletableEntry.dblclick()
-  const correctionDialog = page.getByRole('dialog', { name: 'Correct time entry' })
-  await expect(correctionDialog.getByRole('button', { name: 'Delete time entry' })).toBeVisible()
-  page.once('dialog', (dialog) => dialog.accept())
-  await correctionDialog.getByRole('button', { name: 'Delete time entry' }).click()
-  await expect(correctionDialog).toHaveCount(0)
-  expect(
-    (await (await page.request.get('/api/agenda', { params: { date: day } })).json()).entries.some(
-      (row: { entry: { id: string } }) => row.entry.id === deletableId,
-    ),
-  ).toBe(false)
-  await expect(workList.getByRole('button', { name: /Edit time entry/ })).toHaveCount(0)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
 test('Today reports a server-side overlap when a blocker appears after loading', async ({

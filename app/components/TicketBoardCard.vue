@@ -22,7 +22,6 @@ const props = defineProps<{
   }
   changing: boolean
   busy: boolean
-  canDrag: boolean
   highlighted: boolean
 }>()
 const hierarchyItems = computed(() => [
@@ -73,13 +72,14 @@ function dragEnd() {
 
 <template>
   <EntityCard
+    padding="standard"
     :data-board-ticket-id="item.ticket.id"
     :aria-busy="changing"
-    :draggable="canDrag && !item.ticket.archivedAt && !busy"
+    :draggable="!item.ticket.archivedAt && !busy"
     content-interactive
     :class="[
       highlighted ? 'border-primary' : '',
-      canDrag && !item.ticket.archivedAt && !busy ? 'cursor-grab active:cursor-grabbing' : '',
+      !item.ticket.archivedAt && !busy ? 'cursor-grab active:cursor-grabbing' : '',
     ]"
     @pointerdown="pointerDown"
     @pointerup="startedOnControl = false"

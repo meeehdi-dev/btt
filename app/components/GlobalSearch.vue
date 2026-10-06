@@ -167,20 +167,20 @@ function keydown(event: KeyboardEvent) {
         @focus="open = true"
         @keydown="keydown"
       />
-      <span class="hidden text-xs text-muted sm:inline" aria-hidden="true">/ or ⌘K</span>
+      <span class="text-xs text-muted" aria-hidden="true">/ or ⌘K</span>
     </div>
     <div
       v-if="open && query.trim().length >= 2"
       :id="resultsId"
-      class="absolute z-50 mt-1 max-h-80 w-full overflow-auto rounded-lg border border-default bg-elevated p-2 shadow-lg"
+      class="absolute z-50 mt-1 max-h-80 w-full overflow-auto rounded-lg border border-default bg-elevated p-1 shadow-lg"
       role="listbox"
       aria-label="Search results"
     >
-      <p v-if="loading" role="status" class="p-2 text-sm text-muted">Searching…</p>
-      <p v-else-if="failed" role="alert" class="p-2 text-sm text-error">
+      <p v-if="loading" role="status" class="p-1 text-sm text-muted">Searching…</p>
+      <p v-else-if="failed" role="alert" class="p-1 text-sm text-error">
         Search failed. Try another query.
       </p>
-      <p v-else-if="!items.length" class="p-2 text-sm text-muted">No matches.</p>
+      <p v-else-if="!items.length" class="p-1 text-sm text-muted">No matches.</p>
       <template v-else>
         <div v-for="(item, index) in items" :key="`${item.category}-${item.id}`">
           <p

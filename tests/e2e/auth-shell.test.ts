@@ -34,11 +34,11 @@ async function expectLeftAlignedProjectSummary(card: Locator) {
   const countsList = card.getByRole('list', { name: 'Active project contents' })
   const countPill = countsList.locator('li').first()
   await expect(clientButton).toHaveClass(/bg-default/)
-  await expect(clientButton).toHaveClass(/px-1\.5/)
+  await expect(clientButton).toHaveClass(/px-2/)
   await expect(clientButton).toHaveClass(/text-muted/)
   await expect(countsList).toHaveClass(/text-muted/)
   await expect(countPill).toHaveClass(/bg-default/)
-  await expect(countPill).toHaveClass(/px-1\.5/)
+  await expect(countPill).toHaveClass(/px-1/)
   await expect(clientButton.locator('[aria-hidden="true"]')).toBeVisible()
   const [cardSurface, linkSurface, countSurface] = await Promise.all([
     card.evaluate((element) => getComputedStyle(element).backgroundColor),
@@ -67,12 +67,8 @@ async function expectEditBeforeNew(page: Page, editLabel: string, newLabel: stri
   await expect(create).toBeVisible()
   const [editBox, newBox] = await Promise.all([edit.boundingBox(), create.boundingBox()])
   if (!editBox || !newBox) throw new Error('Header actions must be visible')
-  if (Math.abs(editBox.y - newBox.y) < 4) {
-    expect(editBox.x + editBox.width).toBeLessThanOrEqual(newBox.x)
-  } else {
-    expect(editBox.y + editBox.height).toBeLessThanOrEqual(newBox.y)
-    expect(Math.abs(editBox.x - newBox.x)).toBeLessThan(2)
-  }
+  expect(Math.abs(editBox.y - newBox.y)).toBeLessThan(4)
+  expect(editBox.x + editBox.width).toBeLessThanOrEqual(newBox.x)
 }
 
 test('redirects unauthenticated users and supports an authenticated shell session', async ({
@@ -84,9 +80,6 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
   await expect(page).toHaveURL(/\/login\?redirect=\/today$/)
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
   await expectLoginCardCentered(page)
-  await page.setViewportSize({ width: 390, height: 844 })
-  await expectLoginCardCentered(page)
-  await page.setViewportSize({ width: 1280, height: 900 })
 
   const helpers = (await testAuth.$context).test
   const user = helpers.createUser({
@@ -167,27 +160,6 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
       'src',
       'https://avatars.githubusercontent.com/u/12345?v=4',
     )
-    for (const width of [390, 320]) {
-      await page.setViewportSize({ width, height: 844 })
-      await expect(mainNavigation.getByRole('link', { name: 'Today' })).toBeVisible()
-      await expect(mainNavigation.getByRole('link', { name: 'Tickets' })).toBeVisible()
-      await expect(mainNavigation.getByRole('link', { name: 'Clients' })).toBeVisible()
-      await expect(headerSearch).toBeVisible()
-      await expect(header.getByRole('link', { name: 'Settings' })).toBeVisible()
-      await expect(header.getByRole('button', { name: 'Sign out' })).toBeVisible()
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-        true,
-      )
-      const blockTops = await Promise.all(
-        ['left', 'search', 'account'].map(async (block) =>
-          header
-            .locator(`[data-header-block="${block}"]`)
-            .evaluate((element) => element.getBoundingClientRect().top),
-        ),
-      )
-      expect(blockTops[0]).toBeLessThan(blockTops[1]!)
-      expect(blockTops[1]).toBeLessThan(blockTops[2]!)
-    }
     await page.setViewportSize({ width: 1280, height: 900 })
     await header.getByRole('button', { name: 'Sign out' }).click({ noWaitAfter: true })
     await page.waitForURL(/\/login$/)
@@ -282,8 +254,6 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
       page.getByRole('main').getByRole('link', { name: 'Clients', exact: true }),
     ).toHaveCount(0)
     await expectEditBeforeNew(page, 'Edit client', 'New project')
-    await page.setViewportSize({ width: 390, height: 844 })
-    await expectEditBeforeNew(page, 'Edit client', 'New project')
     const clientProjectCard = page.locator(`[data-project-card-id="${project.id}"]`)
     await expect(clientProjectCard.getByText('M2 Project')).toBeVisible()
     await expect(clientProjectCard.getByRole('link', { name: 'M2 Client' })).toBeVisible()
@@ -295,23 +265,12 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await clientProjectCard.getByRole('link', { name: 'Open project M2 Project' }).click()
     await expect(page).toHaveURL(`/projects/${project.id}`)
     await expectEditBeforeNew(page, 'Edit project', 'New release')
-    await page.setViewportSize({ width: 1280, height: 844 })
-    await expectEditBeforeNew(page, 'Edit project', 'New release')
-    await page.setViewportSize({ width: 390, height: 844 })
     await expect(page.getByText('M2 Release')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Show archived' })).toBeVisible()
-    const markDone = page.getByRole('button', { name: 'Mark release as done' })
-    await expect(markDone).toBeVisible()
-    await expect(markDone).not.toHaveAttribute('title')
-    await waitForClientMount(page)
-    await markDone.hover()
-    await expectTooltip(page, 'Mark done')
+    await expect(page.getByRole('button', { name: 'Mark release as done' })).toHaveCount(0)
     await page.goto(`/releases/${release.id}`)
     await waitForClientMount(page)
     await expectEditBeforeNew(page, 'Edit release', 'New ticket')
-    await page.setViewportSize({ width: 1280, height: 844 })
-    await expectEditBeforeNew(page, 'Edit release', 'New ticket')
-    await page.setViewportSize({ width: 390, height: 844 })
     await page.getByRole('button', { name: 'Mark release as done' }).click()
     const emptyReleaseWarning = page.getByRole('dialog', { name: 'Mark release as done?' })
     await expect(
@@ -381,7 +340,6 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
     await expect(page).toHaveURL(`/clients/${client.id}?archived=true`)
     await page.goto('/projects/new')
     await expect(page.getByRole('heading', { name: 'Create a client first' })).toBeVisible()
-    await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/clients/new')
     const createButton = page.getByRole('button', { name: 'Create client' })
     const cancelButton = page.getByRole('link', { name: 'Cancel' })
@@ -389,10 +347,9 @@ test('creates and archives the client hierarchy', async ({ page, context }) => {
       createButton.boundingBox(),
       cancelButton.boundingBox(),
     ])
-    if (!createBounds || !cancelBounds) throw new Error('Mobile form actions must be visible')
-    expect(createBounds.y).toBeLessThan(cancelBounds.y)
-    expect(Math.abs(createBounds.x - cancelBounds.x)).toBeLessThan(1)
-    expect(createBounds.width).toBe(cancelBounds.width)
+    if (!createBounds || !cancelBounds) throw new Error('Desktop form actions must be visible')
+    expect(Math.abs(createBounds.y - cancelBounds.y)).toBeLessThan(4)
+    expect(cancelBounds.x + cancelBounds.width).toBeLessThanOrEqual(createBounds.x)
   } finally {
     const ownedClients = await db
       .select({ id: clientTable.id })

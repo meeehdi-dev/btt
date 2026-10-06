@@ -68,7 +68,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="w-full space-y-6">
+  <div class="w-full space-y-4">
     <div>
       <HierarchyBreadcrumbs
         v-if="selectedProject"
@@ -90,7 +90,7 @@ async function submit() {
         <NuxtLink to="/clients" class="inline-flex items-center gap-1 text-sm text-primary"
           >← <EntityIcon kind="clients" />Clients</NuxtLink
         >
-        <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+        <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
           <EntityIcon kind="releases" />New release
         </h1>
       </template>
@@ -116,10 +116,10 @@ async function submit() {
     <UCard v-else-if="!projects.length">
       <h2 class="font-medium text-highlighted">Create a project first</h2>
       <p class="mt-2 text-muted">Releases must belong to an active project.</p>
-      <UButton class="mt-4" to="/clients" icon="lucide:users" label="Go to clients" />
+      <UButton class="mt-2" to="/clients" icon="lucide:users" label="Go to clients" />
     </UCard>
     <UCard v-else>
-      <form class="space-y-5" @submit.prevent="submit">
+      <form class="space-y-3" @submit.prevent="submit">
         <UFormField label="Project" required>
           <USelectMenu
             :model-value="projectId"
@@ -147,7 +147,7 @@ async function submit() {
         <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create release">{{
           errorMessage
         }}</UAlert>
-        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div class="flex justify-end gap-2">
           <UButton :to="cancelTo" color="neutral" variant="ghost" icon="lucide:x" label="Cancel" />
           <UButton
             type="submit"

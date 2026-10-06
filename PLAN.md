@@ -14,6 +14,10 @@ The MVP should focus on:
 
 No personal tasks, habits, streaks, broad tag system, billable flag, calendar sync, or reporting/export features are needed for the MVP.
 
+### Current UI support direction (M28)
+
+The human-approved M28 plan establishes one desktop presentation at 1280 CSS px and wider; narrower viewports are unsupported and may overflow. Its implementation retires mobile/tablet-specific layouts and touch branches while preserving desktop workflows, keyboard accessibility, and domain behavior. A Plannotator-approved amendment now directs a compact 2px-based role scale for app-authored spacing, including 2px agenda-filter wrapper padding, smaller section gaps, and equal reduced page insets; standard Nuxt UI select-trigger sizing and hit targets remain. M28 implementation, local verification, human review, and completion declaration are complete. Earlier responsive milestones and feature entries below record historical scope; they do not override M28's current UI support target. M27 remains open and separate; M28 makes no claim about runner assignment and authorizes no remote CI run or policy change. See [`docs/milestones/m28-desktop-only-ui-cleanup.md`](docs/milestones/m28-desktop-only-ui-cleanup.md) and accepted [ADR 0042](docs/decisions/0042-desktop-only-ui-and-spacing.md).
+
 ## Approach
 
 Create a concise product plan for a work-only tool that combines:
@@ -551,6 +555,20 @@ Goal: fix the recurring archived-entry resize E2E failure and make future failur
 
 Acceptance: the focused gesture test is repeatable and the full project quality gates pass; CI retains useful artifacts for a failure while still failing the first attempt. No agenda persistence, overlap, archive, or authentication behavior changes.
 
+### M28 — Desktop-only UI cleanup and spacing harmonization
+
+Status: Complete (2026-10-06); implementation, local verification, final human review, and the completion declaration are recorded in the M28 milestone journal. ADRs 0042 and 0043 are Accepted; M27 remains open and separate, and no remote CI run was authorized. See [`docs/milestones/m28-desktop-only-ui-cleanup.md`](docs/milestones/m28-desktop-only-ui-cleanup.md), [`plans/m28-compact-spacing-amendment.md`](plans/m28-compact-spacing-amendment.md), [ADR 0042](docs/decisions/0042-desktop-only-ui-and-spacing.md), and [ADR 0043](docs/decisions/0043-release-completion-action-location.md).
+
+Goal: support one desktop presentation at 1280 CSS px and wider, retire mobile/narrow layouts and touch branches, and make the full UI materially more compact using M28's approved 2px-based spacing roles.
+
+- Keep the desktop three-block header, Day/Week time grids, horizontally scrollable seven-lane Ticket Board, hierarchy workflows, forms, pointer interactions, and keyboard access.
+- Remove mobile-only markup, responsive layout variants, viewport/touch branches, and mobile-only E2E scenarios. Preserve domain behavior coverage in desktop tests.
+- Use compact role-based spacing: 16px page inset/largest section gap, 8px standard card/form padding, 4px compact-card padding/related-control gaps, and 2px border-only filter wrappers. Override generated Nuxt UI responsive surface padding where needed; preserve standard select-trigger sizing and fixed time-grid geometry.
+- Keep historical completed milestone scopes intact. Do not change APIs, data, auth, dependencies, deployment, or CI policy; do not assume M28 addresses M27 runner assignment.
+- Live-app follow-up: Today and Ticket Board page gaps are 8px; the Agenda view group matches the adjacent 32px controls; end-of-hours labels stay visible without changing agenda geometry; Settings is vertically centered. Release completion is available only from Release detail; project cards remain navigable progress surfaces, as recorded in ADR 0043.
+
+Acceptance: app UI and E2E coverage target desktop widths of 1280 CSS px and wider; spacing is audited across Vue UI; local quality gates and manual route checks are recorded; ADR 0042 was accepted after human review on 2026-10-06. No remote CI run was authorized.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.
@@ -562,7 +580,7 @@ Acceptance: the focused gesture test is repeatable and the full project quality 
 
 ## Feature inventory and delivery status
 
-`[x]` means delivered as recorded in a completed milestone; `[ ]` means not delivered or explicitly deferred. Detailed scope, verification, and review evidence remain in the linked milestone records.
+`[x]` means delivered as recorded in a completed milestone; `[ ]` means not delivered or explicitly deferred. Detailed scope, verification, and review evidence remain in the linked milestone records. Responsive/mobile references below may describe historical delivery; M28 defines the current support target.
 
 ### Core foundations
 

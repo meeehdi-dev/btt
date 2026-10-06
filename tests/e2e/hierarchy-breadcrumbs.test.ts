@@ -282,10 +282,7 @@ test('hierarchy-aware create and edit forms keep breadcrumbs in sync', async ({
   )
 })
 
-test('archived hierarchy breadcrumbs preserve context on narrow layouts', async ({
-  page,
-  hierarchy,
-}) => {
+test('archived hierarchy breadcrumbs preserve context', async ({ page, hierarchy }) => {
   const { clientA, clientB, projectA, releaseA, ticketA } = hierarchy
   await page.setViewportSize({ width: 1440, height: 900 })
 
@@ -301,14 +298,11 @@ test('archived hierarchy breadcrumbs preserve context on narrow layouts', async 
   expect(
     (await page.request.patch(`/api/clients/${clientA.id}`, { data: { archived: true } })).ok(),
   ).toBeTruthy()
-  await page.setViewportSize({ width: 390, height: 844 })
   await page.goto(`/projects/new?client=${clientB.id}`)
   await waitForClientMount(page)
   await expectTrail(page, [{ label: clientB.name, href: `/clients/${clientB.id}` }], 'New project')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   const archivedEditorResponse = await page.goto(`/tickets/${ticketA.id}/edit?archived=true`)
   expect(archivedEditorResponse?.status()).toBe(404)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.goto(`/tickets/${ticketA.id}?archived=true`)
   await waitForClientMount(page)
   await expectTrail(
@@ -320,38 +314,10 @@ test('archived hierarchy breadcrumbs preserve context on narrow layouts', async 
     ],
     ticketA.title,
   )
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page
     .getByRole('navigation', { name: 'Breadcrumb' })
     .getByRole('link', { name: releaseA.name, exact: true })
     .click()
   await expect(page).toHaveURL(`/releases/${releaseA.id}?archived=true`)
   await expect(page.getByRole('heading', { name: releaseA.name, level: 1 })).toBeVisible()
-})
-
-test('mobile hierarchy selector is touch-accessible without stealing focus', async ({
-  browser,
-  hierarchy,
-}) => {
-  const { clientB, userId } = hierarchy
-  const helpers = (await testAuth.$context).test
-  const mobileContext = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-  })
-  try {
-    await mobileContext.addCookies(await helpers.getCookies({ userId, domain: '127.0.0.1' }))
-    const mobile = await mobileContext.newPage()
-    await mobile.goto('/projects/new')
-    await waitForClientMount(mobile)
-    await mobile.getByRole('button', { name: 'Client' }).tap()
-    const mobileSearch = mobile.getByPlaceholder('Search clients…')
-    await expect(mobileSearch).toBeVisible()
-    expect(await mobileSearch.evaluate((element) => element === document.activeElement)).toBe(false)
-    await mobileSearch.fill('Breadcrumb Client B')
-    await expect(mobile.getByRole('option', { name: clientB.name, exact: true })).toBeVisible()
-  } finally {
-    await mobileContext.close()
-  }
 })

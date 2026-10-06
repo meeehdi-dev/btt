@@ -196,6 +196,10 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await expect(page.getByRole('link', { name: 'Second ticket' })).toBeVisible()
     await page.goto('/tickets')
     await page.waitForLoadState('networkidle')
+    const ticketFilterBody = page
+      .getByRole('group', { name: 'Ticket filters' })
+      .locator('[data-slot="body"]')
+    await expect(ticketFilterBody).toHaveCSS('padding', '2px')
     await expect(
       page.getByRole('region', { name: 'Idea tickets' }).getByText('First ticket'),
     ).toBeVisible()
@@ -444,44 +448,6 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await page.goto('/clients/new')
     expect((await page.locator('main').boundingBox())?.width).toBeGreaterThan(1800)
     expect((await page.locator('main > div').boundingBox())?.width).toBeGreaterThan(1800)
-    const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } })
-    try {
-      await mobile
-        .context()
-        .addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
-      await mobile.goto('/tickets')
-      await mobile.waitForLoadState('networkidle')
-      expect(await mobile.evaluate(() => innerWidth)).toBe(390)
-      await expect(mobile.getByRole('heading', { name: 'Tickets' })).toBeVisible()
-      for (const laneStatus of [
-        'Idea',
-        'Estimate',
-        'Develop',
-        'Review',
-        'Test',
-        'Deploy',
-        'Done',
-      ]) {
-        const trigger = mobile.getByRole('button', {
-          name: new RegExp(`^${laneStatus}: \\d+ tickets$`),
-        })
-        await expect(trigger).toBeVisible()
-        await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-      }
-      const doneSection = mobile.getByRole('region', { name: 'Done tickets' })
-      await expect(doneSection.getByRole('link', { name: 'Second ticket' })).toBeHidden()
-      await doneSection.getByRole('button', { name: 'Done: 1 tickets' }).click()
-      await expect(doneSection.getByRole('button', { name: 'Done: 1 tickets' })).toHaveAttribute(
-        'aria-expanded',
-        'true',
-      )
-      await expect(doneSection.getByRole('link', { name: 'Second ticket' })).toBeVisible()
-      expect(
-        await mobile.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBeTruthy()
-    } finally {
-      await mobile.close()
-    }
     expect(linkId).toMatch(uuidv7)
   } finally {
     await cleanup(owner.id)

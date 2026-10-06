@@ -145,7 +145,7 @@ async function remove(id: string) {
 }
 </script>
 <template>
-  <UCard :ui="{ body: 'p-3 sm:p-4' }">
+  <UCard :ui="{ body: 'p-2' }">
     <div
       v-if="data && !error && !actionNeedsRefresh"
       class="flex flex-wrap items-center justify-between gap-2"
@@ -180,18 +180,18 @@ async function remove(id: string) {
     />
     <UButton
       v-if="error || actionNeedsRefresh"
-      class="mt-1.5"
+      class="mt-2"
       color="neutral"
       variant="outline"
       icon="lucide:refresh-cw"
       label="Retry loading time entries"
       @click="retryEntries()"
     />
-    <ul v-else-if="data?.entries.length" class="mt-2 space-y-1.5">
+    <ul v-else-if="data?.entries.length" class="mt-2 space-y-2">
       <li
         v-for="entry in data.entries"
         :key="entry.id"
-        class="flex min-w-0 items-start justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-2 py-1.5"
+        class="flex min-w-0 items-start justify-between gap-2 rounded-md border border-muted bg-elevated/50 p-2"
       >
         <div class="min-w-0 flex-1">
           <p class="flex flex-wrap items-center gap-x-2 text-sm font-medium text-highlighted">
@@ -204,7 +204,7 @@ async function remove(id: string) {
           </p>
           <p
             v-if="entry.description"
-            class="mt-0.5 whitespace-pre-wrap break-words text-sm text-muted"
+            class="mt-1 whitespace-pre-wrap break-words text-sm text-muted"
           >
             {{ entry.description }}
           </p>
@@ -240,14 +240,14 @@ async function remove(id: string) {
     </p>
     <form
       v-if="(canCreate || editingId) && !actionNeedsRefresh"
-      class="mt-3 space-y-2"
+      class="mt-2 space-y-2"
       @submit.prevent="save"
     >
       <h3 class="font-medium">{{ editingId ? 'Correct time entry' : 'Add completed work' }}</h3>
       <p class="text-sm text-muted">
         30-minute slots; entries may end at midnight but cannot overlap your other work.
       </p>
-      <div class="grid gap-2 sm:grid-cols-3">
+      <div class="grid grid-cols-3 gap-2">
         <UFormField label="Work date" required>
           <UPopover v-model:open="datePickerOpen">
             <UButton
@@ -292,27 +292,25 @@ async function remove(id: string) {
         :title="actionErrorTitle"
         :description="actionError"
       />
-      <div class="flex flex-col gap-2 sm:flex-row">
+      <div class="flex items-center gap-2">
         <UButton
           type="submit"
           :loading="busy"
           :icon="editingId ? 'lucide:save' : 'lucide:plus'"
           :label="editingId ? 'Save correction' : 'Add time entry'"
-          class="w-full sm:w-auto"
         /><UButton
           v-if="editingId"
           color="neutral"
           variant="ghost"
           icon="lucide:x"
           label="Cancel"
-          class="w-full sm:w-auto"
           @click="reset"
         />
       </div>
     </form>
     <UAlert
       v-else-if="actionError"
-      class="mt-3"
+      class="mt-2"
       role="alert"
       color="error"
       :title="actionErrorTitle"
