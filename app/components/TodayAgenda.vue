@@ -31,6 +31,9 @@ type Row = {
   externalLinks: { id: string; label: string | null; url: string }[]
 }
 const props = defineProps<{
+  date: string
+  currentDate: string
+  currentMinute: number | null
   rows: Row[]
   occupied: Row[]
   start: number
@@ -54,6 +57,16 @@ const hours = computed(() =>
     (_, index) => props.start + index * 60,
   ).filter((minute) => minute <= props.end),
 )
+const showNowMarker = computed(
+  () =>
+    props.date === props.currentDate &&
+    props.currentMinute !== null &&
+    props.currentMinute >= props.start &&
+    props.currentMinute < props.end,
+)
+const nowMarkerTop = computed(
+  () => `${((props.currentMinute ?? props.start) - props.start) * pixelsPerMinute}px`,
+)
 const early = computed(() => props.rows.filter(({ entry }) => entry.startMinute < props.start))
 const late = computed(() => props.rows.filter(({ entry }) => entry.startMinute >= props.end))
 const within = computed(() =>
@@ -72,8 +85,6 @@ const hidden = computed(() =>
 )
 const allIntervals = computed(() => props.occupied.map(({ entry }) => entry))
 const timeline = ref<HTMLElement | null>(null)
-const desktop = ref(false)
-let breakpoint: MediaQueryList | undefined
 const alert = ref('')
 type AgendaPreview = MovePreview
 
@@ -97,22 +108,12 @@ function resetGesture() {
     timeline.value.releasePointerCapture(id)
   gesture.value = null
 }
-function syncBreakpoint(event: MediaQueryListEvent) {
-  desktop.value = event.matches
-  if (!event.matches) resetGesture()
-}
 function onEscape(event: KeyboardEvent) {
   if (event.key === 'Escape') resetGesture()
 }
-onMounted(() => {
-  window.addEventListener('keydown', onEscape)
-  breakpoint = window.matchMedia('(min-width: 768px)')
-  desktop.value = breakpoint.matches
-  breakpoint.addEventListener('change', syncBreakpoint)
-})
+onMounted(() => window.addEventListener('keydown', onEscape))
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onEscape)
-  breakpoint?.removeEventListener('change', syncBreakpoint)
   resetGesture()
 })
 watch(() => [props.start, props.end, props.occupied, props.rows, props.busy], resetGesture)
@@ -121,7 +122,6 @@ function position(event: PointerEvent): number {
 }
 function initialPointer(event: PointerEvent) {
   if (
-    !desktop.value ||
     props.busy ||
     gesture.value ||
     event.button !== 0 ||
@@ -285,7 +285,7 @@ function previewStyle(preview: AgendaPreview) {
 }
 </script>
 <template>
-  <div class="space-y-4">
+  <div class="space-y-3">
     <UAlert
       v-if="alert"
       color="error"
@@ -305,16 +305,13 @@ function previewStyle(preview: AgendaPreview) {
         @change-status="(id, status) => emit('change-status', id, status)"
       />
     </section>
-    <div
-      class="hidden md:grid md:grid-cols-[4rem_minmax(0,1fr)]"
-      role="region"
-      aria-label="Day timeline"
-    >
+    <div class="grid grid-cols-[4rem_minmax(0,1fr)]" role="region" aria-label="Day timeline">
       <div class="relative" :style="{ height: `${(end - start) * pixelsPerMinute}px` }">
         <span
           v-for="hour in hours"
           :key="hour"
           class="absolute right-2 text-xs text-muted"
+          :class="{ '-translate-y-full': hour === end }"
           :style="{ top: `${(hour - start) * pixelsPerMinute}px` }"
           >{{ clock(hour) }}</span
         >
@@ -336,6 +333,17 @@ function previewStyle(preview: AgendaPreview) {
           class="pointer-events-none absolute w-full border-t border-default"
           :style="{ top: `${(hour - start) * pixelsPerMinute}px` }"
         />
+        <div
+          v-if="showNowMarker"
+          data-current-time-marker
+          class="pointer-events-none absolute inset-x-0 z-30 flex -translate-y-1/2 items-center"
+          :style="{ top: nowMarkerTop }"
+          role="img"
+          :aria-label="`Current time ${clock(currentMinute ?? start)}`"
+        >
+          <span class="size-2 shrink-0 rounded-full bg-error" />
+          <span class="h-px flex-1 bg-error" />
+        </div>
         <div
           v-for="row in within"
           :key="row.entry.id"
@@ -399,17 +407,6 @@ function previewStyle(preview: AgendaPreview) {
         </template>
       </div>
     </div>
-    <ol class="space-y-2 md:hidden" aria-label="Work in visible hours">
-      <li v-for="row in within" :key="row.entry.id">
-        <TodayAgendaEntry
-          :row="row"
-          :status-busy="statusChangingId === row.ticketId"
-          @filter="(kind, id) => emit('filter', kind, id)"
-          @edit="emit('edit', row.entry.id)"
-          @change-status="(id, status) => emit('change-status', id, status)"
-        />
-      </li>
-    </ol>
     <section v-if="late.length" aria-label="After visible hours" class="space-y-2">
       <h3 class="font-medium">After visible hours</h3>
       <TodayAgendaEntry

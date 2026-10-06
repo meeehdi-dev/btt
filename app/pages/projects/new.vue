@@ -9,6 +9,8 @@ const {
   refresh: refreshClients,
 } = await useApiFetch('/api/clients')
 const clients = computed(() => clientData.value?.clients ?? [])
+const clientSearchInput = useSelectSearchInput('Search clients…')
+const clientPickerOpen = ref(false)
 const clientId = ref(typeof route.query.client === 'string' ? route.query.client : '')
 const name = ref('')
 const color = ref('#3b82f6')
@@ -24,6 +26,10 @@ watch(
 )
 
 const selectedClient = computed(() => clients.value.find((client) => client.id === clientId.value))
+function selectClient(id: string) {
+  clientId.value = id
+  clientPickerOpen.value = false
+}
 const canSubmit = computed(() => clients.value.some((client) => client.id === clientId.value))
 const cancelTo = computed(() =>
   selectedClient.value ? `/clients/${selectedClient.value.id}` : '/clients',
@@ -52,7 +58,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="w-full space-y-6">
+  <div class="w-full space-y-4">
     <div>
       <HierarchyBreadcrumbs
         v-if="selectedClient"
@@ -69,7 +75,7 @@ async function submit() {
         <NuxtLink to="/clients" class="inline-flex items-center gap-1 text-sm text-primary"
           >← <EntityIcon kind="clients" />Clients</NuxtLink
         >
-        <h1 class="mt-3 flex items-center gap-2 text-3xl font-semibold text-highlighted">
+        <h1 class="mt-2 flex items-center gap-2 text-3xl font-semibold text-highlighted">
           <EntityIcon kind="projects" />New project
         </h1>
       </template>
@@ -95,16 +101,21 @@ async function submit() {
     <UCard v-else-if="!clients.length">
       <h2 class="font-medium text-highlighted">Create a client first</h2>
       <p class="mt-2 text-muted">Projects must belong to an active client.</p>
-      <UButton class="mt-4" to="/clients/new" icon="lucide:plus" label="Create client" />
+      <UButton class="mt-2" to="/clients/new" icon="lucide:plus" label="Create client" />
     </UCard>
     <UCard v-else>
-      <form class="space-y-5" @submit.prevent="submit">
+      <form class="space-y-3" @submit.prevent="submit">
         <UFormField label="Client" required>
-          <USelect
-            v-model="clientId"
+          <USelectMenu
+            :model-value="clientId"
+            v-model:open="clientPickerOpen"
+            value-key="value"
             :items="clients.map((client) => ({ label: client.name, value: client.id }))"
+            :search-input="clientSearchInput"
+            aria-label="Client"
             class="w-full"
             placeholder="Choose a client"
+            @update:model-value="selectClient"
           />
         </UFormField>
         <UFormField label="Name" required>
@@ -116,7 +127,7 @@ async function submit() {
         <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create project">{{
           errorMessage
         }}</UAlert>
-        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div class="flex justify-end gap-2">
           <UButton :to="cancelTo" color="neutral" variant="ghost" icon="lucide:x" label="Cancel" />
           <UButton
             type="submit"

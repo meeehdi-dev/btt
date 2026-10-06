@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { waitForClientMount } from './wait-for-client-mount'
 import { eq, inArray, or } from 'drizzle-orm'
 import { db } from '../../server/db'
 import {
@@ -50,7 +51,6 @@ async function dragBetweenLanes(page: Page, board: Locator, source: Locator, tar
 test('board status moves work across lanes, without reordering or changing card navigation', async ({
   page,
   context,
-  browser,
 }) => {
   const helpers = (await testAuth.$context).test
   const user = helpers.createUser({
@@ -137,7 +137,7 @@ test('board status moves work across lanes, without reordering or changing card 
       }
     })
     await page.goto(`/tickets?release=${r.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     const board = page.getByRole('region', { name: 'Ticket board' })
     const lane = (status: string) => board.getByRole('region', { name: `${status} tickets` })
     const card = (id: string) => board.locator(`[data-board-ticket-id="${id}"]`)
@@ -146,6 +146,7 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(board.getByText('Other ticket')).toHaveCount(0)
     await expect(lane('Estimate').getByText('No tickets in Estimate.')).toBeVisible()
     await expect(card(idea.id)).toHaveAttribute('draggable', 'true')
+    await expect(card(idea.id)).toHaveClass(/p-2/)
     await expect(card(idea.id).getByText('Board comment')).toHaveCount(0)
     await expect(card(idea.id).getByLabel('Ticket context')).toBeVisible()
     await expect(board.getByText('No estimate')).toHaveCount(0)
@@ -154,8 +155,10 @@ test('board status moves work across lanes, without reordering or changing card 
     // Source lane drop and cancelled drag must not write anything.
     await card(idea.id).dragTo(lane('Idea'), { sourcePosition: { x: 8, y: 8 } })
     expect(patchCount).toBe(0)
+    const dragSourceBox = await card(idea.id).boundingBox()
+    if (!dragSourceBox) throw new Error('Ticket card must be visible')
     await card(idea.id).dragTo(page.getByRole('searchbox', { name: 'Search workspace' }), {
-      sourcePosition: { x: 8, y: 8 },
+      sourcePosition: { x: dragSourceBox.width - 4, y: dragSourceBox.height - 4 },
     })
     await expect(page.locator('html')).toHaveAttribute('data-drag-image-ticket-id', idea.id)
     await card(idea.id).getByRole('link', { name: 'Idea source' }).dragTo(lane('Done'))
@@ -242,18 +245,17 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(lane('Test').getByText('Done source')).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
 
-    // Status changes on the board use desktop drag; the edit form remains the non-drag route.
+    // Status changes on the board use desktop drag; ticket detail provides a direct status selector.
     await expect(card(idea.id).getByRole('button', { name: /Move Idea source/ })).toHaveCount(0)
     await dragBetweenLanes(page, board, card(idea.id), lane('Test'))
     await expect(lane('Test').getByText('Idea source')).toBeVisible()
-    await card(idea.id).getByRole('link', { name: 'Idea source' }).click()
+    await page.goto(`/tickets/${idea.id}`)
     await expect(page).toHaveURL(`/tickets/${idea.id}`)
-    const ticketMetadata = page.getByLabel('Ticket metadata')
-    const ticketStatus = ticketMetadata.getByLabel('Status: Test')
+    const ticketStatus = page.getByRole('combobox', { name: 'Ticket status for Idea source' })
     const releaseLink = page
       .getByRole('navigation', { name: 'Breadcrumb' })
       .getByRole('link', { name: 'Move Release' })
-    await expect(ticketStatus.locator('[aria-hidden="true"]')).toBeVisible()
+    await expect(ticketStatus).toContainText('Test')
     await expect(releaseLink).toBeVisible()
     await expect(releaseLink).toHaveAttribute('href', `/releases/${r.id}`)
     await page.goto(`/releases/${r.id}`)
@@ -264,7 +266,7 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(releaseTicket.locator('div.flex.items-center').first()).not.toContainText('Test ·')
 
     await page.goto(`/tickets?release=${r.id}`)
-    await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     await page.getByRole('button', { name: 'Show archived' }).click()
     await expect(card(archived.id)).toBeVisible()
     await expect(card(archived.id)).toHaveAttribute('draggable', 'false')
@@ -273,46 +275,6 @@ test('board status moves work across lanes, without reordering or changing card 
       card(archived.id).getByRole('button', { name: /^(client|project|release): .*; actions$/ }),
     ).toHaveCount(3)
 
-    const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } })
-    try {
-      await mobile
-        .context()
-        .addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
-      await mobile.goto(`/tickets?release=${r.id}`)
-      await mobile.waitForLoadState('networkidle')
-      const testLane = mobile.getByRole('region', { name: 'Test tickets' })
-      await testLane.getByRole('button', { name: 'Test: 2 tickets' }).click()
-      const mobileCard = mobile
-        .locator('[aria-label="Ticket statuses"]')
-        .locator(`[data-board-ticket-id="${idea.id}"]`)
-      await expect(mobileCard).toBeVisible()
-      await expect(mobileCard).toHaveAttribute('draggable', 'false')
-      await expect(mobile.getByRole('combobox', { name: /Change status/ })).toHaveCount(0)
-      await mobileCard.dragTo(mobile.getByRole('button', { name: 'Open menu' }), {
-        sourcePosition: { x: 8, y: 8 },
-      })
-      await expect(testLane.getByText('Idea source')).toBeVisible()
-      await expect(mobileCard.getByRole('button', { name: /Move Idea source/ })).toHaveCount(0)
-      await mobileCard.getByRole('link', { name: 'Idea source' }).click()
-      await expect(mobile).toHaveURL(`/tickets/${idea.id}`)
-      await mobile.getByRole('link', { name: 'Edit' }).click()
-      await expect(mobile.getByRole('combobox', { name: 'Status' })).toBeVisible()
-      await mobile.goto(`/tickets?release=${r.id}`)
-      await mobile.waitForLoadState('networkidle')
-      await mobile.getByRole('button', { name: 'Show archived' }).click()
-      const deploy = mobile.getByRole('region', { name: 'Deploy tickets' })
-      await deploy.getByRole('button', { name: 'Deploy: 1 tickets' }).click()
-      await expect(deploy.locator(`[data-board-ticket-id="${archived.id}"]`)).toBeVisible()
-      await expect(deploy.locator(`[data-board-ticket-id="${archived.id}"]`)).toHaveAttribute(
-        'draggable',
-        'false',
-      )
-      expect(
-        await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-      ).toBeTruthy()
-    } finally {
-      await mobile.close()
-    }
     expect(
       (
         await (await page.request.get(`/api/tickets?releaseId=${otherRelease.id}`)).json()

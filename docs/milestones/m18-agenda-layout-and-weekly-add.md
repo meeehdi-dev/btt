@@ -179,6 +179,47 @@ No server, schema, migration, API, or dependency changes are planned.
 - Decision: the human declared M16, M17, and M18 complete: “i declare those milestones complete.”
 - Status: M18 is complete; its plan, implementation, verification, full-diff human code review, and human completion declaration are recorded.
 
+### 2026-10-01 — Post-closeout status badge flow refinement
+
+- Fact: in short fixed-height Today/Week desktop entries, the hierarchy badge scroller filled the row while the status selector sat outside it, visually separating status from the hierarchy.
+- Decision: the human approved `plans/today-ticket-status-badge-flow.md` via Plannotator. The hierarchy and status badges now share one ordered wrap/scroll strip; relation/external-link actions remain outside it. The existing 90-minute threshold and time geometry are unchanged.
+- Fact: `TicketHierarchyBadges.vue` now provides an optional trailing slot, used by Today entries for the status selector. E2E assertions cover the client/project/release/status order, short-block scrolling and status focus, tall-block wrapping, and separate visible relation/link actions.
+- Evidence: `pnpm exec playwright test tests/e2e/agenda-week.test.ts --grep "weekly agenda reads" --workers=1 --timeout=60000` passed (1 test). The final isolated-server full Playwright run passed all 28 tests. `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, and `git diff --check` passed. Manual screenshots `/tmp/nxmr-today-badge-flow-short.png` and `/tmp/nxmr-today-badge-flow-tall.png` were inspected.
+- Transient test notes: earlier focused/full runs had intermittent Release button and Week gesture/preview failures; the gesture rerun and later full suite passed. The final full suite had no failures. The build emitted its nonfatal Rolldown plugin-timings warning.
+- Decision record: ADR 0038 documents the new ordered strip and was accepted after Plannotator code review on 2026-10-01.
+- Review evidence: `plannotator review --git --diff-type uncommitted --no-git-remote-check --json` returned `decision: approved` with “Code review completed — no changes requested.”
+
+### 2026-10-01 — Relation and external-link controls join the strip
+
+- Fact: after the prior status-badge refinement, Today/Week entries still rendered relation/external-link triggers outside the hierarchy/status scroller, leaving those icons separated at the right edge.
+- Decision: the human approved `plans/today-agenda-context-control-flow.md` via Plannotator. Append related-ticket and external-link triggers after status in the same conditional wrap/scroll strip; keep other surfaces and interactions unchanged.
+- Fact: `TodayAgendaEntry.vue` now provides the status selector and `TicketContextPopovers` through the existing trailing slot. The strip label includes hierarchy, status, and ticket links; `TicketContextPopovers.vue` and non-agenda call sites are unchanged.
+- Evidence: screenshots `/tmp/nxmr-agenda-context-controls-short.png` and `/tmp/nxmr-agenda-context-controls-tall.png` were visually inspected. The focused agenda/context suite passed all 8 tests; the final complete Playwright suite passed all 28 tests. Two earlier full-suite attempts had intermittent unrelated `Loading agenda…`/navigation timeouts; the cause was not established, and later warmed-server runs passed.
+- Verification: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (72 tests), `pnpm check:workflow`, `pnpm build`, and `git diff --check` passed. Full Playwright command: `PLAYWRIGHT_SKIP_DEV_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3101 pnpm exec playwright test --workers=1 --timeout=30000` (28 passed in 2.5 minutes).
+- Review evidence: `plannotator review --git --diff-type uncommitted --no-git-remote-check --json` returned `decision: approved` with “Code review completed — no changes requested.” ADR 0039 is Accepted and ADR 0038 is Superseded by it.
+
+### Badge visual consistency follow-up
+
+- Fact: in compact Today/Week entries, the shared strip uses `gap-1` (4px) between its top-level controls, but `TicketContextPopovers.vue` used a tighter `gap-0.5` (2px) between related-ticket and external-link buttons.
+- Decision: the human approved `plans/today-agenda-badge-visual-consistency.md` via Plannotator. Use a consistent 4px gap across the full control sequence and distinguish hierarchy badges only with a subtle primary-tinted background in compact Today/Week cards. Preserve button sizes, neutral styling for status/relation/link controls, and all other surfaces.
+- Fact: compact relation/external buttons now use the same 4px gap as the surrounding badges. Compact hierarchy badges receive `bg-primary/5`; their readable text color, 20px dimensions, 10px labels, 12px icons, and shared rounded button treatment remain consistent. Non-agenda hierarchy buttons retain their prior appearance.
+- E2E evidence: `ticket-context-popovers.test.ts` measures all six control heights at 20px, each adjacent gap at 4px, matching border radius, 10px text for hierarchy/status labels, and a hierarchy-only background tint. It also continues to cover scrolled focus/popover behavior and tall-entry wrapping.
+- Manual check: `/tmp/nxmr-agenda-badge-visual-short.png` and `/tmp/nxmr-agenda-badge-visual-tall.png` were inspected. Short and tall cards show even spacing; hierarchy labels have a subtle tint, while the status and icon-only actions keep the neutral surface.
+- Verification: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (72 tests), `pnpm build`, `pnpm check:workflow`, and `git diff --check` passed. The final isolated-server command `PLAYWRIGHT_SKIP_DEV_SERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3101 pnpm exec playwright test --workers=1 --timeout=90000` passed all 28 tests in 2.5 minutes; focused ticket-context and weekly-agenda tests also passed after the final compact-icon sizing change.
+- Transient E2E evidence: earlier full runs passed 20/28 with a 30-second timeout and 27/28 with a 90-second timeout; the latter had only an agenda-drag timing mismatch (expected 660, received 720), and the isolated drag rerun passed. The cause of these earlier failures was not established; no time-geometry change was made. The later full suite passed with no failures.
+- Review evidence: `plannotator review --git --diff-type uncommitted --no-git-remote-check --json` returned `decision: approved` with “Code review completed — no changes requested.” M18 remains Complete.
+
+### 2026-10-01 — Compact hierarchy contrast refinement
+
+- Human feedback: hierarchy badges had poor contrast; request was to find a different color that fits the theme.
+- Plan approval: `plans/today-agenda-badge-visual-consistency.md` was revised with a compact-only secondary-blue treatment and approved by `plannotator annotate plans/today-agenda-badge-visual-consistency.md --gate --json --require-approval` (`{"decision":"approved"}`) before code changes.
+- Fact: the resolved Nuxt UI palette uses green `primary` and blue `secondary`. Compact hierarchy buttons now use the semantic secondary soft surface (`secondary/10`), with `secondary-700` label/icon foreground in light mode and `secondary-300` in dark mode. Other compact controls and all non-agenda hierarchy buttons remain neutral.
+- E2E evidence: `ticket-context-popovers.test.ts` checks the secondary surface, neutral status/relation/link controls, and at least 4.5:1 contrast against the composited agenda-card surface in both color schemes. Existing 20px dimensions, 4px gaps, ordering, scrolling, wrapping, popover, keyboard, and adjacent geometry coverage remain passing.
+- Manual check: `/tmp/nxmr-agenda-secondary-short.png` and `/tmp/nxmr-agenda-secondary-tall.png` were inspected. The blue hierarchy labels are more distinct from neutral controls and remain legible; geometry is unchanged.
+- Verification: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (13 files / 72 tests), `pnpm build`, `pnpm check:workflow`, and `git diff --check` passed. The full `pnpm exec playwright test --workers=1 --timeout=90000` run passed all 28 tests; the focused agenda-week/context suite passed all 4 selected tests. Build output contained a nonfatal plugin-timings warning.
+- Observation: the Playwright web server logged a non-failing Vue hydration-mismatch message during the full run; it was not investigated because this follow-up changes only compact badge presentation.
+- Review evidence: `plannotator review --git --diff-type uncommitted --no-git-remote-check --json` returned `decision: approved` with “Code review completed — no changes requested.” M18 remains Complete.
+
 ## Verification
 
 Plan review:
@@ -198,13 +239,15 @@ Implementation (only after plan approval):
 
 ## Review status
 
+- Current post-closeout context-control refinement: code review accepted via Plannotator on 2026-10-01; ADR 0039 is Accepted and ADR 0038 is Superseded.
+- Compact hierarchy contrast refinement: code review accepted via Plannotator on 2026-10-01; M18 remains Complete.
 - Plan review: Approved via Plannotator on 2026-09-29 (revised after annotated feedback)
 - Code review: Accepted via Plannotator on 2026-09-29 (full uncommitted M16–M18 diff; no changes requested)
 - Milestone completion declaration: Received from the human on 2026-09-29 — Complete
 
 ## Follow-ups
 
-- None. The human declared M16, M17, and M18 complete on 2026-09-29.
+- M18 remains Complete as declared on 2026-09-29. Post-closeout refinements are tracked in `plans/today-ticket-status-badge-flow.md`, `plans/today-agenda-context-control-flow.md`, and `plans/today-agenda-badge-visual-consistency.md`; the ordered-control and contrast follow-ups are verified and their human code reviews are accepted.
 - Mobile clarification (2026-09-29): the human was only asking whether mobile view had delayed the work, not requesting a mobile Week behavior change. Keep M16's approved stacked narrow-screen Week view; no separate scope-change plan is requested.
 
 ## Closeout checklist

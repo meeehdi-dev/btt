@@ -9,9 +9,12 @@ if (!process.env.DATABASE_URL) {
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
+  reporter: process.env.CI
+    ? [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]
+    : 'list',
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3000',
-    trace: 'on-first-retry',
+    trace: process.env.CI ? 'retain-on-failure' : 'off',
   },
   ...(process.env.PLAYWRIGHT_SKIP_DEV_SERVER
     ? {}

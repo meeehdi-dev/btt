@@ -80,7 +80,7 @@ async function save() {
 }
 </script>
 <template>
-  <div class="mx-auto max-w-xl space-y-4">
+  <div class="mx-auto flex min-h-[calc(100dvh-5.5rem)] max-w-xl flex-col justify-center gap-3">
     <h1 class="sr-only">Workspace settings</h1>
     <div v-if="error || refreshNeedsRetry" class="space-y-2">
       <UAlert
@@ -106,7 +106,7 @@ async function save() {
       />
     </div>
     <UCard v-else
-      ><form class="space-y-4" @submit.prevent="save">
+      ><form class="space-y-3" @submit.prevent="save">
         <UFormField label="Visible start"
           ><USelect v-model="start" :items="choices.slice(0, -1)" class="w-full"
         /></UFormField>

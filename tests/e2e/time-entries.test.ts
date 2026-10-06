@@ -138,39 +138,38 @@ test('owned historical time entries enforce daily slots, overlap, archive and us
     await page.waitForLoadState('networkidle')
     await expect(page.getByLabel('Estimate usage: 150%')).toBeVisible()
     await expect(page.getByText('Corrected')).toBeVisible()
-    await page.getByRole('button', { name: 'Add time entry' }).waitFor()
-    await page.getByRole('button', { name: /Work date:/ }).click()
-    const calendar = page.getByRole('dialog', { name: /Work date:/ })
-    await expect(calendar.getByRole('gridcell', { selected: true })).toBeVisible()
-    await calendar.getByRole('gridcell', { selected: true }).getByRole('button').click()
-    await expect(calendar).toHaveCount(0)
-    const startTime = page.getByRole('group', { name: 'Start time' })
-    await expect(startTime).toBeVisible()
-    const minute = startTime.getByRole('spinbutton', { name: /minute/ })
-    await minute.focus()
-    await page.keyboard.press('ArrowUp')
-    await expect(minute).toHaveText('30')
-    await page.keyboard.press('ArrowDown')
-    await expect(minute).toHaveText('00')
-    await page.getByRole('textbox', { name: 'Work description' }).fill('Browser entry')
-    await page.getByRole('button', { name: 'Add time entry' }).click()
+    const correctedRow = page.getByText('Corrected').locator('xpath=../..')
+    await expect(correctedRow).toContainText('2024-02-29')
+    await expect(correctedRow).toContainText('09:00–09:30')
+    await expect(correctedRow).toContainText('30m')
+    await expect(page.getByRole('button', { name: 'Add time entry' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Time ticket' })).toHaveCount(0)
+    const browserEntryDate = '2024-03-03'
+    const browserEntry = await page.request.post('/api/time-entries', {
+      data: {
+        ticketId: a.id,
+        date: browserEntryDate,
+        startMinute: 570,
+        durationMinutes: 30,
+        description: 'Browser entry',
+      },
+    })
+    expect(browserEntry.ok()).toBe(true)
+    await page.reload()
+    await page.waitForLoadState('networkidle')
     await expect(page.getByText('Browser entry')).toBeVisible()
-    await page.getByRole('button', { name: 'Edit time entry 2024-02-29 09:30' }).click()
-    await expect(page.getByRole('button', { name: 'Work date: 2024-02-29' })).toBeVisible()
+    await page.getByRole('button', { name: `Edit time entry ${browserEntryDate} 09:30` }).click()
+    await expect(page.getByRole('button', { name: `Work date: ${browserEntryDate}` })).toBeVisible()
     await page.getByRole('textbox', { name: 'Work description' }).fill('Edited in browser')
     await page.getByRole('button', { name: 'Save correction' }).click()
     await expect(page.getByText('Edited in browser')).toBeVisible()
     page.once('dialog', (dialog) => dialog.accept())
-    await page.getByRole('button', { name: 'Delete time entry 2024-02-29 09:30' }).click()
+    await page.getByRole('button', { name: `Delete time entry ${browserEntryDate} 09:30` }).click()
     await expect(page.getByText('Edited in browser')).toHaveCount(0)
     await page.goto(`/tickets/${b.id}`)
     await expect(page.getByLabel('Tracked: 0m')).toBeVisible()
     await expect(page.getByLabel(/Estimate usage:/)).toHaveCount(0)
     await page.goto(`/tickets/${a.id}`)
-    await page.setViewportSize({ width: 390, height: 844 })
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-    ).toBe(true)
     const foreign = await browser.newContext()
     try {
       await foreign.addCookies(
@@ -209,7 +208,7 @@ test('owned historical time entries enforce daily slots, overlap, archive and us
     expect((await page.request.get(`/api/tickets/${a.id}`)).status()).toBe(404)
     expect((await page.request.get(`/api/tickets/${a.id}?archived=true`)).ok()).toBe(true)
     await page.goto(`/tickets/${a.id}?archived=true`)
-    await expect(page.getByRole('link', { name: 'Time ticket' }).first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Time ticket', level: 1 })).toBeVisible()
     await expect(page.getByText('Corrected')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add time entry' })).toHaveCount(0)
     expect(

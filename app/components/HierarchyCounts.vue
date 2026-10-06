@@ -34,7 +34,7 @@ const labels: Record<CountKind, string> = {
     <li
       v-for="item in countItems"
       :key="item.kind"
-      class="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-default px-1.5 text-muted"
+      class="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-default px-1 text-muted"
     >
       <EntityIcon :kind="icons[item.kind]" />
       <span>{{ item.count }} {{ labels[item.kind] }}{{ item.count === 1 ? '' : 's' }}</span>

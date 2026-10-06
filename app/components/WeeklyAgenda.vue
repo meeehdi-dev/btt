@@ -54,6 +54,8 @@ type Gesture = {
 
 const props = defineProps<{
   dates: string[]
+  currentDate: string
+  currentMinute: number | null
   rows: Row[]
   occupied: Row[]
   trackedMinutesByDate: Record<string, number>
@@ -74,8 +76,6 @@ const emit = defineEmits<{
 }>()
 const pixelsPerMinute = 1.8
 const timeline = ref<HTMLElement | null>(null)
-const desktop = ref(false)
-let breakpoint: MediaQueryList | undefined
 const alert = ref('')
 const gesture = shallowRef<Gesture | null>(null)
 const active = computed(() => gesture.value?.moved ?? false)
@@ -142,28 +142,32 @@ function trackedTextClass(date: string) {
 function dayLabel(date: string) {
   return formatAgendaDate(date, props.locale)
 }
+function isCurrentDate(date: string) {
+  return date === props.currentDate
+}
+function showNowMarker(date: string) {
+  return (
+    isCurrentDate(date) &&
+    props.currentMinute !== null &&
+    props.currentMinute >= props.start &&
+    props.currentMinute < props.end
+  )
+}
+function nowMarkerTop() {
+  return `${((props.currentMinute ?? props.start) - props.start) * pixelsPerMinute}px`
+}
 function resetGesture() {
   const id = gesture.value?.pointerId
   if (id !== undefined && timeline.value?.hasPointerCapture(id))
     timeline.value.releasePointerCapture(id)
   gesture.value = null
 }
-function syncBreakpoint(event: MediaQueryListEvent) {
-  desktop.value = event.matches
-  if (!event.matches) resetGesture()
-}
 function onEscape(event: KeyboardEvent) {
   if (event.key === 'Escape') resetGesture()
 }
-onMounted(() => {
-  window.addEventListener('keydown', onEscape)
-  breakpoint = window.matchMedia('(min-width: 1280px)')
-  desktop.value = breakpoint.matches
-  breakpoint.addEventListener('change', syncBreakpoint)
-})
+onMounted(() => window.addEventListener('keydown', onEscape))
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onEscape)
-  breakpoint?.removeEventListener('change', syncBreakpoint)
   resetGesture()
 })
 watch(
@@ -192,7 +196,6 @@ function dateAt(event: PointerEvent): string | undefined {
 }
 function initialPointer(event: PointerEvent) {
   if (
-    !desktop.value ||
     props.busy ||
     gesture.value ||
     event.button !== 0 ||
@@ -388,7 +391,7 @@ function hiddenRows(date: string) {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-3">
     <UAlert
       v-if="alert"
       color="error"
@@ -396,17 +399,28 @@ function hiddenRows(date: string) {
       :description="alert"
       role="alert"
     />
-    <div class="hidden xl:grid xl:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] xl:gap-1">
+    <div class="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1">
       <div aria-hidden="true" />
       <section
         v-for="date in dates"
         :key="`header-${date}`"
-        class="min-w-0 space-y-1 rounded-t-md border border-default bg-elevated/50 p-2"
+        class="min-w-0 space-y-1 rounded-t-md border border-default bg-elevated/50 p-1"
+        :class="{ 'border-primary/60 bg-primary/10': isCurrentDate(date) }"
         :aria-label="dayLabel(date)"
       >
         <div class="flex min-w-0 items-center justify-between gap-1">
-          <h2 class="min-w-0 flex-1 text-sm font-semibold text-highlighted">
-            {{ dayLabel(date) }}
+          <h2 class="flex min-w-0 flex-1 items-center gap-1 text-sm font-semibold text-highlighted">
+            <time
+              :datetime="date"
+              :aria-current="isCurrentDate(date) ? 'date' : undefined"
+              class="min-w-0 truncate"
+              >{{ dayLabel(date) }}</time
+            >
+            <span
+              v-if="isCurrentDate(date)"
+              class="shrink-0 rounded bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary"
+              >Today</span
+            >
           </h2>
           <UTooltip :text="`Add time entry on ${dayLabel(date)}`">
             <UButton
@@ -449,6 +463,7 @@ function hiddenRows(date: string) {
           v-for="hour in hours"
           :key="hour"
           class="absolute right-1 text-xs text-muted"
+          :class="{ '-translate-y-full': hour === end }"
           :style="{ top: `${(hour - start) * pixelsPerMinute}px` }"
           >{{ clock(hour) }}</span
         >
@@ -477,7 +492,19 @@ function hiddenRows(date: string) {
           :key="date"
           :data-week-date="date"
           class="relative min-w-0 border-r border-default first:border-l"
+          :class="{ 'bg-primary/5': isCurrentDate(date) }"
         >
+          <div
+            v-if="showNowMarker(date)"
+            data-current-time-marker
+            class="pointer-events-none absolute inset-x-0 z-30 flex -translate-y-1/2 items-center"
+            :style="{ top: nowMarkerTop() }"
+            role="img"
+            :aria-label="`Current time ${clock(currentMinute ?? start)}`"
+          >
+            <span class="size-2 shrink-0 rounded-full bg-error" />
+            <span class="h-px flex-1 bg-error" />
+          </div>
           <div
             v-for="row in column(date)?.within"
             :key="row.entry.id"
@@ -544,7 +571,7 @@ function hiddenRows(date: string) {
       <template v-for="(date, dayIndex) in dates" :key="`early-${date}`">
         <div
           v-if="column(date)?.early.length"
-          class="col-span-8 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-2"
+          class="col-span-8 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
         >
           <h3 class="col-span-8 text-xs font-medium text-muted">
             Before visible hours · {{ dayLabel(date) }}
@@ -562,7 +589,7 @@ function hiddenRows(date: string) {
         </div>
         <div
           v-if="column(date)?.late.length"
-          class="col-span-8 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-2"
+          class="col-span-8 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
         >
           <h3 class="col-span-8 text-xs font-medium text-muted">
             After visible hours · {{ dayLabel(date) }}
@@ -579,103 +606,6 @@ function hiddenRows(date: string) {
           />
         </div>
       </template>
-    </div>
-
-    <div class="space-y-4 xl:hidden">
-      <section
-        v-for="day in columns"
-        :key="day.date"
-        class="space-y-3 rounded-md border border-default bg-elevated/30 p-3"
-        :aria-label="dayLabel(day.date)"
-      >
-        <div class="space-y-1">
-          <div class="flex min-w-0 items-center justify-between gap-3">
-            <h2 class="min-w-0 flex-1 font-semibold text-highlighted">
-              {{ dayLabel(day.date) }}
-            </h2>
-            <UButton
-              color="neutral"
-              variant="outline"
-              icon="lucide:plus"
-              :aria-label="`Add time entry on ${dayLabel(day.date)}`"
-              label="Add"
-              size="sm"
-              class="shrink-0"
-              @click="emit('add', day.date)"
-            />
-          </div>
-          <div class="flex min-w-0 items-center gap-1 text-sm text-muted">
-            <span class="shrink-0" :class="trackedTextClass(day.date)">{{
-              formatTicketEstimate(trackedMinutesByDate[day.date] ?? 0)
-            }}</span>
-            <span class="shrink-0">/ {{ formatTicketEstimate(workDayDurationMinutes) }}</span>
-            <div
-              role="progressbar"
-              :aria-label="`${dayLabel(day.date)} workday progress`"
-              :aria-valuemin="0"
-              :aria-valuemax="workDayDurationMinutes"
-              :aria-valuenow="progressValue(day.date)"
-              :aria-valuetext="progressText(day.date)"
-              class="min-w-0 flex-1"
-            >
-              <UProgressGroup
-                :items="progressSegments(day.date)"
-                :max="workDayDurationMinutes"
-                size="sm"
-                class="min-w-0"
-                aria-hidden="true"
-              />
-            </div>
-          </div>
-        </div>
-        <section
-          v-if="day.early.length"
-          class="space-y-2"
-          :aria-label="`Before visible hours · ${dayLabel(day.date)}`"
-        >
-          <h3 class="text-xs font-medium text-muted">Before visible hours</h3>
-          <TodayAgendaEntry
-            v-for="row in day.early"
-            :key="row.entry.id"
-            :row="row"
-            :status-busy="statusChangingId === row.ticketId"
-            show-edit
-            @filter="(kind, id) => emit('filter', kind, id)"
-            @edit="emit('edit', row.entry.id)"
-            @change-status="(id, status) => emit('change-status', id, status)"
-          />
-        </section>
-        <ol class="space-y-2" :aria-label="`Work in visible hours · ${dayLabel(day.date)}`">
-          <li v-for="row in day.within" :key="row.entry.id">
-            <TodayAgendaEntry
-              :row="row"
-              :status-busy="statusChangingId === row.ticketId"
-              show-edit
-              @filter="(kind, id) => emit('filter', kind, id)"
-              @edit="emit('edit', row.entry.id)"
-              @change-status="(id, status) => emit('change-status', id, status)"
-            />
-          </li>
-        </ol>
-        <section
-          v-if="day.late.length"
-          class="space-y-2"
-          :aria-label="`After visible hours · ${dayLabel(day.date)}`"
-        >
-          <h3 class="text-xs font-medium text-muted">After visible hours</h3>
-          <TodayAgendaEntry
-            v-for="row in day.late"
-            :key="row.entry.id"
-            :row="row"
-            :status-busy="statusChangingId === row.ticketId"
-            show-edit
-            @filter="(kind, id) => emit('filter', kind, id)"
-            @edit="emit('edit', row.entry.id)"
-            @change-status="(id, status) => emit('change-status', id, status)"
-          />
-        </section>
-        <p v-if="!day.rows.length" class="text-sm text-muted">No completed work on this day.</p>
-      </section>
     </div>
   </div>
 </template>
