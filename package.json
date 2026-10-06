@@ -23,7 +23,7 @@
     "@nuxt/ui": "4.11.1",
     "better-auth": "1.7.5",
     "drizzle-orm": "0.45.3",
-    "effect": "4.0.0-rc.117",
+    "effect": "4.0.0",
     "nuxt": "4.5.2",
     "parse-duration-ms": "0.1.0",
     "pg": "8.16.3",
