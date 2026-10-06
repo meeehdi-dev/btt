@@ -88,7 +88,7 @@ No application dependency changes are proposed.
 - [x] Retain Playwright traces/reports and add failure-only E2E artifact upload to the existing CI job, with no automatic retries.
 - [x] Repeat the focused browser test and run the full E2E and project quality gates.
 - [x] Verify artifact upload on GitHub Actions; confirm failures remain failures without automatic retries and record the run/artifact link.
-- [x] Add the M27 roadmap entry and accepted ADR 0041; original and follow-up code reviews are accepted. The completion declaration remains pending.
+- [x] Add the M27 roadmap entry and accepted ADR 0041; original and follow-up code reviews and the human completion declaration are recorded.
 
 ## Journal
 
@@ -213,7 +213,15 @@ No application dependency changes are proposed.
 ### 2026-10-06 — Human review and completion declaration
 
 - Decision (human): the user said, “all good, i declare this milestone complete.” This accepts the current code review and declares M27 complete.
-- Status: Complete by human declaration on 2026-10-06. The human plans to push and check GitHub Actions; no hosted result is recorded or claimed. The pending hosted check is a user-owned follow-up, not evidence of a passing remote run.
+- Status: Complete by human declaration on 2026-10-06. At declaration time, hosted verification was pending; the later integration result is recorded below.
+
+### 2026-10-06 — Hosted integration verification through refreshed PR #4
+
+- Fact: the human pushed PR #4 head `3fd0018f90349f825cc0260b8777d084092aee66`, based on current `main` `6e04733`. That tree included the completed M27 source/tests plus the PR #4 dependency updates, with `vue-tsc` retained at 3.3.11.
+- Verification: hosted quality run [37532795100](https://github.com/meeehdi-dev/nxmr/actions/runs/37532795100) passed in 6m50s: frozen install, migration, formatting, lint, canonical typecheck, tsgo, unit tests, Playwright E2E (39/39), build, and workflow checks. No retry was run.
+- Observation: the run reported the non-blocking `unicorn/consistent-function-scoping` warning at `app/pages/today.vue:472` and an `ubuntu-latest` runner-image notice. The warning is associated with the PR #4 oxlint update; no source workaround was made.
+- Scope note: this verifies the M27 changes in an integrated PR #4 dependency-upgrade branch, not a standalone M27-only push/run. The human merged PR #4 as `0add773dee3461ff1d67ec7c087104008d19b884`; the agent did not push or merge it.
+- Status: the hosted verification follow-up is complete; M27 remains complete by the human's declaration.
 
 ## Verification
 
@@ -244,24 +252,24 @@ Implementation verification (authorized):
 - [x] Inspected the first-attempt result and retained artifact from run 37365101184: 39/40 passed; the remaining mobile failure is a client-mount race.
 - [x] Reproduced the mobile assertion failure under delayed module loading; the two-line readiness fix passed 3/3 delayed scenarios, 5/5 real mobile repetitions, and the full 40-test suite without skipped tests or policy changes.
 - [x] Human code review of this follow-up accepted by the user on 2026-10-06 (“all good”).
-- [ ] Hosted GitHub Actions result for the latest fixes inspected — pending the human's planned push/check; no remote result is claimed here.
+- [x] Hosted integration check for the latest fixes inspected: quality run 37532795100 passed on refreshed PR #4 head 3fd0018; see the journal entry above. It was not a standalone M27-only run.
 
 ## Review status
 
 - Plan review: Original M27 plan and the E2E simplification plan approved by the human via chat on 2026-10-06; follow-up implementation authorized.
 - Code review: Original M27 implementation, conflict-assertion correction/documentation, and the latest agenda-readiness/hierarchy-test follow-up accepted by the human on 2026-10-06 (“all good”).
-- CI status: Run 37365101184 tested commit `2c7db9e`, not the subsequent local fixes. The human plans to push and check GitHub Actions. No result for the latest fixes is recorded here; no hosted pass is claimed.
+- CI status: run 37365101184 tested commit `2c7db9e`, before the later local fixes. The subsequent integrated PR #4 refresh, based on current `main` and containing those fixes, passed hosted quality run 37532795100 (39/39 E2E); this is recorded as integration evidence, not a standalone M27 run.
 - Milestone completion declaration: Complete. The user stated, “all good, i declare this milestone complete,” on 2026-10-06.
 
 ## Follow-ups
 
-- The human plans to push and inspect GitHub Actions for the latest changes. Record the result when available; local full-suite results (40/40 on the earlier suite and 39/39 after the latest test edits) do not prove hosted-runner reliability. If CI fails, retain first-failure diagnostics and investigate without automatic retries, timeout increases, or worker changes unless separately approved.
+- Hosted integration verification for the latest M27 source passed in run 37532795100 on the refreshed PR #4 dependency branch. No further M27 CI follow-up is pending. Preserve first-failure diagnostics and investigate future failures without automatic retries, timeout increases, or worker changes unless separately approved.
 - No automatic retry is planned. Manual reruns remain the human's choice after inspecting diagnostics.
 - Do not classify runner/action deprecation notices as the cause of this failure; handle action-version maintenance separately.
 
 ## Closeout checklist
 
-- [x] Approved scope complete or explicitly deferred; hosted CI confirmation remains a user-owned follow-up.
+- [x] Approved scope complete or explicitly deferred; hosted integration verification passed in run 37532795100.
 - [x] Verification evidence recorded.
 - [x] Human code review accepted for the original M27 implementation and conflict-assertion correction.
 - [x] Human code review accepted for the E2E simplification follow-up.

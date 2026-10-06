@@ -1,6 +1,6 @@
 # M28 — Desktop-only UI cleanup
 
-> **Status: Complete (2026-10-06).** The approved desktop-only cleanup and compact-spacing amendment are implemented; final local checks passed, including all 37 E2E tests. The final Plannotator live-app review returned no feedback, and the human declared M28 complete. ADRs 0042 and 0043 are accepted. M27 remains open and separate; no remote CI run was authorized.
+> **Status: Complete (2026-10-06).** The approved desktop-only cleanup and compact-spacing amendment are implemented; final local checks passed, including all 37 E2E tests. The final Plannotator live-app review returned no feedback, and the human declared M28 complete. ADRs 0042 and 0043 are accepted. M28 itself authorized no remote CI run. M27 remained separate; its later integration check through refreshed PR #4 passed hosted quality run [37532795100](https://github.com/meeehdi-dev/nxmr/actions/runs/37532795100), as recorded in the M27 journal.
 
 ## Context
 
@@ -212,7 +212,7 @@ Compact-spacing amendment verification:
 
 ## Follow-ups
 
-- M27 remains open; M28 does not complete it or authorize a remote CI run. Record its next authorized review/verification step separately.
+- At M28 close, M27 remained open and separate. Its later source changes passed hosted integration run 37532795100 through refreshed PR #4; see `docs/milestones/m27-ci-browser-test-reliability.md`. This later run does not change the fact that M28 itself authorized no remote CI.
 - Any later request to restore tablet/mobile/touch support requires a separately reviewed plan and a new decision record.
 
 ## Closeout checklist

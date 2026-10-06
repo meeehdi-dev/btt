@@ -1,6 +1,6 @@
 # M27 — Simplify CI E2E timeout failures
 
-**Status: Complete by human declaration on 2026-10-06. The CI-driven fixes and subsequent agenda-readiness/hierarchy-test follow-up are locally verified; the latest complete E2E run passed 39/39, and the human accepted code review. The human plans to push and check GitHub Actions; no hosted result is recorded or claimed here.**
+**Status: Complete by human declaration on 2026-10-06. The CI-driven fixes and subsequent agenda-readiness/hierarchy-test follow-up passed local verification, and the human accepted code review. The latest fixes were included in the refreshed PR #4 branch and passed hosted quality run [37532795100](https://github.com/meeehdi-dev/nxmr/actions/runs/37532795100), including all 39 E2E tests. This was an integration check with PR #4's dependency updates, not a standalone M27-only run; see the M27 milestone journal.**
 
 ## Context and diagnosis
 
@@ -61,4 +61,4 @@ The strongest source-level cause is test design, not a demonstrated application/
 
 ## Approval
 
-The human said “go” on 2026-10-06, approving this plan and authorizing implementation within the stated scope. On 2026-10-06 the human accepted the current code review (“all good”) and declared the milestone complete. The human plans to push and check GitHub Actions; hosted CI confirmation remains unrecorded and is not claimed by this plan.
+The human said “go” on 2026-10-06, approving this plan and authorizing implementation within the stated scope. On 2026-10-06 the human accepted the current code review (“all good”) and declared the milestone complete. Later, the human pushed and merged PR #4, whose refreshed branch included these M27 changes and passed hosted quality run 37532795100. This provides integrated hosted verification, not a standalone M27-only run; details are in `docs/milestones/m27-ci-browser-test-reliability.md`.
