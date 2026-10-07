@@ -9,7 +9,7 @@ test('a forged M0 demo cookie cannot authenticate', async ({ page, context }) =>
       sameSite: 'Lax',
     },
   ])
-  await page.goto('/today')
-  await expect(page).toHaveURL(/\/login\?redirect=\/today$/)
+  await page.goto('/agenda')
+  await expect(page).toHaveURL(/\/login\?redirect=\/agenda$/)
   await expect(page.getByRole('button', { name: 'Continue with GitHub' })).toBeVisible()
 })

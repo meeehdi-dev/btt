@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ticketStatuses } from '#shared/ticket-status'
-import { overlaps, slotMinutes, usageColor } from '#shared/time-entry'
+import { overlaps, slotMinutes } from '#shared/time-entry'
 import {
   creationRange,
   moveRange,
@@ -28,7 +28,6 @@ type Row = {
   releaseArchivedAt: string | null
   projectId: string
   projectName: string
-  projectColor: string
   projectArchivedAt: string | null
   clientId: string
   clientName: string
@@ -67,11 +66,10 @@ const props = defineProps<{
   statusChangingId?: string | null
 }>()
 const emit = defineEmits<{
-  filter: [kind: 'client' | 'project' | 'release' | 'ticket' | 'status', id: string]
+  filter: [kind: 'client' | 'project' | 'release' | 'ticket', id: string]
   create: [date: string, startMinute: number, durationMinutes: number]
   change: [id: string, date: string, startMinute: number, durationMinutes: number]
   edit: [id: string]
-  add: [date: string]
   'change-status': [id: string, status: TicketStatus]
 }>()
 const pixelsPerMinute = 1.8
@@ -126,17 +124,6 @@ function progressSegments(date: string) {
   return [
     { value: props.workDayDurationMinutes - extra, color: 'info' as const },
     { value: extra, color: 'warning' as const },
-  ]
-}
-const textClasses = {
-  info: 'text-info',
-  success: 'text-success',
-  warning: 'text-warning',
-  error: 'text-error',
-} as const
-function trackedTextClass(date: string) {
-  return textClasses[
-    usageColor(props.trackedMinutesByDate[date] ?? 0, props.workDayDurationMinutes)
   ]
 }
 function dayLabel(date: string) {
@@ -404,58 +391,36 @@ function hiddenRows(date: string) {
       <section
         v-for="date in dates"
         :key="`header-${date}`"
-        class="min-w-0 space-y-1 rounded-t-md border border-default bg-elevated/50 p-1"
+        class="min-w-0 rounded-t-md border border-default bg-elevated/50 p-2"
         :class="{ 'border-primary/60 bg-primary/10': isCurrentDate(date) }"
         :aria-label="dayLabel(date)"
       >
-        <div class="flex min-w-0 items-center justify-between gap-1">
-          <h2 class="flex min-w-0 flex-1 items-center gap-1 text-sm font-semibold text-highlighted">
-            <time
-              :datetime="date"
-              :aria-current="isCurrentDate(date) ? 'date' : undefined"
-              class="min-w-0 truncate"
-              >{{ dayLabel(date) }}</time
-            >
-            <span
-              v-if="isCurrentDate(date)"
-              class="shrink-0 rounded bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary"
-              >Today</span
-            >
+        <div class="flex min-w-0 items-center gap-1">
+          <h2 class="shrink-0 whitespace-nowrap text-xs font-semibold text-highlighted">
+            <time :datetime="date" :aria-current="isCurrentDate(date) ? 'date' : undefined">{{
+              dayLabel(date)
+            }}</time>
           </h2>
-          <UTooltip :text="`Add time entry on ${dayLabel(date)}`">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="lucide:plus"
-              :aria-label="`Add time entry on ${dayLabel(date)}`"
-              size="xs"
-              class="shrink-0"
-              @click="emit('add', date)"
-            />
+          <UTooltip :text="progressText(date)">
+            <div
+              role="progressbar"
+              tabindex="0"
+              :aria-label="`${dayLabel(date)} workday progress`"
+              :aria-valuemin="0"
+              :aria-valuemax="workDayDurationMinutes"
+              :aria-valuenow="progressValue(date)"
+              :aria-valuetext="progressText(date)"
+              class="min-w-0 flex-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <UProgressGroup
+                :items="progressSegments(date)"
+                :max="workDayDurationMinutes"
+                size="sm"
+                class="min-w-0"
+                aria-hidden="true"
+              />
+            </div>
           </UTooltip>
-        </div>
-        <div class="flex min-w-0 items-center gap-1 text-xs text-muted">
-          <span class="shrink-0" :class="trackedTextClass(date)">{{
-            formatTicketEstimate(trackedMinutesByDate[date] ?? 0)
-          }}</span>
-          <span class="shrink-0">/ {{ formatTicketEstimate(workDayDurationMinutes) }}</span>
-          <div
-            role="progressbar"
-            :aria-label="`${dayLabel(date)} workday progress`"
-            :aria-valuemin="0"
-            :aria-valuemax="workDayDurationMinutes"
-            :aria-valuenow="progressValue(date)"
-            :aria-valuetext="progressText(date)"
-            class="min-w-0 flex-1"
-          >
-            <UProgressGroup
-              :items="progressSegments(date)"
-              :max="workDayDurationMinutes"
-              size="sm"
-              class="min-w-0"
-              aria-hidden="true"
-            />
-          </div>
         </div>
       </section>
       <div class="relative" :style="{ height: `${(end - start) * pixelsPerMinute}px` }">
@@ -470,7 +435,7 @@ function hiddenRows(date: string) {
       </div>
       <div
         ref="timeline"
-        class="relative col-span-7 grid grid-cols-7 border-y border-default select-none"
+        class="relative col-span-7 grid grid-cols-7 border-t border-default select-none"
         :style="{ height: `${(end - start) * pixelsPerMinute}px` }"
         role="region"
         aria-label="Week timeline"

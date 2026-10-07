@@ -4,7 +4,7 @@ import { toClientApiFailure } from '~/utils/client-effect'
 import { entityIcons } from '~/utils/entity-icons'
 
 const navigation = [
-  { label: 'Today', to: '/today', icon: entityIcons.today, shortcut: 't' },
+  { label: 'Agenda', to: '/agenda', icon: entityIcons.agenda, shortcut: 'a' },
   { label: 'Tickets', to: '/tickets', icon: entityIcons.tickets, shortcut: 'b' },
   { label: 'Clients', to: '/clients', icon: entityIcons.clients, shortcut: 'c' },
 ]
@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
         class="mx-auto grid w-full grid-cols-[minmax(0,1fr)_minmax(18rem,32rem)_minmax(0,1fr)] items-center gap-2"
       >
         <div data-header-block="left" class="flex min-w-0 items-center gap-2">
-          <NuxtLink to="/today" class="shrink-0 font-semibold text-highlighted">nxmr</NuxtLink>
+          <NuxtLink to="/agenda" class="shrink-0 font-semibold text-highlighted">nxmr</NuxtLink>
           <nav class="flex min-w-0 items-center gap-1" aria-label="Main navigation">
             <NuxtLink
               v-for="item in navigation"

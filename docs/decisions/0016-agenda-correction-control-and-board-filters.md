@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-26
 - Supersedes: 0014 (only the agenda's direct keyboard/mobile same-day Edit button requirement; all drag and server rules remain)
-- Superseded by: None
+- Superseded by: ADR 0044 (Today status-filter clause only)
 
 ## Context
 

@@ -460,13 +460,13 @@ test('ticket board and release cards expose relation and external-link popovers'
   }
 })
 
-test('Today entry context controls retain compact layout and weekly behavior', async ({
+test('Agenda entry context controls retain compact layout and weekly behavior', async ({
   page,
   popovers,
 }) => {
   const { suffix, one, manyTitle, shortManyEntry, tallEntry } = popovers
   await page.setViewportSize({ width: 1280, height: 1900 })
-  await page.goto('/today')
+  await page.goto('/agenda')
   await waitForClientMount(page)
   const compactAgendaCard = page
     .locator(`[data-agenda-entry="${shortManyEntry.id}"]`)
@@ -487,7 +487,7 @@ test('Today entry context controls retain compact layout and weekly behavior', a
     name: `release: Context release ${suffix}; actions`,
   })
   const compactStatus = compactBadgeGroup.getByRole('button', {
-    name: 'status: Idea; actions',
+    name: 'Change status from Idea',
   })
   const compactRelated = compactBadgeGroup.getByRole('button', { name: 'Related tickets' })
   const compactExternal = compactBadgeGroup.getByRole('button', { name: 'External links' })
@@ -539,7 +539,7 @@ test('Today entry context controls retain compact layout and weekly behavior', a
     `project: Context project ${suffix}; actions`,
     `release: Context release ${suffix}; actions`,
   ])
-  expect(compactBadgeNames[3]).toBe('status: Idea; actions')
+  expect(compactBadgeNames[3]).toBe('Change status from Idea')
   expect(compactBadgeNames[4]).toBe('Related tickets')
   expect(compactBadgeNames[5]).toBe('External links')
   expect(filterHeight).toBe(20)
@@ -607,7 +607,6 @@ test('Today entry context controls retain compact layout and weekly behavior', a
   await expectCenteredIcon(compactExternal, compactExternal.locator('[aria-hidden="true"]').first())
 
   await page.setViewportSize({ width: 1280, height: 1900 })
-  await page.getByRole('button', { name: 'Week', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Week timeline' })).toBeVisible()
   const weeklyContextMetrics = await compactBadgeGroup.evaluate((element) => ({
     clientWidth: element.clientWidth,

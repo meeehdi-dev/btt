@@ -136,8 +136,8 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
   context,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
-  await page.goto('/today')
-  await expect(page).toHaveURL(/\/login\?redirect=\/today$/)
+  await page.goto('/')
+  await expect(page).toHaveURL(/\/login\?redirect=\/agenda$/)
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
   await expectLoginCardCentered(page)
 
@@ -151,8 +151,8 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
 
   try {
     await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
-    await page.goto('/today')
-    await expect(page).toHaveURL(/\/today$/)
+    await page.goto('/agenda')
+    await expect(page).toHaveURL(/\/agenda$/)
     const header = page.getByRole('banner')
     const account = header.getByRole('group', { name: 'Signed in as E2E Nxmr User' })
     await expect(account).toBeVisible()
@@ -166,7 +166,7 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
     const mainNavigation = header.getByRole('navigation', { name: 'Main navigation' })
     expect(
       (await mainNavigation.getByRole('link').allTextContents()).map((label) => label.trim()),
-    ).toEqual(['Today', 'Tickets', 'Clients'])
+    ).toEqual(['Agenda', 'Tickets', 'Clients'])
 
     const headerSearch = header.getByRole('searchbox', { name: 'Search workspace' })
     expect(
@@ -181,7 +181,7 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
     ).toBeLessThan(2)
 
     const navigationHeight = await mainNavigation
-      .getByRole('link', { name: 'Today' })
+      .getByRole('link', { name: 'Agenda' })
       .evaluate((element) => element.getBoundingClientRect().height)
     for (const control of [
       header.getByRole('link', { name: 'Settings' }),
@@ -223,7 +223,7 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
     expect(projectCollectionResponse?.status()).toBe(404)
     await expect(page).toHaveURL(/\/projects$/)
 
-    await page.goto('/today')
+    await page.goto('/agenda')
     await page.reload()
     await waitForClientMount(page)
     await expect(account.locator('img')).toHaveAttribute(

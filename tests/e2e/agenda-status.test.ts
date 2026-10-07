@@ -5,7 +5,7 @@ import { client, project, release, ticket, timeEntry, userSettings } from '../..
 import { ticketStatuses } from '../../shared/ticket-status'
 import { testAuth } from '../../server/utils/auth-test'
 
-test('Today status menu filters, changes active tickets, reports feedback, and respects archives', async ({
+test('Agenda status selector changes active tickets directly and respects archives', async ({
   page,
   context,
 }) => {
@@ -57,27 +57,24 @@ test('Today status menu filters, changes active tickets, reports feedback, and r
       description: 'Status test work',
     })
 
-    await page.goto('/today')
+    await page.goto('/agenda')
     await page.waitForLoadState('networkidle')
     const entry = page.locator(`[data-agenda-ticket-id="${ticketId}"]`).filter({ visible: true })
-    const statusTrigger = entry.getByRole('button', { name: 'status: Idea; actions' })
+    const statusTrigger = entry.getByRole('button', { name: 'Change status from Idea' })
+    await expect(page.getByRole('combobox', { name: 'Filter status' })).toHaveCount(0)
     await statusTrigger.click()
-    const filterItem = page.getByRole('menuitem', { name: 'Filter by Idea' })
-    const changeItem = page.getByRole('menuitem', { name: 'Change' })
-    await expect(filterItem).toBeVisible()
-    await expect(changeItem).toBeVisible()
-    await filterItem.click()
-    await expect(page.getByRole('button', { name: 'Filter status' })).toContainText('Idea')
-    await page.getByLabel('Clear status filter').click()
-
-    await statusTrigger.click()
-    await page.getByRole('menuitem', { name: 'Change' }).hover()
+    await expect(page.getByRole('menuitem', { name: 'Change', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('menuitem', { name: 'Filter by Idea' })).toHaveCount(0)
     for (const status of ticketStatuses) {
       const item = page.getByRole('menuitem', { name: status, exact: true })
       await expect(item).toBeVisible()
-      if (status === 'Idea')
+      if (status === 'Idea') {
+        await expect(item).toBeDisabled()
         await expect(item.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(1)
-      else await expect(item.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(0)
+      } else {
+        await expect(item).toBeEnabled()
+        await expect(item.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(0)
+      }
     }
 
     let releasePatch!: () => void
@@ -104,7 +101,7 @@ test('Today status menu filters, changes active tickets, reports feedback, and r
     expect((await (await page.request.get(`/api/tickets/${ticketId}`)).json()).ticket.status).toBe(
       'Develop',
     )
-    await expect(entry.getByRole('button', { name: 'status: Develop; actions' })).toBeVisible()
+    await expect(entry.getByRole('button', { name: 'Change status from Develop' })).toBeVisible()
 
     await page.route(route, async (request) => {
       await request.fulfill({
@@ -113,8 +110,7 @@ test('Today status menu filters, changes active tickets, reports feedback, and r
         body: JSON.stringify({ statusMessage: 'Simulated status update failure' }),
       })
     })
-    await entry.getByRole('button', { name: 'status: Develop; actions' }).click()
-    await page.getByRole('menuitem', { name: 'Change' }).hover()
+    await entry.getByRole('button', { name: 'Change status from Develop' }).click()
     await page.getByRole('menuitem', { name: 'Review', exact: true }).click()
     await expect(page.getByRole('alert')).toContainText('Could not change ticket status')
     await expect(page.getByRole('status')).toHaveText('')
@@ -132,9 +128,9 @@ test('Today status menu filters, changes active tickets, reports feedback, and r
     const historyEntry = page
       .locator(`[data-agenda-ticket-id="${ticketId}"]`)
       .filter({ visible: true })
-    await historyEntry.getByRole('button', { name: 'status: Develop; actions' }).click()
-    await expect(page.getByRole('menuitem', { name: 'Change' })).toBeDisabled()
-    await expect(page.getByRole('menuitem', { name: 'Filter by Develop' })).toBeEnabled()
+    await historyEntry.getByRole('button', { name: 'Change status from Develop' }).click()
+    for (const status of ticketStatuses)
+      await expect(page.getByRole('menuitem', { name: status, exact: true })).toBeDisabled()
   } finally {
     if (ticketId) {
       await db.delete(timeEntry).where(eq(timeEntry.ticketId, ticketId))

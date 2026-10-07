@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-29
 - Supersedes: ADR 0032 — client-led project navigation
-- Superseded by: None
+- Superseded by: ADR 0044 (canonical-root landing-target clause only)
 
 ## Context
 

@@ -20,7 +20,6 @@ type Row = {
   releaseArchivedAt: string | null
   projectId: string
   projectName: string
-  projectColor: string
   projectArchivedAt: string | null
   clientId: string
   clientName: string
@@ -41,7 +40,7 @@ const hierarchyCanWrap = computed(
   () => props.row.entry.durationMinutes >= minimumHierarchyWrapDurationMinutes,
 )
 const emit = defineEmits<{
-  filter: [kind: 'client' | 'project' | 'release' | 'ticket' | 'status', id: string]
+  filter: [kind: 'client' | 'project' | 'release' | 'ticket', id: string]
   edit: []
   'change-status': [id: string, status: TicketStatus]
 }>()
@@ -87,31 +86,20 @@ const hierarchyItems = computed(() => [
     to: `/releases/${props.row.releaseId}${props.row.clientArchivedAt || props.row.projectArchivedAt || props.row.releaseArchivedAt ? '?archived=true' : ''}`,
   },
 ])
-const statusMenuItems = computed(() => [
-  {
-    label: `Filter by ${props.row.status}`,
-    icon: 'lucide:filter',
-    onSelect: () => emit('filter', 'status', props.row.status),
-  },
-  {
-    label: 'Change',
-    icon: 'lucide:arrow-right-left',
-    disabled: archived.value || props.statusBusy,
-    children: ticketStatuses.map((status) => ({
-      label: status,
-      icon: props.row.status === status ? 'lucide:check' : undefined,
-      disabled: archived.value || props.statusBusy || props.row.status === status,
-      onSelect: () => emit('change-status', props.row.ticketId, status),
-    })),
-  },
-])
+const statusMenuItems = computed(() =>
+  ticketStatuses.map((status) => ({
+    label: status,
+    icon: props.row.status === status ? 'lucide:check' : undefined,
+    disabled: archived.value || props.statusBusy || props.row.status === status,
+    onSelect: () => emit('change-status', props.row.ticketId, status),
+  })),
+)
 </script>
 <template>
   <article
     :data-agenda-ticket-id="row.ticketId"
-    class="flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border border-default bg-elevated text-xs"
+    class="flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border border-accented/50 bg-elevated text-xs"
     :class="compactTimeline ? 'gap-1 p-1' : 'gap-1 p-2'"
-    :style="{ borderLeftColor: row.projectColor, borderLeftWidth: '4px' }"
     @dblclick="onDoubleClick"
   >
     <div class="flex min-w-0 items-center justify-between gap-1">
@@ -192,7 +180,7 @@ const statusMenuItems = computed(() => [
               :loading="statusBusy"
               :disabled="statusBusy"
               :aria-busy="statusBusy || undefined"
-              :aria-label="`status: ${row.status}; actions`"
+              :aria-label="`Change status from ${row.status}`"
               :class="[
                 'shrink-0 !bg-default !text-muted hover:!text-default',
                 compactTimeline ? '!h-5 !min-h-5 !px-1 !text-[10px]' : '',

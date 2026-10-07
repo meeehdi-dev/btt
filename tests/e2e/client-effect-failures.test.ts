@@ -30,7 +30,7 @@ test('failed client-list reads are not empty success and can be retried', async 
         await route.continue()
       }
     })
-    await page.goto('/today')
+    await page.goto('/agenda')
     await page.waitForLoadState('networkidle')
     await page.getByRole('link', { name: 'Clients' }).click()
     await expect(page.getByRole('alert')).toContainText('Could not load clients')
@@ -143,7 +143,7 @@ test('search failures are distinct from no matches and editing the query retries
         await route.continue()
       }
     })
-    await page.goto('/today')
+    await page.goto('/agenda')
     await page.waitForLoadState('networkidle')
     const search = page.getByRole('searchbox', { name: 'Search workspace' })
     await search.fill('retry search')

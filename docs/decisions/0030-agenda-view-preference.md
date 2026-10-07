@@ -1,9 +1,9 @@
 # ADR 0030: Browser-local agenda view preference
 
-- Status: Accepted via Plannotator code review on 2026-09-29
+- Status: Superseded
 - Date: 2026-09-29
 - Supersedes: M16's explicit exclusion of a persisted Day/Week view preference (implementation scope only)
-- Superseded by: None
+- Superseded by: ADR 0044
 
 ## Context
 

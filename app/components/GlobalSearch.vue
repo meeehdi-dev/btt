@@ -94,7 +94,7 @@ watch(query, (value) => {
         id: item.id,
         label: item.label || item.ticketTitle,
         detail: `${item.ticketTitle} · ${item.date} ${String(Math.floor(item.startMinute / 60)).padStart(2, '0')}:${String(item.startMinute % 60).padStart(2, '0')}`,
-        to: `/today?date=${item.date}`,
+        to: `/agenda?date=${item.date}`,
         icon: 'lucide:clock-3',
         category: 'Time entries',
       })),

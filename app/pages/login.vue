@@ -40,7 +40,7 @@ function safeRedirect(value: unknown) {
     return value
   }
 
-  return '/today'
+  return '/agenda'
 }
 </script>
 

@@ -12,7 +12,6 @@ export type HierarchyFilterSource = {
   releaseName: string
   ticketId: string
   ticketName: string
-  status?: string
 }
 export type FilterSearchInput = {
   placeholder: string

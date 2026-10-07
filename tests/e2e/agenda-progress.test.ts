@@ -4,7 +4,7 @@ import { db } from '../../server/db'
 import { client, project, release, ticket, timeEntry, userSettings } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
 
-test('workday progress caps overtime, uses one accessible summary, and colors tracked time by ratio', async ({
+test('per-day workday progress caps overtime and retains accessible segmented colors', async ({
   page,
   context,
 }) => {
@@ -64,11 +64,20 @@ test('workday progress caps overtime, uses one accessible summary, and colors tr
       description: 'Five and a half hours',
     })
 
-    await page.goto('/today')
+    await page.goto(`/agenda?date=${date}`)
     await page.waitForLoadState('networkidle')
-    const progress = page.getByRole('progressbar', { name: 'Workday progress' })
-    const summary = page.getByLabel('Workday summary')
-    const trackedValue = summary.locator('span[aria-label^="Worked"] > span').first()
+    const dateLabel = await page.evaluate(
+      (value) =>
+        new Intl.DateTimeFormat(navigator.language, {
+          weekday: 'long',
+          month: 'numeric',
+          day: 'numeric',
+        }).format(new Date(`${value}T12:00:00`)),
+      date,
+    )
+    const progress = page.getByRole('progressbar', {
+      name: `${dateLabel} workday progress`,
+    })
     const setWorkdayTarget = async (workDayDurationMinutes: number) => {
       const response = await page.request.patch('/api/settings', {
         data: {
@@ -82,15 +91,13 @@ test('workday progress caps overtime, uses one accessible summary, and colors tr
       await page.reload()
       await page.waitForLoadState('networkidle')
     }
-    await expect(page.getByRole('progressbar')).toHaveCount(1)
+    await expect(page.getByRole('progressbar')).toHaveCount(7)
     await expect(progress).toHaveAttribute('aria-valuenow', '300')
     await expect(progress).toHaveAttribute('aria-valuemax', '300')
     await expect(progress).toHaveAttribute(
       'aria-valuetext',
       'Worked 5hr 30m of 5hr target; 30m overtime',
     )
-    await expect(trackedValue).toHaveClass(/text-warning/)
-    await expect(summary).not.toContainText('+30m')
     const card = page.locator(`[data-agenda-ticket-id="${ticketId}"]`).filter({ visible: true })
     await expect(card).toContainText('5hr 30m')
     await expect(card).not.toContainText(/\b09:00–14:30\b/)
@@ -107,15 +114,12 @@ test('workday progress caps overtime, uses one accessible summary, and colors tr
     )
 
     await setWorkdayTarget(450)
-    await expect(trackedValue).toHaveClass(/text-info/)
     await expect(progress).toHaveAttribute('aria-valuetext', 'Worked 5hr 30m of 7hr 30m target')
     await expect(progressSegments).toHaveCount(1)
     await expect(progressSegments.nth(0).locator('[data-slot="indicator"]')).toHaveClass(/bg-info/)
     await setWorkdayTarget(390)
-    await expect(trackedValue).toHaveClass(/text-success/)
     await expect(progress).toHaveAttribute('aria-valuetext', 'Worked 5hr 30m of 6hr 30m target')
     await setWorkdayTarget(270)
-    await expect(trackedValue).toHaveClass(/text-error/)
     await expect(progress).toHaveAttribute(
       'aria-valuetext',
       'Worked 5hr 30m of 4hr 30m target; 1hr overtime',
@@ -128,12 +132,11 @@ test('workday progress caps overtime, uses one accessible summary, and colors tr
     expect(update.ok()).toBe(true)
     await page.reload()
     await page.waitForLoadState('networkidle')
-    await expect(page.getByRole('progressbar')).toHaveCount(1)
+    await expect(page.getByRole('progressbar')).toHaveCount(7)
     await expect(progress).toHaveAttribute(
       'aria-valuetext',
       'Worked 10hr of 5hr target; 5hr overtime',
     )
-    await expect(trackedValue).toHaveClass(/text-error/)
     expect(
       await progressSegments.evaluateAll((segments) =>
         segments.map((segment) => (segment as HTMLElement).style.width),

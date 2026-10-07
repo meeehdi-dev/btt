@@ -49,7 +49,7 @@ async function cleanup(userId: string) {
   if (clientIds.length) await db.delete(client).where(inArray(client.id, clientIds))
 }
 
-test('Today and ticket-board filters accept typed searches', async ({ page, context }) => {
+test('Agenda and ticket-board filters accept typed searches', async ({ page, context }) => {
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
     name: 'Filter search owner',
@@ -202,9 +202,14 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
         .getByRole('link', { name: 'New ticket' }),
     ).toHaveAttribute('href', `/tickets/new?release=${searchableRelease.id}`)
 
-    await page.goto('/today')
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto('/agenda')
     await page.waitForLoadState('networkidle')
     await expectCompactPageSpacing(page)
+    const agendaToolbar = page.getByRole('group', { name: 'Agenda filters' })
+    await expect(agendaToolbar).toBeVisible()
+    await expect(agendaToolbar).toHaveCSS('height', '32px')
+    await expect(agendaToolbar.getByRole('button', { name: 'Clear filters' })).toBeVisible()
     for (const filter of [
       {
         kind: 'client',
@@ -234,13 +239,6 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
         match: `Searchable ticket ${suffix}`,
         miss: `Other ticket ${suffix}`,
       },
-      {
-        kind: 'status',
-        placeholder: 'Search statuses…',
-        query: 'Dev',
-        match: 'Develop',
-        miss: 'Done',
-      },
     ])
       await searchFilter(filter.kind, filter.placeholder, filter.query, filter.match, filter.miss)
 
@@ -256,17 +254,14 @@ test('Today and ticket-board filters accept typed searches', async ({ page, cont
     await expect(page.getByRole('button', { name: 'Filter release' })).toContainText(
       `Searchable release ${suffix}`,
     )
-    await page.getByRole('button', { name: 'Filter status' }).click()
-    await page.getByPlaceholder('Search statuses…').fill('Develop')
-    await page.getByRole('option', { name: 'Develop', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Filter status' })).toHaveCount(0)
+    await expect(page.getByPlaceholder('Search statuses…')).toHaveCount(0)
     await page.getByRole('button', { name: 'Filter client' }).click()
     await page.getByRole('option', { name: `Other client ${suffix}`, exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Filter status' })).toContainText('Develop')
     await expect(page.getByRole('button', { name: 'Filter project' })).toContainText('All projects')
     await expect(page.getByRole('button', { name: 'Filter release' })).toContainText('All releases')
     await expect(page.getByRole('button', { name: 'Filter ticket' })).toContainText('All tickets')
     await page.getByRole('button', { name: 'Clear filters' }).click()
-    await expect(page.getByRole('button', { name: 'Filter status' })).toContainText('All statuses')
   } finally {
     await cleanup(owner.id)
   }

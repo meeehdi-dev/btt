@@ -7,7 +7,7 @@ The product direction has been narrowed to a work-only app: a re-implementation/
 The MVP should focus on:
 
 - Time tracking inspired by `../tt`.
-- A day-agenda-first workflow for adding and reviewing completed work.
+- An agenda-first workflow for adding and reviewing completed work.
 - Client → project → release/milestone → ticket organization.
 - Lightweight tickets with fixed workflow statuses and time estimates.
 - Mandatory linking between tracked time and tickets so estimate usage is visible.
@@ -18,6 +18,10 @@ No personal tasks, habits, streaks, broad tag system, billable flag, calendar sy
 
 The human-approved M28 plan establishes one desktop presentation at 1280 CSS px and wider; narrower viewports are unsupported and may overflow. Its implementation retires mobile/tablet-specific layouts and touch branches while preserving desktop workflows, keyboard accessibility, and domain behavior. A Plannotator-approved amendment now directs a compact 2px-based role scale for app-authored spacing, including 2px agenda-filter wrapper padding, smaller section gaps, and equal reduced page insets; standard Nuxt UI select-trigger sizing and hit targets remain. M28 implementation, local verification, human review, and completion declaration are complete. Earlier responsive milestones and feature entries below record historical scope; they do not override M28's current UI support target. M27 is a separate, human-completed milestone. Its latest fixes were included in the refreshed PR #4 branch and passed hosted quality run [37532795100](https://github.com/meeehdi-dev/nxmr/actions/runs/37532795100), including all 39 E2E tests; this was an integration check with PR #4's dependency updates, not a standalone M27 run. M28 itself made no claim about runner assignment and authorized no remote CI run or policy change. See [`docs/milestones/m28-desktop-only-ui-cleanup.md`](docs/milestones/m28-desktop-only-ui-cleanup.md) and accepted [ADR 0042](docs/decisions/0042-desktop-only-ui-and-spacing.md).
 
+### Current Agenda direction (M29)
+
+The human-approved M29 plan makes `/agenda` the canonical, Week-only Agenda route; the shell label is “Agenda,” the navigation shortcut is `g` then `a`, and legacy `/today` returns 404 with no compatibility route. Day/Week preference storage is retired; existing `nxmr:agenda-view` values are ignored but not cleared. The selected-date query remains the anchor for configured-week navigation. The toolbar keeps only client, project, release, and ticket hierarchy filters; status choices open directly from each entry's status control. M29 implementation, automated local verification, final live-app review, human code review, and human completion declaration are complete; the user declared M29 complete on 2026-10-07. Completed M16–M18 and M26 records remain historical evidence. See [`docs/milestones/m29-today-week-only-ui-polish.md`](docs/milestones/m29-today-week-only-ui-polish.md) and accepted [ADR 0044](docs/decisions/0044-week-only-agenda-and-status-selector.md).
+
 ## Approach
 
 Create a concise product plan for a work-only tool that combines:
@@ -27,7 +31,7 @@ Create a concise product plan for a work-only tool that combines:
    - Desktop drag-and-drop calendar blocks; non-drag controls for mobile.
    - Client → project → release/milestone → ticket organization.
    - Customizable agenda hours, e.g. 8am–8pm by default.
-   - Mobile-friendly today agenda as the primary MVP UI.
+   - The Agenda as the primary work surface; M29 establishes a Week-only presentation at `/agenda` on the supported desktop UI.
 
 2. **Lite Linear-style tickets**
    - Fixed statuses for MVP: Idea, Estimate, Develop, Review, Test, Deploy, Done.
@@ -134,7 +138,7 @@ Relevant `tt` references (reference only; its release/deploy flow is not adopted
   - `id`, `projectId`, `name`, optional `targetDate`, timestamps
 - `Ticket`
   - `id`, `releaseId`, `title`, `description`, `status`, optional `estimateMinutes`, timestamps
-  - Ticket status uses the fixed status set. The initial interaction surfaces were the ticket edit form, Today status badge, Release detail selector, and desktop board drag-and-drop. M25 makes a direct ticket-detail selector the normal edit surface; board and Today/Release policies remain unchanged.
+  - Ticket status uses the fixed status set. The current interaction surfaces are the ticket edit form, Agenda entry status selector, Release detail selector, and desktop board drag-and-drop. M25 makes a direct ticket-detail selector the normal edit surface; M29 simplifies only the Agenda status selector, while board and Release policies remain unchanged.
 - `TicketLink`
   - `id`, `ticketId`, optional `label`, `url`
 - `TicketRelation`
@@ -565,9 +569,22 @@ Goal: support one desktop presentation at 1280 CSS px and wider, retire mobile/n
 - Remove mobile-only markup, responsive layout variants, viewport/touch branches, and mobile-only E2E scenarios. Preserve domain behavior coverage in desktop tests.
 - Use compact role-based spacing: 16px page inset/largest section gap, 8px standard card/form padding, 4px compact-card padding/related-control gaps, and 2px border-only filter wrappers. Override generated Nuxt UI responsive surface padding where needed; preserve standard select-trigger sizing and fixed time-grid geometry.
 - Keep historical completed milestone scopes intact. Do not change APIs, data, auth, dependencies, deployment, or CI policy; do not assume M28 addresses M27 runner assignment.
-- Live-app follow-up: Today and Ticket Board page gaps are 8px; the Agenda view group matches the adjacent 32px controls; end-of-hours labels stay visible without changing agenda geometry; Settings is vertically centered. Release completion is available only from Release detail; project cards remain navigable progress surfaces, as recorded in ADR 0043.
+- M28 live-app snapshot (the Agenda toolbar details are superseded by M29): Today and Ticket Board page gaps were 8px; the Day/Week view group matched adjacent 32px controls; end-of-hours labels stayed visible without changing agenda geometry; Settings was vertically centered. Release completion is available only from Release detail; project cards remain navigable progress surfaces, as recorded in ADR 0043.
 
 Acceptance: app UI and E2E coverage target desktop widths of 1280 CSS px and wider; spacing is audited across Vue UI; local quality gates and manual route checks are recorded; ADR 0042 was accepted after human review on 2026-10-06. No remote CI run was authorized.
+
+### M29 — Week-only Agenda route and UI polish
+
+Status: Complete — approved plan, implementation, automated checks, final live-app review, and human code review accepted; completion declared by the user on 2026-10-07. See [`docs/milestones/m29-today-week-only-ui-polish.md`](docs/milestones/m29-today-week-only-ui-polish.md) and accepted [ADR 0044](docs/decisions/0044-week-only-agenda-and-status-selector.md).
+
+Goal: simplify the Agenda to one canonical weekly UI while preserving its weekly data and interactions.
+
+- Make `/agenda` Week-only, update the shell name/destinations and `g`-then-`a` shortcut, and return 404 for `/today` without a compatibility route. Ignore—but do not clear—the retired Day/Week localStorage preference.
+- Place the four searchable hierarchy filters beside week/date controls in the existing 32px toolbar. Remove Day-only state and data reads, direct page/day Add buttons, the status filter, and project-color entry borders.
+- Keep drag-create with its required-ticket modal, move/resize/conflict behavior, correction/delete, current-date/time indicators, daily unfiltered progress, archive visibility, and the existing APIs and data rules. Render full localized day labels beside compact progress bars; expose progress details accessibly and through a focusable tooltip. Open fixed status choices directly from each entry.
+- Keep M16–M18 and M26 milestone records historically accurate. Do not change APIs, stored data, schema, authentication, dependencies, or fixed time-grid geometry.
+
+Acceptance: approved M29 checklist, local checks, full E2E, supported-width and multi-locale visual review, accepted human code review, and the user's completion declaration are recorded in the milestone journal. ADR 0044 is Accepted; M29 is Complete.
 
 ### Later, post-MVP
 
@@ -580,7 +597,7 @@ Acceptance: app UI and E2E coverage target desktop widths of 1280 CSS px and wid
 
 ## Feature inventory and delivery status
 
-`[x]` means delivered as recorded in a completed milestone; `[ ]` means not delivered or explicitly deferred. Detailed scope, verification, and review evidence remain in the linked milestone records. Responsive/mobile references below may describe historical delivery; M28 defines the current support target.
+`[x]` means delivered as recorded in a completed milestone; `[ ]` means not delivered or explicitly deferred. Detailed scope, verification, and review evidence remain in the linked milestone records. Responsive/mobile references below may describe historical delivery; M28 defines the current viewport target, and M29 defines the approved Agenda direction and is Complete as declared by the user on 2026-10-07.
 
 ### Core foundations
 

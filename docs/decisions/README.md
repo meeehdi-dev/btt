@@ -64,7 +64,7 @@ NNNN-short-descriptive-slug.md
 | [0027](0027-release-ticket-status-actions.md)                  | Accepted   | Release ticket status badge actions                        |
 | [0028](0028-api-item-ordering.md)                              | Accepted   | Stable API item ordering                                   |
 | [0029](0029-weekly-agenda-and-conflict-previews.md)            | Accepted   | Weekly agenda and attempted-position conflict previews     |
-| [0030](0030-agenda-view-preference.md)                         | Accepted   | Browser-local agenda view preference                       |
+| [0030](0030-agenda-view-preference.md)                         | Superseded | Browser-local agenda view preference                       |
 | [0031](0031-hierarchy-badge-wrapping.md)                       | Accepted   | Wrap hierarchy badge groups in cards                       |
 | [0032](0032-client-led-project-navigation.md)                  | Superseded | Client-led project navigation                              |
 | [0033](0033-no-compatibility-route-for-project-collection.md)  | Accepted   | No compatibility route for the removed Projects collection |
@@ -78,3 +78,4 @@ NNNN-short-descriptive-slug.md
 | [0041](0041-ci-e2e-failure-diagnostics.md)                     | Accepted   | Keep CI E2E failures visible and diagnosable               |
 | [0042](0042-desktop-only-ui-and-spacing.md)                    | Accepted   | Desktop-only UI and compact spacing system                 |
 | [0043](0043-release-completion-action-location.md)             | Accepted   | Keep release completion on release detail                  |
+| [0044](0044-week-only-agenda-and-status-selector.md)           | Accepted   | Week-only Agenda route and direct status selector          |

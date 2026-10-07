@@ -1,5 +1,5 @@
 export const entityIcons = {
-  today: 'lucide:calendar-days',
+  agenda: 'lucide:calendar-days',
   clients: 'lucide:building-2',
   projects: 'lucide:folder-kanban',
   releases: 'lucide:flag',

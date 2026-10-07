@@ -3,7 +3,7 @@
 - Status: Accepted via Plannotator code review on 2026-10-01
 - Date: 2026-10-01
 - Supersedes: ADR 0038
-- Superseded by: None
+- Superseded by: ADR 0044 (status-menu structure clause only)
 
 ## Context
 

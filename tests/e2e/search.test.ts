@@ -91,10 +91,12 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
       startMinute: 540,
       ticketTitle: 'Needle ticket own',
     })
-    await page.goto('/today?date=2030-02-10')
+    await page.goto('/agenda?date=2030-02-10')
     await page.waitForLoadState('networkidle')
-    await expect(page.getByRole('button', { name: 'Agenda date: 2030-02-10' })).toBeVisible()
-    await expect(page.getByLabel('Day timeline').getByText('Needle work own')).toBeVisible()
+    await expect(page.locator('button[aria-label^="Agenda week:"]')).toBeVisible()
+    await expect(
+      page.locator('[data-week-date="2030-02-10"]').getByText('Needle work own'),
+    ).toBeVisible()
     await expect(page.getByRole('complementary', { name: 'Sidebar' })).toHaveCount(0)
     const search = page.getByRole('searchbox', { name: 'Search workspace' })
     await expect(search).toHaveCount(1)
@@ -106,7 +108,7 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     ).toBeVisible()
     await search.press('ArrowDown')
     await search.press('Enter')
-    await expect(page).toHaveURL(/\/today\?date=2030-02-10$/)
+    await expect(page).toHaveURL(/\/agenda\?date=2030-02-10$/)
     await search.press('Escape')
     await page.keyboard.press('Control+k')
     await expect(search).toBeFocused()
@@ -121,14 +123,14 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     await page.keyboard.press('c')
     await expect(page).toHaveURL(/\/clients$/)
     await page.keyboard.press('g')
-    await page.keyboard.press('t')
-    await expect(page).toHaveURL(/\/today$/)
+    await page.keyboard.press('a')
+    await expect(page).toHaveURL(/\/agenda$/)
 
     const header = page.getByRole('banner')
     const mainNavigation = header.getByRole('navigation', { name: 'Main navigation' })
     expect(
       (await mainNavigation.getByRole('link').allTextContents()).map((label) => label.trim()),
-    ).toEqual(['Today', 'Tickets', 'Clients'])
+    ).toEqual(['Agenda', 'Tickets', 'Clients'])
     await expect(page.getByRole('button', { name: 'Open menu' })).toHaveCount(0)
     await expect(page.getByRole('dialog', { name: 'Menu' })).toHaveCount(0)
     await expect(search).toHaveCount(1)
@@ -141,23 +143,23 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     await expect(page).toHaveURL(/\/tickets$/)
     await header.getByRole('link', { name: 'Settings' }).click()
     await expect(page).toHaveURL(/\/settings$/)
-    await page.goto('/today?date=2030-02-10')
-    const workdaySummary = page.getByLabel('Workday summary')
-    await expect(workdaySummary).toContainText('30m')
-    await expect(workdaySummary.locator('.text-info')).toHaveText('30m')
-    await expect(workdaySummary.locator('.text-muted')).toHaveText('/ 8hr')
-    await expect(page.getByRole('button', { name: 'Add time entry' })).toBeVisible()
-    await page.goto('/clients')
-    await page.goto('/today?date=2030-02-10')
-    await expect
-      .poll(() =>
-        page
-          .getByLabel('Choose agenda day')
-          .locator('..')
-          .evaluate((node) => getComputedStyle(node).flexDirection),
-      )
-      .toBe('row')
-    expect((await page.getByLabel('Workday summary').boundingBox())?.width).toBeGreaterThan(400)
+    await page.goto('/agenda?date=2030-02-10')
+    const dateLabel = await page.evaluate(() =>
+      new Intl.DateTimeFormat(navigator.language, {
+        weekday: 'long',
+        month: 'numeric',
+        day: 'numeric',
+      }).format(new Date('2030-02-10T12:00:00')),
+    )
+    const workdayProgress = page.getByRole('progressbar', {
+      name: `${dateLabel} workday progress`,
+    })
+    await expect(workdayProgress).toHaveAttribute('aria-valuetext', 'Worked 30m of 8hr target')
+    await expect(page.getByRole('button', { name: 'Add time entry' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /Add time entry on/ })).toHaveCount(0)
+    const toolbar = page.locator('main > .flex.flex-col.gap-2 > div').first()
+    await expect(toolbar).toHaveCSS('flex-direction', 'row')
+    await expect(page.getByRole('group', { name: 'Choose agenda week' })).toBeVisible()
     expect(
       (await (await page.request.get('/api/search', { params: { q: 'n' } })).json()).tickets,
     ).toEqual([])
