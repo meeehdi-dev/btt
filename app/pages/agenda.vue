@@ -37,9 +37,14 @@ const currentMinute = computed(() =>
 function formatClock(minute: number) {
   return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`
 }
-const currentTimeLabel = computed(() =>
-  currentMinute.value === null ? '' : `Now ${formatClock(currentMinute.value)}`,
-)
+const currentDateTimeLabel = computed(() => {
+  if (!currentTime.value || currentMinute.value === null) return ''
+  const currentDateLabel = new Intl.DateTimeFormat(locale.value, {
+    month: 'numeric',
+    day: 'numeric',
+  }).format(currentTime.value)
+  return `${currentDateLabel}, ${formatClock(currentMinute.value)}`
+})
 const {
   data: settings,
   error: settingsError,
@@ -476,7 +481,7 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
             color="neutral"
             variant="outline"
             icon="lucide:calendar-days"
-            class="min-w-0"
+            class="min-w-[14rem] shrink-0"
             :aria-label="`Agenda week: ${weekRangeLabel}`"
           >
             <span>{{ weekRangeLabel || 'Loading week…' }}</span>
@@ -505,18 +510,25 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
           :color="isCurrentPeriod ? 'primary' : 'neutral'"
           :variant="isCurrentPeriod ? 'soft' : 'ghost'"
           icon="lucide:calendar-check"
-          label="This week"
+          :aria-label="`Go to current week${currentDateTimeLabel ? `, ${currentDateTimeLabel}` : ''}`"
           :aria-current="isCurrentPeriod ? 'true' : undefined"
           @click="goToCurrentWeek"
-        />
-        <span
-          v-if="isCurrentPeriod && currentTimeLabel"
-          class="inline-flex h-8 items-center gap-1 rounded-md bg-elevated px-2 text-sm text-muted"
         >
-          <UIcon name="lucide:clock-3" class="size-4" aria-hidden="true" />
-          <time :datetime="currentTime?.toISOString()">{{ currentTimeLabel }}</time>
-        </span>
+          <time
+            v-if="currentTime"
+            class="tabular-nums whitespace-nowrap"
+            :datetime="currentTime.toISOString()"
+            >{{ currentDateTimeLabel }}</time
+          >
+          <span v-else aria-hidden="true" class="tabular-nums whitespace-nowrap">--/--, --:--</span>
+        </UButton>
       </div>
+      <USeparator
+        data-testid="agenda-toolbar-separator"
+        orientation="vertical"
+        decorative
+        class="h-6 shrink-0"
+      />
       <div
         class="flex h-8 min-w-0 flex-1 items-center gap-0.5 rounded-md px-0.5"
         role="group"

@@ -22,6 +22,10 @@ The human-approved M28 plan establishes one desktop presentation at 1280 CSS px 
 
 The human-approved M29 plan makes `/agenda` the canonical, Week-only Agenda route; the shell label is “Agenda,” the navigation shortcut is `g` then `a`, and legacy `/today` returns 404 with no compatibility route. Day/Week preference storage is retired; existing `nxmr:agenda-view` values are ignored but not cleared. The selected-date query remains the anchor for configured-week navigation. The toolbar keeps only client, project, release, and ticket hierarchy filters; status choices open directly from each entry's status control. M29 implementation, automated local verification, final live-app review, human code review, and human completion declaration are complete; the user declared M29 complete on 2026-10-07. Completed M16–M18 and M26 records remain historical evidence. See [`docs/milestones/m29-today-week-only-ui-polish.md`](docs/milestones/m29-today-week-only-ui-polish.md) and accepted [ADR 0044](docs/decisions/0044-week-only-agenda-and-status-selector.md).
 
+### Current Agenda toolbar direction (M30)
+
+The Plannotator-approved M30 plan puts the current local date/time on the always-available current-week action while retaining its selected-current-week highlight and navigation behavior, removes the separate `Now` badge but preserves the red current-day timeline marker, reserves stable width for the selected-week range button, adds a Nuxt UI vertical separator before filters, and reduces the hour-label gutter while keeping `20:00` visible. Implementation, local verification, and Plannotator code review are complete. The stale Vite dev-cache error was resolved and recorded. The user declared M30 complete on 2026-10-07. See [`docs/milestones/m30-agenda-toolbar-and-timeline-polish.md`](docs/milestones/m30-agenda-toolbar-and-timeline-polish.md). See [`docs/milestones/m30-agenda-toolbar-and-timeline-polish.md`](docs/milestones/m30-agenda-toolbar-and-timeline-polish.md).
+
 ## Approach
 
 Create a concise product plan for a work-only tool that combines:
@@ -585,6 +589,18 @@ Goal: simplify the Agenda to one canonical weekly UI while preserving its weekly
 - Keep M16–M18 and M26 milestone records historically accurate. Do not change APIs, stored data, schema, authentication, dependencies, or fixed time-grid geometry.
 
 Acceptance: approved M29 checklist, local checks, full E2E, supported-width and multi-locale visual review, accepted human code review, and the user's completion declaration are recorded in the milestone journal. ADR 0044 is Accepted; M29 is Complete.
+
+### M30 — Agenda toolbar and timeline polish
+
+Status: Complete — approved plan, implementation, local verification, Plannotator code review, and human completion declaration recorded on 2026-10-07. See [`docs/milestones/m30-agenda-toolbar-and-timeline-polish.md`](docs/milestones/m30-agenda-toolbar-and-timeline-polish.md).
+
+- Show the live local date/time on the current-week action at all selected weeks, preserve its current-week highlight and navigation, and remove the separate `Now` badge while retaining the red current-day marker.
+- Reserve enough width for the selected-week range button to keep the filters' horizontal start position stable while showing the complete localized range.
+- Place a Nuxt UI vertical separator between date/navigation and hierarchy filters.
+- Try a 2rem weekly hour-label gutter; increase it only as needed to keep `20:00` fully visible. Keep vertical timeline geometry, data, and interactions unchanged.
+- Verify deterministic clock/marker behavior and the toolbar at the supported 1280 CSS px minimum. No ADR, API, or data changes are planned.
+
+Acceptance: the always-visible date/time action remains stable as the selected week changes; current-week styling/navigation and red marker behavior are retained; range-label width does not move the filters; the separator fits between toolbar groups; the smallest readable hour gutter is used; focused and full checks, visual inspection, code review, and closeout evidence are recorded in M30.
 
 ### Later, post-MVP
 

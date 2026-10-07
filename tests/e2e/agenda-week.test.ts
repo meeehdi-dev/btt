@@ -65,8 +65,15 @@ async function pageDateLabels(page: import('@playwright/test').Page, dates: stri
 async function expectEndHourLabelInsideCard(page: import('@playwright/test').Page) {
   const label = page.getByText('20:00', { exact: true })
   const cardBody = page.locator('main [data-slot="body"]').last()
-  const [labelBox, bodyBox] = await Promise.all([label.boundingBox(), cardBody.boundingBox()])
-  if (!labelBox || !bodyBox) throw new Error('End-of-day label must be visible')
+  const gutter = label.locator('..')
+  const [labelBox, bodyBox, gutterBox] = await Promise.all([
+    label.boundingBox(),
+    cardBody.boundingBox(),
+    gutter.boundingBox(),
+  ])
+  if (!labelBox || !bodyBox || !gutterBox) throw new Error('End-of-day label must be visible')
+  expect(labelBox.x).toBeGreaterThanOrEqual(gutterBox.x)
+  expect(labelBox.x + labelBox.width).toBeLessThanOrEqual(gutterBox.x + gutterBox.width)
   expect(labelBox.y).toBeGreaterThanOrEqual(bodyBox.y)
   expect(labelBox.y + labelBox.height).toBeLessThanOrEqual(bodyBox.y + bodyBox.height)
 }
@@ -77,6 +84,18 @@ function dateKey(value: { year: number; month: number; day: number }) {
 
 function clockLabel(hour: number, minute: number) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+async function browserCurrentDateTimeLabel(page: import('@playwright/test').Page) {
+  return page.evaluate(() => {
+    const now = new Date()
+    const date = new Intl.DateTimeFormat(navigator.language, {
+      month: 'numeric',
+      day: 'numeric',
+    }).format(now)
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    return `${date}, ${time}`
+  })
 }
 
 test('Agenda marks the current local date and time in its week-only view', async ({
@@ -107,15 +126,20 @@ test('Agenda marks the current local date and time in its week-only view', async
       minute: currentParts.hour * 60 + currentParts.minuteOfHour,
       label: clockLabel(currentParts.hour, currentParts.minuteOfHour),
     }
-    await page.setViewportSize({ width: 1600, height: 1900 })
+    await page.setViewportSize({ width: 1280, height: 1900 })
     await page.goto(`/agenda?date=${current.date}`)
     await page.waitForLoadState('networkidle')
 
+    const currentWeekButton = page.getByRole('button', { name: /^Go to current week/ })
+    const weekRangeButton = page.locator('button[aria-label^="Agenda week:"]')
+    let currentButtonLabel = await browserCurrentDateTimeLabel(page)
+    const initialWeekRangeBox = await weekRangeButton.boundingBox()
+    if (!initialWeekRangeBox) throw new Error('Selected week range must be visible')
     const toolbarControls = [
       page.getByRole('button', { name: 'Previous week' }),
-      page.locator('button[aria-label^="Agenda week:"]'),
+      weekRangeButton,
       page.getByRole('button', { name: 'Next week' }),
-      page.getByRole('button', { name: 'This week', exact: true }),
+      currentWeekButton,
     ]
     const toolbarBoxes = await Promise.all(toolbarControls.map((control) => control.boundingBox()))
     if (toolbarBoxes.some((box) => !box)) throw new Error('Agenda toolbar controls must be visible')
@@ -123,7 +147,9 @@ test('Agenda marks the current local date and time in its week-only view', async
     expect(Math.max(...toolbarHeights) - Math.min(...toolbarHeights)).toBeLessThan(2)
     expect(Math.min(...toolbarHeights)).toBeGreaterThanOrEqual(32)
 
-    await expect(page.getByText(`Now ${current.label}`, { exact: true })).toBeVisible()
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
+    await expect(currentWeekButton).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByText(/^Now /)).toHaveCount(0)
     await expectEndHourLabelInsideCard(page)
     let marker = page.locator('[data-current-time-marker]:visible')
     await expect(marker).toHaveCount(1)
@@ -133,15 +159,37 @@ test('Agenda marks the current local date and time in its week-only view', async
     )
     expect(await marker.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe('none')
 
+    const agendaFilters = page.getByRole('group', { name: 'Agenda filters' })
+    const initialFiltersBox = await agendaFilters.boundingBox()
+    if (!initialFiltersBox) throw new Error('Agenda filters must be visible')
+
     await page.clock.fastForward(31_000)
-    await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
+    currentButtonLabel = await browserCurrentDateTimeLabel(page)
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
     await expect(marker).toHaveAttribute('aria-label', 'Current time 10:30')
 
     await page.getByRole('button', { name: 'Previous week' }).click()
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
+    await expect(currentWeekButton).not.toHaveAttribute('aria-current')
     await expect(page.getByText(/^Now /)).toHaveCount(0)
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
-    await page.getByRole('button', { name: 'This week', exact: true }).click()
-    await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
+    await page.clock.setSystemTime(new Date(2024, 8, 18, 10, 31))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    currentButtonLabel = await browserCurrentDateTimeLabel(page)
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
+    await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
+    const [previousWeekFiltersBox, previousWeekRangeBox] = await Promise.all([
+      agendaFilters.boundingBox(),
+      weekRangeButton.boundingBox(),
+    ])
+    if (!previousWeekFiltersBox || !previousWeekRangeBox)
+      throw new Error('Agenda filters and week range must remain visible')
+    expect(Math.abs(previousWeekFiltersBox.x - initialFiltersBox.x)).toBeLessThan(1)
+    expect(Math.abs(previousWeekRangeBox.width - initialWeekRangeBox.width)).toBeLessThan(1)
+
+    await currentWeekButton.click()
+    await expect(currentWeekButton).toHaveAttribute('aria-current', 'true')
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(1)
     await expect(page.getByRole('region', { name: 'Week timeline' })).toBeVisible()
     await expectEndHourLabelInsideCard(page)
@@ -154,25 +202,38 @@ test('Agenda marks the current local date and time in its week-only view', async
     await expect(marker.locator('..')).toHaveAttribute('data-week-date', current.date)
 
     await page.getByRole('button', { name: 'Next week' }).click()
-    await expect(page.getByText(/^Now /)).toHaveCount(0)
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
+    await expect(currentWeekButton).not.toHaveAttribute('aria-current')
     await expect(page.locator('time[aria-current="date"]')).toHaveCount(0)
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
-    await page.getByRole('button', { name: 'This week', exact: true }).click()
-    await expect(page.getByText('Now 10:30', { exact: true })).toBeVisible()
+    const [nextWeekFiltersBox, nextWeekRangeBox] = await Promise.all([
+      agendaFilters.boundingBox(),
+      weekRangeButton.boundingBox(),
+    ])
+    if (!nextWeekFiltersBox || !nextWeekRangeBox)
+      throw new Error('Agenda filters and week range must remain visible')
+    expect(Math.abs(nextWeekFiltersBox.x - initialFiltersBox.x)).toBeLessThan(1)
+    expect(Math.abs(nextWeekRangeBox.width - initialWeekRangeBox.width)).toBeLessThan(1)
+    await currentWeekButton.click()
+    await expect(currentWeekButton).toHaveAttribute('aria-current', 'true')
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
 
     await page.clock.setSystemTime(new Date(2024, 8, 18, 20, 0))
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
-    await expect(page.getByText('Now 20:00', { exact: true })).toBeVisible()
+    currentButtonLabel = await browserCurrentDateTimeLabel(page)
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
     await page.clock.setSystemTime(new Date(2024, 8, 18, 7, 59))
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
-    await expect(page.getByText('Now 07:59', { exact: true })).toBeVisible()
+    currentButtonLabel = await browserCurrentDateTimeLabel(page)
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(0)
     await page.clock.setSystemTime(new Date(2024, 8, 18, 8, 0))
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    currentButtonLabel = await browserCurrentDateTimeLabel(page)
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(1)
 
-    await expect(page.getByText('Now 08:00', { exact: true })).toBeVisible()
     await expect(page.locator('[data-current-time-marker]:visible')).toHaveCount(1)
     await expect(page.locator('time[aria-current="date"]:visible')).toHaveCount(1)
 
@@ -183,7 +244,8 @@ test('Agenda marks the current local date and time in its week-only view', async
       return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }
     })
     const nextCurrentDate = dateKey(nextCurrentParts)
-    await expect(page.getByText('Now 00:01', { exact: true })).toBeVisible()
+    currentButtonLabel = await browserCurrentDateTimeLabel(page)
+    await expect(currentWeekButton).toContainText(currentButtonLabel)
     await expect(page.locator('time[aria-current="date"]:visible')).toHaveAttribute(
       'datetime',
       nextCurrentDate,
@@ -330,6 +392,15 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await page.goto('/agenda?date=2024-09-18')
     await page.waitForLoadState('networkidle')
     await expect(page.getByRole('region', { name: 'Week timeline' })).toBeVisible()
+    const timelineGrid = page.getByRole('region', { name: 'Week timeline' }).locator('..')
+    const timeGutterWidth = await timelineGrid.evaluate(
+      (element) => getComputedStyle(element).gridTemplateColumns.split(' ')[0],
+    )
+    expect(timeGutterWidth).toBe('38px')
+    const selectedWeekButton = page.locator('button[aria-label^="Agenda week:"]')
+    const selectedWeekButtonBox = await selectedWeekButton.boundingBox()
+    if (!selectedWeekButtonBox) throw new Error('Selected week range must be visible at 1280px')
+    expect(selectedWeekButtonBox.width).toBeGreaterThanOrEqual(224)
     const agendaFilters = page.getByRole('group', { name: 'Agenda filters' })
     const agendaFilterButtons = [
       ...(['client', 'project', 'release', 'ticket'] as const).map((kind) =>
@@ -344,6 +415,18 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     if (!agendaFiltersBox || agendaFilterBoxes.some((box) => !box))
       throw new Error('Agenda filters must fit in the toolbar at 1280px')
     expect(agendaFiltersBox.height).toBe(32)
+    const toolbarNavigation = page.getByRole('group', { name: 'Choose agenda week' })
+    const toolbarSeparator = page.getByTestId('agenda-toolbar-separator')
+    const [navigationBox, separatorBox] = await Promise.all([
+      toolbarNavigation.boundingBox(),
+      toolbarSeparator.boundingBox(),
+    ])
+    if (!navigationBox || !separatorBox)
+      throw new Error('Agenda date controls and separator must be visible at 1280px')
+    expect(separatorBox.height).toBe(24)
+    expect(separatorBox.width).toBeLessThanOrEqual(2)
+    expect(navigationBox.x + navigationBox.width).toBeLessThanOrEqual(separatorBox.x)
+    expect(separatorBox.x + separatorBox.width).toBeLessThanOrEqual(agendaFiltersBox.x)
     const toolbarRowBox = await agendaFilters.locator('..').boundingBox()
     const agendaCardBox = await page.locator('main > div > div.mt-2').boundingBox()
     if (!toolbarRowBox || !agendaCardBox)
@@ -646,6 +729,12 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await localizedPage.goto('/agenda?date=2024-09-18')
     await localizedPage.waitForLoadState('networkidle')
     await expect(localizedPage.getByRole('region', { name: 'Week timeline' })).toBeVisible()
+    const localizedCurrentWeekButton = localizedPage.getByRole('button', {
+      name: /^Go to current week/,
+    })
+    await expect(localizedCurrentWeekButton).toContainText(
+      await browserCurrentDateTimeLabel(localizedPage),
+    )
     const germanLabel = await localizedPage.evaluate((date) => {
       const formatter = new Intl.DateTimeFormat(navigator.language, {
         weekday: 'long',
@@ -906,7 +995,7 @@ test('Agenda stays Week-only, ignores the legacy preference, and retires /today'
     await expect(page.getByRole('region', { name: 'Week timeline' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Day', exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Week', exact: true })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'This week', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Go to current week/ })).toBeVisible()
     expect(await page.evaluate((key) => localStorage.getItem(key), storageKey)).toBe('day')
 
     const oldRoute = await page.goto('/today')

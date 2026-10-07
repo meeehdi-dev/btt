@@ -386,7 +386,7 @@ function hiddenRows(date: string) {
       :description="alert"
       role="alert"
     />
-    <div class="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1">
+    <div class="grid grid-cols-[2.375rem_repeat(7,minmax(0,1fr))] gap-1">
       <div aria-hidden="true" />
       <section
         v-for="date in dates"
@@ -536,7 +536,7 @@ function hiddenRows(date: string) {
       <template v-for="(date, dayIndex) in dates" :key="`early-${date}`">
         <div
           v-if="column(date)?.early.length"
-          class="col-span-8 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
+          class="col-span-8 grid grid-cols-[2.375rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
         >
           <h3 class="col-span-8 text-xs font-medium text-muted">
             Before visible hours · {{ dayLabel(date) }}
@@ -554,7 +554,7 @@ function hiddenRows(date: string) {
         </div>
         <div
           v-if="column(date)?.late.length"
-          class="col-span-8 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
+          class="col-span-8 grid grid-cols-[2.375rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
         >
           <h3 class="col-span-8 text-xs font-medium text-muted">
             After visible hours · {{ dayLabel(date) }}
