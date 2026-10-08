@@ -14,12 +14,16 @@ import { includeArchived, queryOf, requireUserId, validation } from '../../utils
 import { promiseEffect } from '../../utils/effect'
 import { defineEffectHandler } from '../../utils/effect-handler'
 import { validId } from '../../domain/tickets'
+import { shouldHideQuietDoneTicket } from '../../domain/ticket-visibility'
 
 export default defineEffectHandler((event) =>
   Effect.gen(function* () {
     const userId = yield* requireUserId(event)
     const archived = yield* includeArchived(event)
-    const releaseId = (yield* queryOf(event)).releaseId
+    const query = yield* queryOf(event)
+    const boardView = query.board === 'true'
+    if (query.board !== undefined && !boardView) return yield* validation('Invalid board view')
+    const releaseId = query.releaseId
     if (releaseId !== undefined && typeof releaseId !== 'string')
       return yield* validation('Invalid release')
     const validReleaseId = releaseId ? yield* validId(releaseId) : undefined
@@ -28,6 +32,7 @@ export default defineEffectHandler((event) =>
         .select({
           ticket,
           releaseName: release.name,
+          releaseTargetDate: release.targetDate,
           projectId: project.id,
           projectName: project.name,
           clientId: client.id,
@@ -53,7 +58,52 @@ export default defineEffectHandler((event) =>
           desc(ticket.id),
         ),
     )
-    const ids = tickets.map(({ ticket: record }) => record.id)
+    const quietCandidates = boardView
+      ? tickets.filter(
+          ({ ticket: record, releaseTargetDate }) =>
+            !record.archivedAt && record.status === 'Done' && releaseTargetDate === null,
+        )
+      : []
+    const latestTimeEntryActivity = quietCandidates.length
+      ? yield* promiseEffect('load quiet Done ticket activity', () =>
+          db
+            .select({
+              ticketId: timeEntry.ticketId,
+              updatedAt: sql<Date | string | null>`max(${timeEntry.updatedAt})`,
+            })
+            .from(timeEntry)
+            .where(
+              inArray(
+                timeEntry.ticketId,
+                quietCandidates.map(({ ticket: record }) => record.id),
+              ),
+            )
+            .groupBy(timeEntry.ticketId),
+        )
+      : []
+    const latestActivityByTicket = new Map<string, Date | null>(
+      latestTimeEntryActivity.map(({ ticketId, updatedAt }) => [
+        ticketId,
+        updatedAt === null ? null : updatedAt instanceof Date ? updatedAt : new Date(updatedAt),
+      ]),
+    )
+    const asOf = new Date()
+    const visibleTickets = boardView
+      ? tickets.filter(
+          ({ ticket: record, releaseTargetDate }) =>
+            !shouldHideQuietDoneTicket(
+              {
+                status: record.status,
+                targetDate: releaseTargetDate,
+                archivedAt: record.archivedAt,
+                ticketUpdatedAt: record.updatedAt,
+                latestTimeEntryUpdatedAt: latestActivityByTicket.get(record.id) ?? null,
+              },
+              asOf,
+            ),
+        )
+      : tickets
+    const ids = visibleTickets.map(({ ticket: record }) => record.id)
     if (!ids.length) return { tickets: [] }
 
     const relations = yield* promiseEffect('load ticket relations', () =>
@@ -130,7 +180,7 @@ export default defineEffectHandler((event) =>
       }
     }
     return {
-      tickets: tickets.map((item) => ({
+      tickets: visibleTickets.map(({ releaseTargetDate: _releaseTargetDate, ...item }) => ({
         ...item,
         trackedMinutes: minutesByTicket.get(item.ticket.id) ?? 0,
         relatedTickets: (relatedById.get(item.ticket.id) ?? []).toSorted(

@@ -530,11 +530,11 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
         class="h-6 shrink-0"
       />
       <div
-        class="flex h-8 min-w-0 flex-1 items-center gap-0.5 rounded-md px-0.5"
+        class="flex h-8 min-w-0 flex-1 items-center gap-1 rounded-md px-0.5"
         role="group"
         aria-label="Agenda filters"
       >
-        <div class="grid h-full min-w-0 flex-1 grid-cols-4 gap-0.5">
+        <div class="grid h-full min-w-0 flex-1 grid-cols-4 gap-1">
           <div v-for="kind in ['client', 'project', 'release', 'ticket'] as const" :key="kind">
             <USelectMenu
               :model-value="filters[kind] || null"

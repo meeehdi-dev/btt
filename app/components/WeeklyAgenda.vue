@@ -32,7 +32,7 @@ type Row = {
   clientId: string
   clientName: string
   clientArchivedAt: string | null
-  status: string
+  status: TicketStatus
   relatedTickets: { id: string; title: string; archived: boolean }[]
   externalLinks: { id: string; label: string | null; url: string }[]
 }

@@ -40,7 +40,9 @@ async function filterBy(
   kind: 'client' | 'project' | 'release',
   name: string,
 ) {
-  await card.getByRole('button', { name: `${kind}: ${name}; actions` }).click()
+  const trigger = card.getByRole('button', { name: `${kind}: ${name}; actions` })
+  await trigger.scrollIntoViewIfNeeded()
+  await trigger.click()
   await page.getByRole('button', { name: `Filter by ${name}`, exact: true }).click()
 }
 
@@ -50,7 +52,9 @@ async function openItem(
   kind: 'client' | 'project' | 'release',
   name: string,
 ) {
-  await card.getByRole('button', { name: `${kind}: ${name}; actions` }).click()
+  const trigger = card.getByRole('button', { name: `${kind}: ${name}; actions` })
+  await trigger.scrollIntoViewIfNeeded()
+  await trigger.click()
   await page.getByRole('link', { name: `Open ${name}`, exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`/${kind === 'client' ? 'clients' : `${kind}s`}/[^/?]+$`))
 }
@@ -118,8 +122,11 @@ test('ticket board hierarchy badges filter by or open their item on desktop', as
     await page.waitForLoadState('networkidle')
     const target = boardCard(page, ticketA.id)
     await expect(target).toBeVisible()
-    await expectNoHorizontalOverflow(target.getByLabel('Ticket hierarchy'))
+    const hierarchy = target.getByLabel('Ticket hierarchy')
     await expectNoHorizontalOverflow(target.getByLabel('Ticket context'))
+    await expect
+      .poll(() => hierarchy.evaluate((element) => element.scrollWidth > element.clientWidth))
+      .toBe(true)
     await expect(boardCard(page, ticketA2.id)).toBeVisible()
     await expect(boardCard(page, ticketB.id)).toBeVisible()
 

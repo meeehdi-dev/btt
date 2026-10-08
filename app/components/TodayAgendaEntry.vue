@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ticketStatuses } from '#shared/ticket-status'
+import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
 
 type TicketStatus = (typeof ticketStatuses)[number]
@@ -24,7 +24,7 @@ type Row = {
   clientId: string
   clientName: string
   clientArchivedAt: string | null
-  status: string
+  status: TicketStatus
   relatedTickets: { id: string; title: string; archived: boolean }[]
   externalLinks: { id: string; label: string | null; url: string }[]
 }
@@ -107,6 +107,7 @@ const statusMenuItems = computed(() =>
         mode="entry"
         :to="ticketUrl"
         :title="row.ticketTitle"
+        :status="row.status"
         :title-hint="row.ticketTitle"
         :time-label="timeLabel"
         class="min-w-0 flex-1"
@@ -187,7 +188,8 @@ const statusMenuItems = computed(() =>
               ]"
             >
               <UIcon
-                name="lucide:circle-dot"
+                :name="ticketStatusIcon(row.status)"
+                :data-ticket-status-icon="row.status"
                 :class="compactTimeline ? 'size-3' : 'size-4'"
                 aria-hidden="true"
               />{{ row.status }}

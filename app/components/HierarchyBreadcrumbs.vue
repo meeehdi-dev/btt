@@ -17,6 +17,8 @@ type BreadcrumbCurrent = {
 defineProps<{
   ancestors: BreadcrumbAncestor[]
   current: BreadcrumbCurrent
+  currentIcon?: string
+  currentStatus?: string
 }>()
 </script>
 
@@ -43,7 +45,14 @@ defineProps<{
           class="flex min-w-0 max-w-full items-center gap-2 text-3xl font-semibold text-highlighted"
         >
           <slot name="current-prefix" />
-          <EntityIcon :kind="current.kind" />
+          <UIcon
+            v-if="currentIcon"
+            :name="currentIcon"
+            :data-ticket-status-icon="currentStatus"
+            class="inline-block size-4 shrink-0"
+            aria-hidden="true"
+          />
+          <EntityIcon v-else :kind="current.kind" />
           <span class="min-w-0 break-words">{{ current.label }}</span>
           <slot name="current-suffix" />
         </h1>

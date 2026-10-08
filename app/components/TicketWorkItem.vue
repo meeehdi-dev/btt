@@ -1,15 +1,19 @@
 <script setup lang="ts">
+import { ticketStatusIcon, type TicketStatus } from '#shared/ticket-status'
+
 type Mode = 'entry' | 'ticket-summary'
 
 withDefaults(
   defineProps<{
     mode: Mode
     title: string
+    status: TicketStatus
     to?: string
     timeLabel?: string
     trackedMinutes?: number
     estimateMinutes?: number | null
     showPercentage?: boolean
+    usageTextSize?: 'xs' | 'sm'
     headingTag?: 'span' | 'h2'
     headerClass?: string
     titleClass?: string
@@ -34,7 +38,12 @@ withDefaults(
       "
       data-ticket-title-link
     >
-      <EntityIcon kind="tickets" /><span :class="titleTextClass ?? 'truncate'">{{ title }}</span>
+      <UIcon
+        :name="ticketStatusIcon(status)"
+        class="size-4 shrink-0"
+        :data-ticket-status-icon="status"
+        aria-hidden="true"
+      /><span :class="titleTextClass ?? 'truncate'">{{ title }}</span>
     </NuxtLink>
     <slot name="entry-title-action" />
     <span class="inline-flex shrink-0 items-center gap-1 text-muted">
@@ -57,21 +66,34 @@ withDefaults(
         "
         data-ticket-title-link
       >
-        <EntityIcon kind="tickets" /><span :class="titleTextClass ?? 'max-w-36 truncate'">{{
-          title
-        }}</span>
+        <UIcon
+          :name="ticketStatusIcon(status)"
+          class="size-4 shrink-0"
+          :data-ticket-status-icon="status"
+          aria-hidden="true"
+        /><span :class="titleTextClass ?? 'max-w-36 truncate'">{{ title }}</span>
       </NuxtLink>
       <h2
         v-else-if="headingTag === 'h2'"
         :class="titleClass ?? 'inline-flex min-w-0 items-center gap-1 font-medium text-highlighted'"
       >
-        <EntityIcon kind="tickets" /><span :class="titleTextClass ?? 'truncate'">{{ title }}</span>
+        <UIcon
+          :name="ticketStatusIcon(status)"
+          class="size-4 shrink-0"
+          :data-ticket-status-icon="status"
+          aria-hidden="true"
+        /><span :class="titleTextClass ?? 'truncate'">{{ title }}</span>
       </h2>
       <span
         v-else
         :class="titleClass ?? 'inline-flex min-w-0 items-center gap-1 font-medium text-highlighted'"
       >
-        <EntityIcon kind="tickets" /><span :class="titleTextClass ?? 'truncate'">{{ title }}</span>
+        <UIcon
+          :name="ticketStatusIcon(status)"
+          class="size-4 shrink-0"
+          :data-ticket-status-icon="status"
+          aria-hidden="true"
+        /><span :class="titleTextClass ?? 'truncate'">{{ title }}</span>
       </span>
       <div
         v-if="usagePlacement === 'header'"
@@ -82,6 +104,7 @@ withDefaults(
           :minutes="trackedMinutes ?? 0"
           :estimate-minutes="estimateMinutes ?? null"
           :show-percentage="showPercentage"
+          :text-size="usageTextSize"
         />
       </div>
       <slot name="title-trailing" />
@@ -96,6 +119,7 @@ withDefaults(
         :minutes="trackedMinutes ?? 0"
         :estimate-minutes="estimateMinutes ?? null"
         :show-percentage="showPercentage"
+        :text-size="usageTextSize"
       />
     </div>
   </div>

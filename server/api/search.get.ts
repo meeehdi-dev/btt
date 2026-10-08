@@ -53,7 +53,12 @@ export default defineEffectHandler((event) =>
             .orderBy(desc(release.updatedAt), desc(release.id))
             .limit(limit),
           db
-            .select({ id: ticket.id, label: ticket.title, releaseName: release.name })
+            .select({
+              id: ticket.id,
+              label: ticket.title,
+              status: ticket.status,
+              releaseName: release.name,
+            })
             .from(ticket)
             .innerJoin(release, eq(ticket.releaseId, release.id))
             .innerJoin(project, eq(release.projectId, project.id))

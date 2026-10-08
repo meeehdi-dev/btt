@@ -7,7 +7,7 @@ import {
   TicketRelationCreate,
   TicketUpdate,
 } from '../../server/domain/schemas'
-import { nextStatus, ticketStatuses } from '../../shared/ticket-status'
+import { nextStatus, ticketStatuses, ticketStatusIcons } from '../../shared/ticket-status'
 import { ticketStatus } from '../../server/db/schema'
 import { externalUrl } from '../../shared/ticket-url'
 import { ticketLinkLabel } from '../../app/utils/ticket-link-label'
@@ -30,6 +30,15 @@ describe('ticket workflow', () => {
       expect(nextStatus(ticketStatuses[index]!)).toBe(ticketStatuses[index + 1])
     expect(nextStatus('Done')).toBeNull()
     expect(ticketStatus.enumValues).toEqual(ticketStatuses)
+    expect(ticketStatusIcons).toEqual({
+      Idea: 'lucide:lightbulb',
+      Estimate: 'lucide:calculator',
+      Develop: 'lucide:code',
+      Review: 'lucide:eye',
+      Test: 'lucide:flask-conical',
+      Deploy: 'lucide:rocket',
+      Done: 'lucide:circle-check',
+    })
   })
   it('validates create/update estimates and fixed status', async () => {
     await expect(

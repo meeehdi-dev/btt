@@ -72,12 +72,15 @@ function dragEnd() {
 
 <template>
   <EntityCard
-    padding="standard"
+    padding="compact"
+    border-tone="subtle"
+    content-spacing="compact"
     :data-board-ticket-id="item.ticket.id"
     :aria-busy="changing"
     :draggable="!item.ticket.archivedAt && !busy"
     content-interactive
     :class="[
+      'text-xs',
       highlighted ? 'border-primary' : '',
       !item.ticket.archivedAt && !busy ? 'cursor-grab active:cursor-grabbing' : '',
     ]"
@@ -92,10 +95,12 @@ function dragEnd() {
         mode="ticket-summary"
         :to="`/tickets/${item.ticket.id}${item.ticket.archivedAt ? '?archived=true' : ''}`"
         :title="item.ticket.title"
+        :status="item.ticket.status"
         :title-hint="item.ticket.title"
         :tracked-minutes="item.trackedMinutes"
         :estimate-minutes="item.ticket.estimateMinutes"
         :show-percentage="false"
+        usage-text-size="xs"
         usage-placement="header"
         header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
         title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
@@ -113,18 +118,24 @@ function dragEnd() {
         <TicketHierarchyBadges
           mode="filter-actions"
           truncate-labels
+          compact
+          scroll
           :items="hierarchyItems"
           class="max-w-full"
           aria-label="Ticket hierarchy"
           @filter="(kind, id) => emit('filter', kind, id)"
-        />
-        <TicketContextPopovers
-          class="shrink-0"
-          :related-tickets="item.relatedTickets"
-          :external-links="item.externalLinks"
-          @related-hover="emit('related-hover', $event)"
-          @related-click="(event, id) => emit('related-click', event, id)"
-        />
+        >
+          <template #trailing>
+            <TicketContextPopovers
+              class="shrink-0"
+              :related-tickets="item.relatedTickets"
+              :external-links="item.externalLinks"
+              compact
+              @related-hover="emit('related-hover', $event)"
+              @related-click="(event, id) => emit('related-click', event, id)"
+            />
+          </template>
+        </TicketHierarchyBadges>
       </div>
     </template>
   </EntityCard>

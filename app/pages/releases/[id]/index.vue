@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ticketStatuses } from '#shared/ticket-status'
+import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 
 type TicketStatus = (typeof ticketStatuses)[number]
 
@@ -338,6 +338,7 @@ async function markDone() {
             <TicketWorkItem
               mode="ticket-summary"
               :title="item.ticket.title"
+              :status="item.ticket.status"
               :title-hint="item.ticket.title"
               :tracked-minutes="item.trackedMinutes"
               :estimate-minutes="item.ticket.estimateMinutes"
@@ -405,7 +406,12 @@ async function markDone() {
               @update:model-value="changeTicketStatus(item.ticket.id, $event)"
             >
               <template #leading>
-                <UIcon name="lucide:circle-dot" class="size-4 text-muted" aria-hidden="true" />
+                <UIcon
+                  :name="ticketStatusIcon(item.ticket.status)"
+                  class="size-4 text-muted"
+                  :data-ticket-status-icon="item.ticket.status"
+                  aria-hidden="true"
+                />
               </template>
             </USelect>
             <TicketContextPopovers

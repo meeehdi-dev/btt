@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ticketStatuses } from '#shared/ticket-status'
+import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { ticketLinkLabel } from '~/utils/ticket-link-label'
 import { formatTicketEstimate, parseTicketEstimate } from '~/utils/ticket-estimate'
 
@@ -501,6 +501,8 @@ async function removeRelation(relationId: string) {
               },
             ]"
             :current="{ kind: 'tickets', label: data.ticket.title }"
+            :current-icon="ticketStatusIcon(data.ticket.status)"
+            :current-status="data.ticket.status"
           >
             <template #current-suffix>
               <UTooltip text="Edit title">
@@ -564,7 +566,12 @@ async function removeRelation(relationId: string) {
             @update:model-value="changeStatus"
           >
             <template #leading>
-              <UIcon name="lucide:circle-dot" class="size-4 text-muted" aria-hidden="true" />
+              <UIcon
+                :name="ticketStatusIcon(data.ticket.status)"
+                class="size-4 text-muted"
+                :data-ticket-status-icon="data.ticket.status"
+                aria-hidden="true"
+              />
             </template>
           </USelect>
         </UFormField>
@@ -765,9 +772,12 @@ async function removeRelation(relationId: string) {
             <NuxtLink
               :to="`/tickets/${other.id}${other.archivedAt ? '?archived=true' : ''}`"
               class="inline-flex min-w-0 items-center gap-1 truncate text-primary underline"
-              ><EntityIcon kind="tickets" /><span class="truncate">{{
-                other.title
-              }}</span></NuxtLink
+              ><UIcon
+                :name="ticketStatusIcon(other.status)"
+                class="inline-block size-4 shrink-0"
+                :data-ticket-status-icon="other.status"
+                aria-hidden="true"
+              /><span class="truncate">{{ other.title }}</span></NuxtLink
             >
             <UTooltip :text="`Unlink ${other.title}`">
               <UButton

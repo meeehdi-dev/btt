@@ -196,10 +196,9 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await expect(page.getByRole('link', { name: 'Second ticket' })).toBeVisible()
     await page.goto('/tickets')
     await page.waitForLoadState('networkidle')
-    const ticketFilterBody = page
-      .getByRole('group', { name: 'Ticket filters' })
-      .locator('[data-slot="body"]')
-    await expect(ticketFilterBody).toHaveCSS('padding', '2px')
+    const ticketFilters = page.getByRole('group', { name: 'Ticket filters' })
+    await expect(ticketFilters).toHaveCSS('border-width', '0px')
+    await expect(ticketFilters).toHaveCSS('box-shadow', 'none')
     await expect(
       page.getByRole('region', { name: 'Idea tickets' }).getByText('First ticket'),
     ).toBeVisible()

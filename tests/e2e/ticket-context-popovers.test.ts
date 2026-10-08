@@ -102,6 +102,7 @@ async function expectTwoRowReleaseTicketCard(card: Locator, title: string) {
   await expect(usage.getByLabel(/Estimate usage:/)).toHaveCount(0)
   await expect(context.getByRole('link')).toHaveCount(3)
   await expect(status).toContainText('Idea')
+  await expect(status.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
   await expect(status.locator('[aria-hidden="true"]').first()).toBeVisible()
   await expect(status).toHaveClass(/bg-default/)
   await expect(status).toHaveClass(/text-muted/)
@@ -175,30 +176,47 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
   const titleLink = header.getByRole('link', { name: title })
   const usage = header.getByLabel('Ticket usage')
   const hierarchy = context.getByLabel('Ticket hierarchy')
-  await expectNoHorizontalOverflow(hierarchy)
   await expectNoHorizontalOverflow(context)
+  await expect
+    .poll(() => hierarchy.evaluate((element) => element.scrollWidth > element.clientWidth))
+    .toBe(true)
   const hierarchyBadge = hierarchy.getByRole('button').first()
   const related = context.getByRole('button', { name: 'Related tickets' })
   await expect(usage).toBeVisible()
   await expect(usage.getByLabel(/Estimate usage:/)).toHaveCount(0)
-  await expect(hierarchyBadge).toHaveClass(/text-muted/)
-  await expect(hierarchyBadge).toHaveClass(/bg-default/)
+  await expect(titleLink.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+  await expect(hierarchyBadge).toHaveClass(/bg-secondary\/10/)
+  await expect(hierarchyBadge.locator('span').last()).toHaveClass(/text-secondary-700/)
+  await expect(hierarchyBadge.locator('span').last()).toHaveClass(/dark:text-secondary-300/)
   await expect(related).toHaveClass(/text-muted/)
   await expect(related).toHaveClass(/bg-default/)
-  const [headerBox, titleBox, usageBox, contextBox, hierarchyBox, relatedBox] = await Promise.all([
-    header.boundingBox(),
-    titleLink.boundingBox(),
-    usage.boundingBox(),
-    context.boundingBox(),
-    hierarchy.boundingBox(),
-    related.boundingBox(),
-  ])
-  if (!headerBox || !titleBox || !usageBox || !contextBox || !hierarchyBox || !relatedBox)
+  const [headerBox, titleBox, usageBox, contextBox, hierarchyBox, hierarchyBadgeBox, relatedBox] =
+    await Promise.all([
+      header.boundingBox(),
+      titleLink.boundingBox(),
+      usage.boundingBox(),
+      context.boundingBox(),
+      hierarchy.boundingBox(),
+      hierarchyBadge.boundingBox(),
+      related.boundingBox(),
+    ])
+  if (
+    !headerBox ||
+    !titleBox ||
+    !usageBox ||
+    !contextBox ||
+    !hierarchyBox ||
+    !hierarchyBadgeBox ||
+    !relatedBox
+  )
     throw new Error('Board ticket card rows must be visible')
   expect(usageBox.x - (titleBox.x + titleBox.width)).toBeGreaterThanOrEqual(0)
   expect(usageBox.x - (titleBox.x + titleBox.width)).toBeLessThanOrEqual(12)
   expect(contextBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height)
-  expect(contextBox.height).toBeLessThanOrEqual(144)
+  expect(hierarchyBadgeBox.height).toBe(20)
+  expect(relatedBox.height).toBe(20)
+  expect(hierarchyBadge).toHaveCSS('font-size', '10px')
+  expect(contextBox.height).toBeLessThanOrEqual(100)
   expect(
     relatedBox.x >= hierarchyBox.x + hierarchyBox.width - 1 ||
       relatedBox.y >= hierarchyBox.y + hierarchyBox.height - 1,
@@ -356,8 +374,18 @@ test('ticket board and release cards expose relation and external-link popovers'
   page,
   popovers,
 }) => {
-  const { suffix, clientRecord, projectRecord, releaseRecord, one, two, many, manyTitle, date } =
-    popovers
+  const {
+    suffix,
+    clientRecord,
+    projectRecord,
+    releaseRecord,
+    one,
+    two,
+    many,
+    manyTitle,
+    date,
+    shortManyEntry,
+  } = popovers
 
   const tickets = (await (await page.request.get('/api/tickets')).json()).tickets
   const manyFromApi = tickets.find((item: { ticket: { id: string } }) => item.ticket.id === many.id)
@@ -388,6 +416,46 @@ test('ticket board and release cards expose relation and external-link popovers'
   await waitForClientMount(page)
   const boardCard = page.locator(`[data-board-ticket-id="${many.id}"]`).filter({ visible: true })
   await expectTwoRowBoardTicketCard(boardCard, manyTitle)
+  const boardHierarchy = boardCard.getByLabel('Ticket hierarchy')
+  const boardHierarchyBadge = boardHierarchy.getByRole('button').first()
+  const boardSurfaceMetrics = await boardCard.evaluate((element) => {
+    const style = getComputedStyle(element)
+    const content = element.querySelector('[data-entity-card-context]')?.parentElement
+    const contentStyle = content ? getComputedStyle(content) : null
+    return {
+      padding: style.padding,
+      backgroundColor: style.backgroundColor,
+      borderColor: style.borderTopColor,
+      borderRadius: style.borderRadius,
+      fontSize: style.fontSize,
+      contentDisplay: contentStyle?.display,
+      contentGap: contentStyle?.rowGap,
+    }
+  })
+  const boardBadgeMetrics = await boardHierarchyBadge.evaluate((element) => {
+    const style = getComputedStyle(element)
+    const rect = element.getBoundingClientRect()
+    const icon = element.querySelector('.iconify')?.getBoundingClientRect()
+    const label = element.querySelector('span:last-child')
+    return {
+      backgroundColor: style.backgroundColor,
+      color: style.color,
+      fontSize: style.fontSize,
+      padding: style.padding,
+      borderRadius: style.borderRadius,
+      height: rect.height,
+      iconWidth: icon?.width,
+      iconHeight: icon?.height,
+      labelColor: label ? getComputedStyle(label).color : null,
+    }
+  })
+  const boardTitleFontSize = await boardCard
+    .getByRole('link', { name: manyTitle })
+    .evaluate((element) => getComputedStyle(element).fontSize)
+  const boardHierarchyOverflow = await boardHierarchy.evaluate((element) => ({
+    overflowX: getComputedStyle(element).overflowX,
+    scrollable: element.scrollWidth > element.clientWidth,
+  }))
   const boardRelations = boardCard.getByRole('button', { name: 'Related tickets' })
   const boardLinks = boardCard.getByRole('button', { name: 'External links' })
   await expectPlainIconTrigger(boardRelations)
@@ -413,6 +481,9 @@ test('ticket board and release cards expose relation and external-link popovers'
   const singleBoardCard = page
     .locator(`[data-board-ticket-id="${one.id}"]`)
     .filter({ visible: true })
+  const unestimatedBoardUsage = singleBoardCard.getByLabel('Tracked: 30m')
+  await expect(unestimatedBoardUsage.locator('span.text-muted')).toHaveText('30m')
+  await expect(unestimatedBoardUsage.locator('span.text-primary')).toHaveCount(0)
   await expectPlainIconTrigger(singleBoardCard.getByRole('button', { name: 'Related tickets' }))
   await expectPlainIconTrigger(singleBoardCard.getByRole('button', { name: 'External links' }))
   await singleBoardCard.getByRole('button', { name: 'External links' }).hover()
@@ -423,6 +494,11 @@ test('ticket board and release cards expose relation and external-link popovers'
   await waitForClientMount(page)
   const releaseCard = page.locator(`[data-release-ticket-id="${many.id}"]`)
   await expectTwoRowReleaseTicketCard(releaseCard, manyTitle)
+  await expect(
+    releaseCard
+      .getByRole('heading', { name: manyTitle })
+      .locator('[data-ticket-status-icon="Idea"]'),
+  ).toBeVisible()
   const releaseRelations = releaseCard.getByRole('button', { name: 'Related tickets' })
   const releaseLinks = releaseCard.getByRole('button', { name: 'External links' })
   await expectPlainIconTrigger(releaseRelations)
@@ -458,6 +534,81 @@ test('ticket board and release cards expose relation and external-link popovers'
     await page.goto(`/releases/${releaseRecord.id}`)
     await waitForClientMount(page)
   }
+
+  await page.goto(`/agenda?date=${date}`)
+  await waitForClientMount(page)
+  const agendaCard = page.locator(`[data-agenda-ticket-id="${many.id}"]`).filter({ visible: true })
+  await expect(agendaCard.first().locator('[data-ticket-status-icon="Idea"]').first()).toBeVisible()
+  const matchingAgendaEntry = page
+    .locator(`[data-agenda-entry="${shortManyEntry.id}"]`)
+    .getByRole('article')
+  const agendaHierarchy = matchingAgendaEntry.getByLabel(
+    'Entry hierarchy, status, and ticket links',
+  )
+  const agendaHierarchyBadge = agendaHierarchy.getByRole('button', {
+    name: `client: ${clientRecord.name}; actions`,
+  })
+  const agendaSurfaceMetrics = await matchingAgendaEntry.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      padding: style.padding,
+      backgroundColor: style.backgroundColor,
+      borderColor: style.borderTopColor,
+      borderRadius: style.borderRadius,
+      fontSize: style.fontSize,
+      contentDisplay: style.display,
+      contentGap: style.rowGap,
+    }
+  })
+  const agendaBadgeMetrics = await agendaHierarchyBadge.evaluate((element) => {
+    const style = getComputedStyle(element)
+    const rect = element.getBoundingClientRect()
+    const icon = element.querySelector('.iconify')?.getBoundingClientRect()
+    const label = element.querySelector('span:last-child')
+    return {
+      backgroundColor: style.backgroundColor,
+      color: style.color,
+      fontSize: style.fontSize,
+      padding: style.padding,
+      borderRadius: style.borderRadius,
+      height: rect.height,
+      iconWidth: icon?.width,
+      iconHeight: icon?.height,
+      labelColor: label ? getComputedStyle(label).color : null,
+    }
+  })
+  const agendaTitleFontSize = await matchingAgendaEntry
+    .getByRole('link', { name: manyTitle })
+    .evaluate((element) => getComputedStyle(element).fontSize)
+  const agendaHierarchyOverflow = await agendaHierarchy.evaluate((element) => ({
+    overflowX: getComputedStyle(element).overflowX,
+    scrollable: element.scrollWidth > element.clientWidth,
+  }))
+  expect(boardSurfaceMetrics).toEqual(agendaSurfaceMetrics)
+  expect(boardBadgeMetrics).toEqual(agendaBadgeMetrics)
+  expect(boardHierarchyOverflow).toEqual(agendaHierarchyOverflow)
+  expect(boardHierarchyOverflow.scrollable).toBe(true)
+  expect(boardTitleFontSize).toBe(agendaTitleFontSize)
+
+  await page.goto(`/tickets/${many.id}`)
+  await waitForClientMount(page)
+  const ticketBreadcrumb = page.getByRole('navigation', { name: 'Breadcrumb' })
+  await expect(ticketBreadcrumb.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+  await expect(
+    page
+      .getByRole('combobox', { name: `Ticket status for ${manyTitle}` })
+      .locator('[data-ticket-status-icon="Idea"]'),
+  ).toBeVisible()
+  await expect(
+    page
+      .getByRole('link', { name: `Context one ${suffix}` })
+      .locator('[data-ticket-status-icon="Idea"]'),
+  ).toBeVisible()
+
+  const workspaceSearch = page.getByRole('searchbox', { name: 'Search workspace' })
+  await workspaceSearch.fill(manyTitle)
+  const ticketSearchHit = page.getByRole('option', { name: new RegExp(manyTitle) })
+  await expect(ticketSearchHit.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
 })
 
 test('Agenda entry context controls retain compact layout and weekly behavior', async ({
@@ -526,6 +677,7 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
   ])
   await expect(compactFilter).toBeVisible()
   await expect(compactStatus).toBeVisible()
+  await expect(compactStatus.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
   await expect(compactRelated).toBeVisible()
   await expect(compactExternal).toBeVisible()
   await expect(compactBadgeGroup.getByRole('button', { name: 'Related tickets' })).toHaveCount(1)

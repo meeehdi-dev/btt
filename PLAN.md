@@ -604,6 +604,21 @@ Status: Complete — approved plan, implementation, local verification, Plannota
 
 Acceptance: the always-visible date/time action remains stable as the selected week changes; current-week styling/navigation and red marker behavior are retained; range-label width does not move the filters; the separator fits between toolbar groups; the smallest readable hour gutter is used; focused and full checks, visual inspection, code review, and closeout evidence are recorded in M30.
 
+### M32 — Ticket Board status icons, card sizing, and quiet Done visibility
+
+Status: Complete — the user declared M32 complete on 2026-10-08; implementation, verification evidence, and Plannotator code review are recorded in [`docs/milestones/m32-ticket-board-status-icons-cards-and-done-visibility.md`](docs/milestones/m32-ticket-board-status-icons-cards-and-done-visibility.md). Focused browser checks for the final presentation refinement were explicitly deferred by the declaration and are not claimed as passing. See [ADR 0046](docs/decisions/0046-quiet-done-ticket-board-visibility.md) and [ADR 0047](docs/decisions/0047-muted-tracked-time-without-estimate.md).
+
+Goal: make the seven ticket statuses recognizable, align Ticket Board cards with the compact Week Agenda presentation, reduce inactive Done tickets in the active Board without changing underlying data or other views, and polish the Board's archive filter and viewport layout to match Agenda spacing.
+
+- Use neutral status-specific icons for lane headings, ticket identity rows, search hits, and existing status indicators; retain generic ticket icons for category, aggregate, and relationship uses.
+- Match Board cards to the compact Week Agenda entry treatment: compact hierarchy/context sizing, secondary soft hierarchy badge colors, compact padding/border/surface/spacing, Agenda-like label truncation, and a single horizontally scrollable context row. Preserve title/usage placement, tracked-time ratio colors when estimates exist, muted tracked time without an estimate, and Board drag/navigation behavior.
+- On the active Ticket Board only, hide unarchived Done tickets in releases without target dates when the later of ticket update time and latest linked tracked-time update is at least seven elapsed days old.
+- Keep the default `/api/tickets` response, archived-ticket access, Agenda history, Release detail, search, and direct ticket detail unchanged. Do not archive/delete tickets, mutate timestamps, add settings, or change schema.
+- Replace the separate archive toggle with an `Active tickets` / `Include archived` filter in the borderless toolbar; `Clear filters` resets all filters to defaults. Add a vertical divider before `New ticket`, match Agenda's 16px shell-header inset and 16px toolbar-to-board gap, and use 4px gaps between filters on Ticket Board and Agenda.
+- Add a subtle outline around the seven-lane board and a viewport-reaching minimum height with a 16px bottom margin. Preserve horizontal scrolling, board interactions, and natural growth when content exceeds the viewport.
+
+Acceptance: focused icon, cutoff, archive-filter and layout tests; Board interaction and alternate-view regressions; neutral unestimated-time and 4px filter-gap coverage; local checks; supported-width visual review; accepted human code review; and closeout evidence are recorded in M32. ADR 0046 records the durable visibility policy; ADR 0047 records the no-estimate tracked-time color.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

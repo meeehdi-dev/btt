@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ticketStatuses } from '#shared/ticket-status'
+import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { useHierarchyFilters, type HierarchyFilterSource } from '~/composables/useHierarchyFilters'
 import { entityIcons } from '~/utils/entity-icons'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const showArchived = ref(false)
+const archiveFilterOptions = [
+  { label: 'Active tickets', value: 'active' },
+  { label: 'Include archived', value: 'all' },
+]
 const releaseId = computed(() =>
   typeof route.query.release === 'string' ? route.query.release : undefined,
 )
@@ -13,6 +17,7 @@ const { data, pending, error, refresh } = await useApiFetch('/api/tickets', {
   query: computed(() => ({
     releaseId: releaseId.value,
     archived: showArchived.value ? 'true' : undefined,
+    board: 'true',
   })),
 })
 const tickets = computed(() => data.value?.tickets ?? [])
@@ -32,7 +37,7 @@ const {
   filters,
   options: filterOptions,
   applyFilter,
-  clearFilters,
+  clearFilters: clearHierarchyFilters,
   searchInputs: filterSearchInputs,
 } = useHierarchyFilters(filterSources)
 const visibleTickets = computed(() =>
@@ -50,6 +55,13 @@ const groups = computed(() =>
     items: visibleTickets.value.filter((item) => item.ticket.status === status),
   })),
 )
+function setArchiveFilter(value: string | null | undefined) {
+  showArchived.value = value === 'all'
+}
+function clearAllFilters() {
+  showArchived.value = false
+  clearHierarchyFilters()
+}
 type TicketStatus = (typeof ticketStatuses)[number]
 const changing = ref<string | null>(null)
 const actionError = ref('')
@@ -74,7 +86,7 @@ function clearDrag() {
 
 watch([releaseId, showArchived], () => {
   clearDrag()
-  clearFilters()
+  clearHierarchyFilters()
 })
 watch(filters, clearDrag)
 watch(tickets, () => {
@@ -261,61 +273,80 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
+  <div class="flex min-h-[calc(100dvh-5.5rem)] flex-col gap-2">
     <h1 class="sr-only">Tickets</h1>
-    <div role="group" aria-label="Ticket board controls" class="flex items-center gap-2">
-      <UCard
+    <div
+      role="group"
+      aria-label="Ticket board controls"
+      class="flex h-8 min-w-0 items-center gap-2"
+    >
+      <div
         role="group"
         aria-label="Ticket filters"
-        class="min-w-0 flex-1"
-        :ui="{ body: 'p-0.5' }"
+        class="flex h-8 min-w-0 flex-1 items-center gap-1 rounded-md px-0.5"
       >
-        <div class="flex min-w-0 flex-1 items-center gap-0.5">
-          <div class="grid min-w-0 flex-1 grid-cols-4 gap-0.5">
-            <div v-for="kind in ['client', 'project', 'release', 'ticket'] as const" :key="kind">
-              <USelectMenu
-                :model-value="filters[kind] || null"
-                value-key="value"
-                :items="filterOptions(kind)"
-                :disabled="!filterOptions(kind).length"
-                :search-input="filterSearchInputs[kind]"
-                :clear="{ 'aria-label': `Clear ${kind} filter` }"
-                :placeholder="`All ${kind}s`"
-                class="w-full"
-                :aria-label="`Filter ${kind}`"
-                @update:model-value="applyFilter(kind, $event ?? '')"
-              >
-                <template #leading
-                  ><UTooltip :text="`Filter ${kind}`"
-                    ><UIcon
-                      :name="
-                        entityIcons[`${kind}s` as 'clients' | 'projects' | 'releases' | 'tickets']
-                      "
-                      class="size-4"
-                      :aria-label="`Filter ${kind}`" /></UTooltip
-                ></template>
-              </USelectMenu>
-            </div>
+        <div class="grid h-full min-w-0 flex-1 grid-cols-5 gap-1">
+          <div v-for="kind in ['client', 'project', 'release', 'ticket'] as const" :key="kind">
+            <USelectMenu
+              :model-value="filters[kind] || null"
+              value-key="value"
+              :items="filterOptions(kind)"
+              :disabled="!filterOptions(kind).length"
+              :search-input="filterSearchInputs[kind]"
+              :clear="{ 'aria-label': `Clear ${kind} filter` }"
+              :placeholder="`All ${kind}s`"
+              class="w-full"
+              :aria-label="`Filter ${kind}`"
+              @update:model-value="applyFilter(kind, $event ?? '')"
+            >
+              <template #leading
+                ><UTooltip :text="`Filter ${kind}`"
+                  ><UIcon
+                    :name="
+                      entityIcons[`${kind}s` as 'clients' | 'projects' | 'releases' | 'tickets']
+                    "
+                    class="size-4"
+                    :aria-label="`Filter ${kind}`" /></UTooltip
+              ></template>
+            </USelectMenu>
           </div>
-          <UTooltip text="Clear all filters"
-            ><UButton
-              color="neutral"
-              variant="ghost"
-              icon="lucide:filter-x"
-              aria-label="Clear filters"
-              class="self-auto"
-              @click="clearFilters"
-          /></UTooltip>
+          <USelectMenu
+            :model-value="showArchived ? 'all' : 'active'"
+            value-key="value"
+            :items="archiveFilterOptions"
+            class="w-full"
+            aria-label="Filter archived tickets"
+            @update:model-value="setArchiveFilter"
+          >
+            <template #leading>
+              <UTooltip text="Filter archived tickets">
+                <UIcon name="lucide:archive-restore" class="size-4" aria-hidden="true" />
+              </UTooltip>
+            </template>
+          </USelectMenu>
         </div>
-      </UCard>
-      <div class="flex shrink-0 items-center gap-2">
-        <ArchiveFilterButton v-model="showArchived" />
-        <UButton
-          :to="`/tickets/new${releaseId ? `?release=${releaseId}` : ''}`"
-          icon="lucide:plus"
-          label="New ticket"
-        />
+        <UTooltip text="Clear all filters">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="lucide:filter-x"
+            aria-label="Clear filters"
+            class="self-auto"
+            @click="clearAllFilters"
+          />
+        </UTooltip>
       </div>
+      <USeparator
+        data-testid="ticket-board-toolbar-separator"
+        orientation="vertical"
+        decorative
+        class="h-6 shrink-0"
+      />
+      <UButton
+        :to="`/tickets/new${releaseId ? `?release=${releaseId}` : ''}`"
+        icon="lucide:plus"
+        label="New ticket"
+      />
     </div>
     <UAlert
       v-if="error || actionError"
@@ -357,14 +388,14 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       </UCard>
       <div
         ref="board"
-        class="w-full max-w-full overflow-x-auto pb-3"
+        class="mt-2 flex min-h-fit w-full max-w-full flex-1 overflow-x-auto rounded-lg border border-default pb-3"
         role="region"
         aria-label="Ticket board"
         tabindex="0"
         @dragover.capture="updateEdgeScroll"
         @dragleave.self="leaveBoard"
       >
-        <div class="grid min-w-[105rem] grid-cols-7 gap-2">
+        <div class="grid min-w-[105rem] flex-1 grid-cols-7 gap-2">
           <section
             v-for="group in groups"
             :key="group.status"
@@ -379,7 +410,15 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
             @drop="dropOnLane($event, group.status)"
           >
             <h2 class="flex items-center justify-between font-semibold text-highlighted">
-              {{ group.status }}
+              <span class="flex min-w-0 items-center gap-1">
+                <UIcon
+                  :name="ticketStatusIcon(group.status)"
+                  class="size-4 shrink-0 text-muted"
+                  :data-ticket-status-icon="group.status"
+                  aria-hidden="true"
+                />
+                {{ group.status }}
+              </span>
               <UBadge color="neutral" variant="subtle">{{ group.items.length }}</UBadge>
             </h2>
             <TicketBoardCard

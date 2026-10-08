@@ -7,8 +7,9 @@ const props = withDefaults(
     minutes: number
     estimateMinutes: number | null
     showPercentage?: boolean
+    textSize?: 'xs' | 'sm'
   }>(),
-  { showPercentage: true },
+  { showPercentage: true, textSize: 'sm' },
 )
 const percentage = computed(() =>
   props.estimateMinutes ? Math.floor((props.minutes / props.estimateMinutes) * 100) : null,
@@ -22,12 +23,15 @@ const textClasses = {
 const trackedTextClass = computed(() =>
   props.estimateMinutes
     ? textClasses[usageColor(props.minutes, props.estimateMinutes)]
-    : 'text-primary',
+    : 'text-muted',
 )
 </script>
 
 <template>
-  <span class="inline-flex items-center gap-2 text-sm text-muted">
+  <span
+    class="inline-flex items-center gap-2 text-muted"
+    :class="textSize === 'xs' ? 'text-xs' : 'text-sm'"
+  >
     <span
       :aria-label="`Tracked: ${formatTicketEstimate(minutes)}${estimateMinutes ? ` of ${formatTicketEstimate(estimateMinutes)}` : ''}`"
       class="inline-flex items-center gap-1"

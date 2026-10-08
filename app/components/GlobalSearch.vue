@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import { ticketStatusIcon, type TicketStatus } from '#shared/ticket-status'
 import { entityIcons } from '~/utils/entity-icons'
 
 type SearchResponse = {
   clients: { id: string; label: string }[]
   projects: { id: string; label: string; clientName: string }[]
   releases: { id: string; label: string; projectName: string }[]
-  tickets: { id: string; label: string; releaseName: string }[]
+  tickets: {
+    id: string
+    label: string
+    status: TicketStatus
+    releaseName: string
+  }[]
   timeEntries: {
     id: string
     label: string | null
@@ -23,7 +29,15 @@ const loading = ref(false)
 const failed = ref(false)
 const open = ref(false)
 const selected = ref(0)
-type Hit = { id: string; label: string; detail: string; to: string; icon: string; category: string }
+type Hit = {
+  id: string
+  label: string
+  detail: string
+  to: string
+  icon: string
+  category: string
+  status?: TicketStatus
+}
 const hits = ref<Hit[]>([])
 let request = 0
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -87,8 +101,9 @@ watch(query, (value) => {
         label: item.label,
         detail: item.releaseName,
         to: `/tickets/${item.id}`,
-        icon: entityIcons.tickets,
+        icon: ticketStatusIcon(item.status),
         category: 'Tickets',
+        status: item.status,
       })),
       ...results.timeEntries.map((item) => ({
         id: item.id,
@@ -199,9 +214,12 @@ function keydown(event: KeyboardEvent) {
             @mouseenter="selected = index"
             @click="choose(item)"
           >
-            <UIcon :name="item.icon" class="size-4 shrink-0" aria-hidden="true" /><span
-              class="min-w-0 flex-1 truncate"
-              >{{ item.label }}</span
+            <UIcon
+              :name="item.icon"
+              class="size-4 shrink-0"
+              :data-ticket-status-icon="item.status"
+              aria-hidden="true"
+            /><span class="min-w-0 flex-1 truncate">{{ item.label }}</span
             ><span class="max-w-40 truncate text-xs text-muted">{{ item.detail }}</span>
           </button>
         </div>

@@ -32,7 +32,12 @@ export default defineEffectHandler((event) =>
         relations.map(async (relation) => {
           const otherId = relation.fromTicketId === id ? relation.toTicketId : relation.fromTicketId
           const [other] = await db
-            .select({ id: ticket.id, title: ticket.title, archivedAt: ticket.archivedAt })
+            .select({
+              id: ticket.id,
+              title: ticket.title,
+              status: ticket.status,
+              archivedAt: ticket.archivedAt,
+            })
             .from(ticket)
             .innerJoin(release, eq(ticket.releaseId, release.id))
             .innerJoin(project, eq(release.projectId, project.id))

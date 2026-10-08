@@ -10,7 +10,7 @@ function boardToolbarControls(toolbar: Locator) {
       toolbar.getByRole('button', { name: `Filter ${kind}` }),
     ),
     toolbar.getByRole('button', { name: 'Clear filters' }),
-    toolbar.getByRole('button', { name: 'Show archived' }),
+    toolbar.getByRole('button', { name: 'Filter archived tickets' }),
     toolbar.getByRole('link', { name: 'New ticket', exact: true }),
   ]
 }
@@ -92,6 +92,15 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
       title: `Searchable ticket ${suffix}`,
       status: 'Develop',
     })
+    const archivedTicket = await create('/api/tickets', {
+      releaseId: searchableRelease.id,
+      title: `Archived ticket ${suffix}`,
+      status: 'Develop',
+    })
+    const archivedTicketResponse = await page.request.patch(`/api/tickets/${archivedTicket.id}`, {
+      data: { archived: true },
+    })
+    expect(archivedTicketResponse.ok(), await archivedTicketResponse.text()).toBe(true)
     await create('/api/tickets', {
       releaseId: otherRelease.id,
       title: `Other ticket ${suffix}`,
@@ -114,7 +123,7 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
       await expect(page.getByRole('option', { name: miss, exact: true })).toHaveCount(0)
     }
 
-    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/tickets')
     await page.waitForLoadState('networkidle')
     const toolbar = page.getByRole('group', { name: 'Ticket board controls' })
@@ -123,23 +132,66 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
     await expectCompactPageSpacing(page)
     await expect(filterGroup.getByRole('button', { name: 'Filter client' })).toBeVisible()
     await expect(filterGroup.getByRole('button', { name: 'Clear filters' })).toBeVisible()
-    await expect(filterGroup.getByRole('button', { name: 'Show archived' })).toHaveCount(0)
+    const archiveFilter = filterGroup.getByRole('button', { name: 'Filter archived tickets' })
+    await expect(archiveFilter).toContainText('Active tickets')
+    await expect(filterGroup).toHaveCSS('height', '32px')
+    await expect(filterGroup).toHaveCSS('column-gap', '4px')
+    await expect(filterGroup.locator('.grid-cols-5')).toHaveCSS('column-gap', '4px')
+    await expect(filterGroup).toHaveCSS('border-width', '0px')
+    await expect(filterGroup).toHaveCSS('box-shadow', 'none')
     await expect(filterGroup.getByRole('link', { name: 'New ticket' })).toHaveCount(0)
     await expectSameToolbarRow(toolbar)
-    await expect(toolbar.getByRole('link', { name: 'New ticket' })).toHaveAttribute(
-      'href',
-      '/tickets/new',
+    const newTicket = toolbar.getByRole('link', { name: 'New ticket' })
+    await expect(newTicket).toHaveAttribute('href', '/tickets/new')
+    const board = page.getByRole('region', { name: 'Ticket board' })
+    const archivedCard = board.locator(`[data-board-ticket-id="${archivedTicket.id}"]`)
+    await expect(archivedCard).toHaveCount(0)
+    const shellHeaderBox = await page.getByRole('banner').boundingBox()
+    const filterBarBox = await filterGroup.boundingBox()
+    const toolbarBox = await toolbar.boundingBox()
+    const separator = page.getByTestId('ticket-board-toolbar-separator')
+    const separatorBox = await separator.boundingBox()
+    const newTicketBox = await newTicket.boundingBox()
+    if (!shellHeaderBox || !filterBarBox || !toolbarBox || !separatorBox || !newTicketBox)
+      throw new Error('Ticket board toolbar controls must be visible at 1280px')
+    expect(filterBarBox.y - (shellHeaderBox.y + shellHeaderBox.height)).toBe(16)
+    expect(toolbarBox.height).toBe(32)
+    expect(separatorBox.height).toBe(24)
+    expect(separatorBox.width).toBeLessThanOrEqual(2)
+    expect(filterBarBox.x + filterBarBox.width).toBeLessThanOrEqual(separatorBox.x)
+    expect(separatorBox.x + separatorBox.width).toBeLessThanOrEqual(newTicketBox.x)
+    const boardBox = await board.boundingBox()
+    if (!boardBox) throw new Error('Ticket board must be visible')
+    expect(boardBox.y - (toolbarBox.y + toolbarBox.height)).toBe(16)
+    expect(await board.evaluate((element) => getComputedStyle(element).borderWidth)).toBe('1px')
+    expect(await board.evaluate((element) => getComputedStyle(element).borderRadius)).toBe('8px')
+    const laneBox = await board.getByRole('region', { name: 'Idea tickets' }).boundingBox()
+    if (!laneBox) throw new Error('Ticket lanes must stretch to the board minimum height')
+    expect(laneBox.height).toBeGreaterThan(700)
+    expect(Math.abs(900 - (boardBox.y + boardBox.height) - 16)).toBeLessThanOrEqual(1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await archiveFilter.click()
+    await page.getByRole('option', { name: 'Include archived', exact: true }).click()
+    await expect(archiveFilter).toContainText('Include archived')
+    await expect(archivedCard).toBeVisible()
+    await toolbar.getByRole('button', { name: 'Clear filters' }).click()
+    await expect(archiveFilter).toContainText('Active tickets')
+    await expect(archivedCard).toHaveCount(0)
+    for (let index = 0; index < 18; index++)
+      await create('/api/tickets', {
+        releaseId: searchableRelease.id,
+        title: `Tall lane ticket ${index} ${suffix}`,
+        status: 'Develop',
+      })
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    const grownBoardBox = await board.boundingBox()
+    if (!grownBoardBox) throw new Error('Ticket board must remain visible with more cards')
+    expect(grownBoardBox.height).toBeGreaterThan(boardBox.height + 100)
+    expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(
+      true,
     )
-    await toolbar.getByRole('button', { name: 'Show archived' }).click()
-    await expect(toolbar.getByRole('button', { name: 'Hide archived' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    await toolbar.getByRole('button', { name: 'Hide archived' }).click()
-    await expect(toolbar.getByRole('button', { name: 'Show archived' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     for (const filter of [
       {
         kind: 'client',
@@ -209,6 +261,8 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
     const agendaToolbar = page.getByRole('group', { name: 'Agenda filters' })
     await expect(agendaToolbar).toBeVisible()
     await expect(agendaToolbar).toHaveCSS('height', '32px')
+    await expect(agendaToolbar).toHaveCSS('column-gap', '4px')
+    await expect(agendaToolbar.locator('.grid-cols-4')).toHaveCSS('column-gap', '4px')
     await expect(agendaToolbar.getByRole('button', { name: 'Clear filters' })).toBeVisible()
     for (const filter of [
       {

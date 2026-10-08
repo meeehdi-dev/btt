@@ -37,7 +37,7 @@ const textClasses = {
 const trackedTextClass = computed(() =>
   props.estimateMinutes
     ? textClasses[usageColor(minutes.value, props.estimateMinutes)]
-    : 'text-default',
+    : 'text-muted',
 )
 const durations = Array.from({ length: 48 }, (_, i) => ({
   label: formatTicketEstimate((i + 1) * 30),

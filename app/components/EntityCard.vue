@@ -6,8 +6,16 @@ withDefaults(
     as?: 'div' | 'article'
     contentInteractive?: boolean
     padding?: 'compact' | 'standard'
+    borderTone?: 'default' | 'subtle'
+    contentSpacing?: 'compact' | 'standard'
   }>(),
-  { as: 'div', contentInteractive: false, padding: 'compact' },
+  {
+    as: 'div',
+    contentInteractive: false,
+    padding: 'compact',
+    borderTone: 'default',
+    contentSpacing: 'standard',
+  },
 )
 </script>
 
@@ -15,12 +23,26 @@ withDefaults(
   <component
     :is="as"
     v-bind="$attrs"
-    class="group relative rounded-lg border border-default bg-elevated transition-colors hover:border-primary focus-within:border-primary"
-    :class="padding === 'standard' ? 'p-2' : 'p-1'"
+    class="group relative rounded-lg border bg-elevated transition-colors hover:border-primary focus-within:border-primary"
+    :class="[
+      borderTone === 'subtle' ? 'border-accented/50' : 'border-default',
+      padding === 'standard' ? 'p-2' : 'p-1',
+    ]"
   >
     <slot name="navigation" />
-    <div class="relative z-10 space-y-2" :class="{ 'pointer-events-none': !contentInteractive }">
-      <div class="flex min-w-0 items-start justify-between gap-2">
+    <div
+      class="relative z-10"
+      :class="[
+        contentSpacing === 'compact' ? 'flex flex-col gap-1' : 'space-y-2',
+        { 'pointer-events-none': !contentInteractive },
+      ]"
+    >
+      <div
+        :class="[
+          'flex min-w-0 justify-between',
+          contentSpacing === 'compact' ? 'items-center gap-1' : 'items-start gap-2',
+        ]"
+      >
         <slot name="heading" />
       </div>
       <div

@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { ticketStatuses } from '../../shared/ticket-status'
 import { waitForClientMount } from './wait-for-client-mount'
 import { eq, inArray, or } from 'drizzle-orm'
 import { db } from '../../server/db'
@@ -17,8 +18,8 @@ async function dragBetweenLanes(page: Page, board: Locator, source: Locator, tar
   const sourceBox = await source.boundingBox()
   const boardBox = await board.boundingBox()
   if (!sourceBox || !boardBox) throw new Error('Board and card must be visible')
-  const y = sourceBox.y + 8 // Noninteractive card padding, away from title/links/buttons.
-  await page.mouse.move(sourceBox.x + 8, y)
+  const y = sourceBox.y + 2 // Noninteractive card padding, away from title/links/buttons.
+  await page.mouse.move(sourceBox.x + 2, y)
   await page.mouse.down()
   await page.mouse.move(sourceBox.x + 33, y, { steps: 5 })
   let destination = await target.boundingBox()
@@ -141,19 +142,26 @@ test('board status moves work across lanes, without reordering or changing card 
     const board = page.getByRole('region', { name: 'Ticket board' })
     const lane = (status: string) => board.getByRole('region', { name: `${status} tickets` })
     const card = (id: string) => board.locator(`[data-board-ticket-id="${id}"]`)
+    for (const status of ticketStatuses)
+      await expect(lane(status).locator('[data-ticket-status-icon]').first()).toHaveAttribute(
+        'data-ticket-status-icon',
+        status,
+      )
+    await expect(card(idea.id).locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+    await expect(card(done.id).locator('[data-ticket-status-icon="Done"]')).toBeVisible()
     await expect(lane('Idea').getByText('Idea source')).toBeVisible()
     await expect(lane('Done').getByText('Done source')).toBeVisible()
     await expect(board.getByText('Other ticket')).toHaveCount(0)
     await expect(lane('Estimate').getByText('No tickets in Estimate.')).toBeVisible()
     await expect(card(idea.id)).toHaveAttribute('draggable', 'true')
-    await expect(card(idea.id)).toHaveClass(/p-2/)
+    await expect(card(idea.id)).toHaveClass(/p-1/)
     await expect(card(idea.id).getByText('Board comment')).toHaveCount(0)
     await expect(card(idea.id).getByLabel('Ticket context')).toBeVisible()
     await expect(board.getByText('No estimate')).toHaveCount(0)
     await expect(board.getByText('Change status')).toHaveCount(0)
 
     // Source lane drop and cancelled drag must not write anything.
-    await card(idea.id).dragTo(lane('Idea'), { sourcePosition: { x: 8, y: 8 } })
+    await card(idea.id).dragTo(lane('Idea'), { sourcePosition: { x: 2, y: 2 } })
     expect(patchCount).toBe(0)
     const dragSourceBox = await card(idea.id).boundingBox()
     if (!dragSourceBox) throw new Error('Ticket card must be visible')
@@ -174,7 +182,7 @@ test('board status moves work across lanes, without reordering or changing card 
     const box = await board.boundingBox()
     const sourceCard = await card(idea.id).boundingBox()
     if (!box || !sourceCard) throw new Error('Board and card must be visible')
-    await page.mouse.move(sourceCard.x + 8, sourceCard.y + 8)
+    await page.mouse.move(sourceCard.x + 2, sourceCard.y + 2)
     await page.mouse.down()
     await page.mouse.move(sourceCard.x + 33, sourceCard.y + 8, { steps: 5 })
     const reviewBox = await lane('Review').boundingBox()
@@ -217,13 +225,19 @@ test('board status moves work across lanes, without reordering or changing card 
       `/clients/${c.id}`,
     )
     await page.keyboard.press('Escape')
-    await card(idea.id).getByRole('button', { name: 'release: Move Release; actions' }).click()
+    const releaseHierarchyAction = card(idea.id).getByRole('button', {
+      name: 'release: Move Release; actions',
+    })
+    await releaseHierarchyAction.scrollIntoViewIfNeeded()
+    await releaseHierarchyAction.click()
     await expect(page.getByRole('link', { name: 'Open Move Release' })).toHaveAttribute(
       'href',
       `/releases/${r.id}`,
     )
     await page.keyboard.press('Escape')
-    await card(idea.id).getByRole('button', { name: 'Related tickets' }).hover()
+    const relatedAction = card(idea.id).getByRole('button', { name: 'Related tickets' })
+    await relatedAction.scrollIntoViewIfNeeded()
+    await relatedAction.hover()
     await page.locator(`[data-related-ticket-id="${done.id}"]`).click()
     await expect(page).toHaveURL(new RegExp(`/tickets\\?release=${r.id}$`))
     await expect(card(done.id)).toHaveClass(/border-primary/)
@@ -267,7 +281,8 @@ test('board status moves work across lanes, without reordering or changing card 
 
     await page.goto(`/tickets?release=${r.id}`)
     await waitForClientMount(page)
-    await page.getByRole('button', { name: 'Show archived' }).click()
+    await page.getByRole('button', { name: 'Filter archived tickets' }).click()
+    await page.getByRole('option', { name: 'Include archived', exact: true }).click()
     await expect(card(archived.id)).toBeVisible()
     await expect(card(archived.id)).toHaveAttribute('draggable', 'false')
     await expect(card(archived.id).getByRole('button', { name: /^Move to / })).toHaveCount(0)

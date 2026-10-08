@@ -85,11 +85,11 @@ test('board hierarchy actions and related-ticket icons locate visible targets', 
     await sourceCard.getByRole('button', { name: 'Related tickets' }).hover()
     const shortcut = page.locator(`[data-related-ticket-id="${target.id}"]`)
     await expect(shortcut).toBeVisible()
-    await expect(targetCard).toHaveClass(/border-default/)
+    await expect(targetCard).toHaveClass(/border-accented\/50/)
     await shortcut.hover()
     await expect(targetCard).toHaveClass(/border-primary/)
     await board.getByRole('heading', { name: 'Idea' }).hover()
-    await expect(targetCard).toHaveClass(/border-default/)
+    await expect(targetCard).toHaveClass(/border-accented\/50/)
     await shortcut.click()
     await expect(page).toHaveURL(/\/tickets$/)
     await expect(targetCard).toHaveClass(/border-primary/)
@@ -105,7 +105,7 @@ test('board hierarchy actions and related-ticket icons locate visible targets', 
     await expect(board.locator(`[data-board-ticket-id="${cross.id}"]`)).toHaveClass(
       /border-primary/,
     )
-    await expect(targetCard).toHaveClass(/border-default/)
+    await expect(targetCard).toHaveClass(/border-accented\/50/)
 
     for (const [kind, name, destination] of [
       ['client', 'Nav Client', `/clients/${c.id}`],
