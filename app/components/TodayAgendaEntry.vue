@@ -99,7 +99,11 @@ const statusMenuItems = computed(() =>
   <article
     :data-agenda-ticket-id="row.ticketId"
     class="flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border border-accented/50 bg-elevated text-xs"
-    :class="compactTimeline ? 'gap-1 p-1' : 'gap-1 p-2'"
+    :class="[
+      compactTimeline
+        ? 'agenda-entry-draggable gap-1 p-1 cursor-grab active:cursor-grabbing transition-colors hover:border-primary/50 focus-within:border-primary/50'
+        : 'gap-1 p-2',
+    ]"
     @dblclick="onDoubleClick"
   >
     <div class="flex min-w-0 items-center justify-between gap-1">
@@ -205,3 +209,12 @@ const statusMenuItems = computed(() =>
     </div>
   </article>
 </template>
+
+<style scoped>
+.agenda-entry-draggable :deep(a),
+.agenda-entry-draggable :deep(button),
+.agenda-entry-draggable :deep([role='button']),
+.agenda-entry-draggable :deep([role='combobox']) {
+  cursor: pointer;
+}
+</style>

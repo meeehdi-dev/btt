@@ -619,6 +619,19 @@ Goal: make the seven ticket statuses recognizable, align Ticket Board cards with
 
 Acceptance: focused icon, cutoff, archive-filter and layout tests; Board interaction and alternate-view regressions; neutral unestimated-time and 4px filter-gap coverage; local checks; supported-width visual review; accepted human code review; and closeout evidence are recorded in M32. ADR 0046 records the durable visibility policy; ADR 0047 records the no-estimate tracked-time color.
 
+### M33 — Agenda card drag affordance and initial loading
+
+Status: Complete — the user declared M33 complete on 2026-10-08. Implementation and Plannotator code review are complete; focused/full E2E and the 1280 CSS px visual review were explicitly deferred by the user and are not claimed as passing. See [`docs/milestones/m33-agenda-card-hover-and-initial-load.md`](docs/milestones/m33-agenda-card-hover-and-initial-load.md).
+
+Goal: make Agenda time-entry cards clearly draggable, soften card-border highlights in Agenda and Ticket Board, and reduce the Agenda's initial client loading where the requested week is already known.
+
+- Add an Agenda card hover-border highlight and `grab`/`grabbing` cursor on the movable surface. Keep links, badges, buttons, and resize handles on their correct cursors and preserve existing drag/click behavior.
+- Use a subtler semantic accent border for Agenda and Ticket Board card hover/focus/relation highlight states.
+- SSR-render Agenda requests with a valid `?date=` query. Preserve the existing browser-local client bootstrap for requests without a date query; make any remaining loading card match the loaded Agenda card's spacing and padding.
+- Keep the APIs, data, date/week behavior, drag geometry, and 1280 CSS px support floor unchanged.
+
+Acceptance: implementation, non-browser checks, and Plannotator code review are recorded in M33. Focused/full browser checks and 1280 CSS px visual review were explicitly deferred by the user's completion declaration; they were not run and are not claimed as passing. No ADR is planned.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

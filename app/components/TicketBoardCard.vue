@@ -74,6 +74,7 @@ function dragEnd() {
   <EntityCard
     padding="compact"
     border-tone="subtle"
+    hover-border-tone="subtle"
     content-spacing="compact"
     :data-board-ticket-id="item.ticket.id"
     :aria-busy="changing"
@@ -81,7 +82,7 @@ function dragEnd() {
     content-interactive
     :class="[
       'text-xs',
-      highlighted ? 'border-primary' : '',
+      highlighted ? 'border-primary/50' : '',
       !item.ticket.archivedAt && !busy ? 'cursor-grab active:cursor-grabbing' : '',
     ]"
     @pointerdown="pointerDown"

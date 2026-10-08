@@ -18,7 +18,11 @@ type TicketStatus = (typeof ticketStatuses)[number]
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 useHead({ title: 'Agenda' })
 const route = useRoute()
-const date = shallowRef<CalendarDate | null>(null)
+function routeDate() {
+  const requested = route.query.date
+  return typeof requested === 'string' && validDate(requested) ? parseDate(requested) : null
+}
+const date = shallowRef<CalendarDate | null>(routeDate())
 const pickerOpen = ref(false)
 const editDatePickerOpen = ref(false)
 const addOpen = ref(false)
@@ -70,7 +74,7 @@ const {
   refresh: refreshWeek,
 } = await useApiFetch('/api/agenda/week', {
   query: computed(() => ({ startDate: weekStart.value })),
-  immediate: false,
+  immediate: Boolean(date.value),
   watch: false,
 })
 const {
@@ -343,11 +347,7 @@ function syncCurrentTime() {
   clockTimer = window.setTimeout(syncCurrentTime, delay)
 }
 function syncRouteDate() {
-  const requested = route.query.date
-  date.value =
-    typeof requested === 'string' && validDate(requested)
-      ? parseDate(requested)
-      : today(getLocalTimeZone())
+  date.value = routeDate() ?? today(getLocalTimeZone())
 }
 onMounted(() => {
   locale.value = navigator.language
@@ -811,11 +811,11 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
       label="Retry refreshing agenda data"
       @click="retryAgendaReads()"
     />
-    <UCard v-if="!day || (weekPending && !weekAgenda)">
+    <UCard v-if="!day || (weekPending && !weekAgenda)" data-testid="agenda-week-shell" class="mt-2">
       <p class="text-muted">Loading agenda…</p>
     </UCard>
     <template v-else-if="!weekError">
-      <UCard class="mt-2">
+      <UCard data-testid="agenda-week-shell" class="mt-2">
         <h2 class="sr-only">{{ weekRangeLabel }} agenda</h2>
         <UAlert
           v-if="dragError"

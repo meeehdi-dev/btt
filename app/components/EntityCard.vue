@@ -7,6 +7,7 @@ withDefaults(
     contentInteractive?: boolean
     padding?: 'compact' | 'standard'
     borderTone?: 'default' | 'subtle'
+    hoverBorderTone?: 'default' | 'subtle'
     contentSpacing?: 'compact' | 'standard'
   }>(),
   {
@@ -14,6 +15,7 @@ withDefaults(
     contentInteractive: false,
     padding: 'compact',
     borderTone: 'default',
+    hoverBorderTone: 'default',
     contentSpacing: 'standard',
   },
 )
@@ -23,8 +25,11 @@ withDefaults(
   <component
     :is="as"
     v-bind="$attrs"
-    class="group relative rounded-lg border bg-elevated transition-colors hover:border-primary focus-within:border-primary"
+    class="group relative rounded-lg border bg-elevated transition-colors"
     :class="[
+      hoverBorderTone === 'subtle'
+        ? 'hover:border-primary/50 focus-within:border-primary/50'
+        : 'hover:border-primary focus-within:border-primary',
       borderTone === 'subtle' ? 'border-accented/50' : 'border-default',
       padding === 'standard' ? 'p-2' : 'p-1',
     ]"

@@ -418,6 +418,7 @@ test('ticket board and release cards expose relation and external-link popovers'
   await expectTwoRowBoardTicketCard(boardCard, manyTitle)
   const boardHierarchy = boardCard.getByLabel('Ticket hierarchy')
   const boardHierarchyBadge = boardHierarchy.getByRole('button').first()
+  await page.mouse.move(0, 0)
   const boardSurfaceMetrics = await boardCard.evaluate((element) => {
     const style = getComputedStyle(element)
     const content = element.querySelector('[data-entity-card-context]')?.parentElement
@@ -432,6 +433,11 @@ test('ticket board and release cards expose relation and external-link popovers'
       contentGap: contentStyle?.rowGap,
     }
   })
+  await boardCard.hover({ position: { x: 8, y: 8 } })
+  const boardHoverBorderColor = await boardCard.evaluate(
+    (element) => getComputedStyle(element).borderTopColor,
+  )
+  expect(boardHoverBorderColor).not.toBe(boardSurfaceMetrics.borderColor)
   const boardBadgeMetrics = await boardHierarchyBadge.evaluate((element) => {
     const style = getComputedStyle(element)
     const rect = element.getBoundingClientRect()
@@ -584,6 +590,13 @@ test('ticket board and release cards expose relation and external-link popovers'
     overflowX: getComputedStyle(element).overflowX,
     scrollable: element.scrollWidth > element.clientWidth,
   }))
+  await page.mouse.move(0, 0)
+  await matchingAgendaEntry.hover({ position: { x: 8, y: 8 } })
+  const agendaHoverBorderColor = await matchingAgendaEntry.evaluate(
+    (element) => getComputedStyle(element).borderTopColor,
+  )
+  expect(agendaHoverBorderColor).toBe(boardHoverBorderColor)
+  expect(agendaHoverBorderColor).not.toBe(agendaSurfaceMetrics.borderColor)
   expect(boardSurfaceMetrics).toEqual(agendaSurfaceMetrics)
   expect(boardBadgeMetrics).toEqual(agendaBadgeMetrics)
   expect(boardHierarchyOverflow).toEqual(agendaHierarchyOverflow)

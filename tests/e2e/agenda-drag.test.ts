@@ -121,17 +121,11 @@ const test = base.extend<{ agenda: AgendaFixture }>({
 })
 
 async function openWeekAgenda(page: Page, date: string) {
-  const startDate = getWeekDates(date, 1)![0]!
-  const weekResponse = page.waitForResponse((response) => {
-    const url = new URL(response.url())
-    return (
-      response.request().method() === 'GET' &&
-      url.pathname === '/api/agenda/week' &&
-      url.searchParams.get('startDate') === startDate
-    )
-  })
-  const [, response] = await Promise.all([page.goto(`/agenda?date=${date}`), weekResponse])
+  const response = await page.goto(`/agenda?date=${date}`)
+  if (!response) throw new Error('Agenda navigation must return a document response')
   expect(response.ok()).toBe(true)
+  const html = await response.text()
+  expect(html).toContain('aria-label="Week timeline"')
   await expect(page.getByText('Loading agenda…', { exact: true })).toHaveCount(0)
   return page.getByRole('region', { name: 'Week timeline' })
 }
@@ -147,6 +141,150 @@ async function point(page: Page, timeline: Locator, date: string, minute: number
     y: timelineBox.y + (minute - 480) * 1.8 + offset,
   }
 }
+
+test('Agenda SSR-renders an explicitly dated week without a browser refetch', async ({
+  page,
+  agenda,
+}) => {
+  const { add, date, ticketId } = agenda
+  const entryId = await add(ticketId, date, 540, 60, 'Server-rendered work')
+  const browserWeekReads: string[] = []
+  page.on('request', (request) => {
+    const url = new URL(request.url())
+    if (request.method() === 'GET' && url.pathname === '/api/agenda/week')
+      browserWeekReads.push(url.searchParams.get('startDate') ?? '')
+  })
+
+  const response = await page.goto(`/agenda?date=${date}`)
+  if (!response) throw new Error('Agenda navigation must return a document response')
+  expect(response.ok()).toBe(true)
+  const html = await response.text()
+  expect(html).toContain('aria-label="Week timeline"')
+  expect(html).toContain('Server-rendered work')
+  await expect(page.locator(`[data-agenda-entry="${entryId}"]`)).toBeVisible()
+  expect(browserWeekReads).toEqual([])
+})
+
+test('Agenda loading and loaded cards keep the same spacing and padding', async ({
+  page,
+  agenda,
+}) => {
+  const { add, date, ticketId } = agenda
+  await add(ticketId, date, 540, 60, 'Default week work')
+  let releaseWeekRequest!: () => void
+  let signalWeekRequest!: () => void
+  const weekRequestGate = new Promise<void>((resolve) => {
+    releaseWeekRequest = resolve
+  })
+  const weekRequestStarted = new Promise<void>((resolve) => {
+    signalWeekRequest = resolve
+  })
+  await page.route('**/api/agenda/week**', async (route) => {
+    signalWeekRequest()
+    await weekRequestGate
+    await route.continue()
+  })
+
+  try {
+    const response = await page.goto('/agenda')
+    if (!response) throw new Error('Agenda navigation must return a document response')
+    expect(response.ok()).toBe(true)
+    const html = await response.text()
+    expect(html).toContain('Loading agenda…')
+    await expect(page.getByText('Loading agenda…', { exact: true })).toBeVisible()
+    await weekRequestStarted
+
+    const geometry = async () => {
+      const shell = page.getByTestId('agenda-week-shell')
+      const toolbar = page.getByRole('group', { name: 'Choose agenda week' }).locator('..')
+      const [shellBox, toolbarBox, styles] = await Promise.all([
+        shell.boundingBox(),
+        toolbar.boundingBox(),
+        shell.evaluate((element) => {
+          const body = element.querySelector<HTMLElement>('[data-slot="body"]')
+          return {
+            marginTop: getComputedStyle(element).marginTop,
+            padding: body ? getComputedStyle(body).padding : null,
+          }
+        }),
+      ])
+      if (!shellBox || !toolbarBox) throw new Error('Agenda shell and toolbar must be measurable')
+      return {
+        x: shellBox.x,
+        width: shellBox.width,
+        toolbarGap: shellBox.y - (toolbarBox.y + toolbarBox.height),
+        ...styles,
+      }
+    }
+    const loadingGeometry = await geometry()
+    expect(loadingGeometry.padding).toBe('8px')
+    expect(loadingGeometry.toolbarGap).toBe(16)
+
+    releaseWeekRequest()
+    await expect(page.getByRole('region', { name: 'Week timeline' })).toBeVisible()
+    const loadedGeometry = await geometry()
+    expect(loadedGeometry).toEqual(loadingGeometry)
+  } finally {
+    releaseWeekRequest()
+    await page.unroute('**/api/agenda/week**')
+  }
+})
+
+test('Agenda cards show drag affordance without overriding link, badge, or resize cursors', async ({
+  page,
+  agenda,
+}) => {
+  const { add, date, ticketId } = agenda
+  const entryId = await add(ticketId, date, 540, 90, 'Movable card')
+  const timeline = await openWeekAgenda(page, date)
+  const wrapper = timeline.locator(`[data-agenda-entry="${entryId}"]`)
+  const card = wrapper.getByRole('article')
+  const baseBorderColor = await card.evaluate((element) => getComputedStyle(element).borderTopColor)
+  await card.hover({ position: { x: 10, y: 25 } })
+  const hovered = await card.evaluate((element) => ({
+    borderColor: getComputedStyle(element).borderTopColor,
+    cursor: getComputedStyle(element).cursor,
+  }))
+  expect(hovered.borderColor).not.toBe(baseBorderColor)
+  expect(hovered.cursor).toBe('grab')
+
+  const interactiveControls = [
+    card.getByRole('link', { name: 'Visible work' }),
+    card.getByRole('button', { name: 'Filter by Visible work' }),
+    card.getByRole('button', { name: 'client: Gesture client; actions' }),
+    card.getByRole('button', { name: 'Change status from Idea' }),
+  ]
+  for (const control of interactiveControls)
+    expect(await control.evaluate((element) => getComputedStyle(element).cursor)).toBe('pointer')
+
+  expect(
+    await wrapper
+      .locator('[data-drag-edge="top"]')
+      .evaluate((element) => getComputedStyle(element).cursor),
+  ).toBe('n-resize')
+  expect(
+    await wrapper
+      .locator('[data-drag-edge="bottom"]')
+      .evaluate((element) => getComputedStyle(element).cursor),
+  ).toBe('s-resize')
+
+  const dragPoint = await card.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return { x: rect.x + 10, y: rect.y + rect.height / 2 }
+  })
+  const interactiveHit = await page.evaluate(({ x, y }) => {
+    return Boolean(
+      document
+        .elementFromPoint(x, y)
+        ?.closest('a,button,input,select,textarea,[role="button"],[role="combobox"]'),
+    )
+  }, dragPoint)
+  expect(interactiveHit).toBe(false)
+  await page.mouse.move(dragPoint.x, dragPoint.y)
+  await page.mouse.down()
+  expect(await card.evaluate((element) => getComputedStyle(element).cursor)).toBe('grabbing')
+  await page.mouse.up()
+})
 
 test('Agenda reports a server-side overlap when a blocker appears after loading', async ({
   page,
