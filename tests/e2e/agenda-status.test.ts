@@ -60,21 +60,44 @@ test('Agenda status selector changes active tickets directly and respects archiv
     await page.goto('/agenda')
     await page.waitForLoadState('networkidle')
     const entry = page.locator(`[data-agenda-ticket-id="${ticketId}"]`).filter({ visible: true })
-    const statusTrigger = entry.getByRole('button', { name: 'Change status from Idea' })
+    const statusTrigger = entry.getByRole('button', {
+      name: 'Change status for Status ticket from Idea',
+    })
+    const titleLink = entry.getByRole('link', { name: 'Status ticket' })
     await expect(page.getByRole('combobox', { name: 'Filter status' })).toHaveCount(0)
-    await statusTrigger.click()
+    await expect(titleLink).toHaveAttribute('href', `/tickets/${ticketId}`)
+    await expect(entry.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+    await expect(
+      entry.getByLabel('Entry hierarchy and ticket links').getByRole('button', {
+        name: /Change status/,
+      }),
+    ).toHaveCount(0)
+    await statusTrigger.focus()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/agenda(?:\?|$)/)
     await expect(page.getByRole('menuitem', { name: 'Change', exact: true })).toHaveCount(0)
     await expect(page.getByRole('menuitem', { name: 'Filter by Idea' })).toHaveCount(0)
     for (const status of ticketStatuses) {
       const item = page.getByRole('menuitem', { name: status, exact: true })
       await expect(item).toBeVisible()
+      const leadingIcon = item.locator('[data-slot="itemLeadingIcon"]')
+      const label = item.locator('[data-slot="itemLabel"]')
+      await expect(leadingIcon).toHaveCount(1)
+      const [iconBox, labelBox] = await Promise.all([
+        leadingIcon.boundingBox(),
+        label.boundingBox(),
+      ])
+      if (!iconBox || !labelBox)
+        throw new Error(`Status menu item ${status} must have an icon and label`)
+      expect(iconBox.x + iconBox.width).toBeLessThanOrEqual(labelBox.x)
       if (status === 'Idea') {
         await expect(item).toBeDisabled()
-        await expect(item.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(1)
+        await expect(item.locator('[data-slot="ticketStatusCurrentIcon"]')).toBeVisible()
       } else {
         await expect(item).toBeEnabled()
-        await expect(item.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(0)
+        await expect(item.locator('[data-slot="ticketStatusCurrentIcon"]')).toHaveCount(0)
       }
+      await expect(item.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(1)
     }
 
     let releasePatch!: () => void
@@ -101,7 +124,10 @@ test('Agenda status selector changes active tickets directly and respects archiv
     expect((await (await page.request.get(`/api/tickets/${ticketId}`)).json()).ticket.status).toBe(
       'Develop',
     )
-    await expect(entry.getByRole('button', { name: 'Change status from Develop' })).toBeVisible()
+    await expect(
+      entry.getByRole('button', { name: 'Change status for Status ticket from Develop' }),
+    ).toBeVisible()
+    await expect(entry.locator('[data-ticket-status-icon="Develop"]')).toBeVisible()
 
     await page.route(route, async (request) => {
       await request.fulfill({
@@ -110,7 +136,11 @@ test('Agenda status selector changes active tickets directly and respects archiv
         body: JSON.stringify({ statusMessage: 'Simulated status update failure' }),
       })
     })
-    await entry.getByRole('button', { name: 'Change status from Develop' }).click()
+    await entry
+      .getByRole('button', {
+        name: 'Change status for Status ticket from Develop',
+      })
+      .click()
     await page.getByRole('menuitem', { name: 'Review', exact: true }).click()
     await expect(page.getByRole('alert')).toContainText('Could not change ticket status')
     await expect(page.getByRole('status')).toHaveText('')
@@ -128,9 +158,14 @@ test('Agenda status selector changes active tickets directly and respects archiv
     const historyEntry = page
       .locator(`[data-agenda-ticket-id="${ticketId}"]`)
       .filter({ visible: true })
-    await historyEntry.getByRole('button', { name: 'Change status from Develop' }).click()
+    await historyEntry
+      .getByRole('button', { name: 'Change status for Status ticket from Develop' })
+      .click()
     for (const status of ticketStatuses)
       await expect(page.getByRole('menuitem', { name: status, exact: true })).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await historyEntry.getByRole('link', { name: 'Status ticket' }).click()
+    await expect(page).toHaveURL(`/tickets/${ticketId}?archived=true`)
   } finally {
     if (ticketId) {
       await db.delete(timeEntry).where(eq(timeEntry.ticketId, ticketId))

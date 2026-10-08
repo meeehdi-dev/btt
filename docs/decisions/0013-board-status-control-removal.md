@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-26
 - Supersedes: 0010 (only its next-status-arrow requirement; other board drag and metadata decisions remain)
-- Superseded by: None
+- Superseded by: [ADR 0048](0048-agenda-and-board-status-icon-menus.md) (only the prohibition on another direct status control; the next-status arrow remains removed and desktop drag-and-drop remains)
 
 ## Context
 

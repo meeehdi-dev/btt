@@ -89,7 +89,8 @@ const hierarchyItems = computed(() => [
 const statusMenuItems = computed(() =>
   ticketStatuses.map((status) => ({
     label: status,
-    icon: props.row.status === status ? 'lucide:check' : undefined,
+    icon: ticketStatusIcon(status),
+    current: props.row.status === status,
     disabled: archived.value || props.statusBusy || props.row.status === status,
     onSelect: () => emit('change-status', props.row.ticketId, status),
   })),
@@ -116,6 +117,47 @@ const statusMenuItems = computed(() =>
         :time-label="timeLabel"
         class="min-w-0 flex-1"
       >
+        <template #status-icon-action>
+          <UTooltip :text="`Change status for ${row.ticketTitle}`">
+            <UDropdownMenu
+              :items="statusMenuItems"
+              :content="{ side: 'top', avoidCollisions: false }"
+              size="xs"
+            >
+              <template #item-trailing="{ item }">
+                <UIcon
+                  v-if="item.current"
+                  name="lucide:check"
+                  data-slot="ticketStatusCurrentIcon"
+                  class="size-4 shrink-0"
+                  aria-hidden="true"
+                />
+              </template>
+              <UButton
+                size="xs"
+                square
+                color="neutral"
+                variant="ghost"
+                :loading="statusBusy"
+                :disabled="statusBusy"
+                :aria-busy="statusBusy || undefined"
+                :aria-label="`Change status for ${row.ticketTitle} from ${row.status}`"
+                data-ticket-status-trigger
+                :class="[
+                  '!text-muted hover:!text-default',
+                  compactTimeline ? '!h-5 !min-h-5 !w-5 !min-w-5 !p-0 !justify-center' : '',
+                ]"
+              >
+                <UIcon
+                  :name="ticketStatusIcon(row.status)"
+                  :data-ticket-status-icon="row.status"
+                  class="size-4 shrink-0"
+                  aria-hidden="true"
+                />
+              </UButton>
+            </UDropdownMenu>
+          </UTooltip>
+        </template>
         <template #entry-title-action>
           <UTooltip :text="`Filter by ${row.ticketTitle}`">
             <UButton
@@ -166,39 +208,13 @@ const statusMenuItems = computed(() =>
       <TicketHierarchyBadges
         mode="filter-actions"
         truncate-labels
-        aria-label="Entry hierarchy, status, and ticket links"
+        aria-label="Entry hierarchy and ticket links"
         :compact="compactTimeline"
         :scroll="compactTimeline && !hierarchyCanWrap"
         :items="hierarchyItems"
         @filter="(kind, id) => emit('filter', kind, id)"
       >
         <template #trailing>
-          <UDropdownMenu
-            :items="statusMenuItems"
-            :content="{ side: 'top', avoidCollisions: false }"
-            size="xs"
-          >
-            <UButton
-              size="xs"
-              color="neutral"
-              variant="soft"
-              :loading="statusBusy"
-              :disabled="statusBusy"
-              :aria-busy="statusBusy || undefined"
-              :aria-label="`Change status from ${row.status}`"
-              :class="[
-                'shrink-0 !bg-default !text-muted hover:!text-default',
-                compactTimeline ? '!h-5 !min-h-5 !px-1 !text-[10px]' : '',
-              ]"
-            >
-              <UIcon
-                :name="ticketStatusIcon(row.status)"
-                :data-ticket-status-icon="row.status"
-                :class="compactTimeline ? 'size-3' : 'size-4'"
-                aria-hidden="true"
-              />{{ row.status }}
-            </UButton>
-          </UDropdownMenu>
           <TicketContextPopovers
             :related-tickets="row.relatedTickets"
             :external-links="row.externalLinks"

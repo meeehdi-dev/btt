@@ -252,7 +252,7 @@ test('Agenda cards show drag affordance without overriding link, badge, or resiz
     card.getByRole('link', { name: 'Visible work' }),
     card.getByRole('button', { name: 'Filter by Visible work' }),
     card.getByRole('button', { name: 'client: Gesture client; actions' }),
-    card.getByRole('button', { name: 'Change status from Idea' }),
+    card.getByRole('button', { name: 'Change status for Visible work from Idea' }),
   ]
   for (const control of interactiveControls)
     expect(await control.evaluate((element) => getComputedStyle(element).cursor)).toBe('pointer')

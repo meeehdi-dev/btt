@@ -632,6 +632,20 @@ Goal: make Agenda time-entry cards clearly draggable, soften card-border highlig
 
 Acceptance: implementation, non-browser checks, and Plannotator code review are recorded in M33. Focused/full browser checks and 1280 CSS px visual review were explicitly deferred by the user's completion declaration; they were not run and are not claimed as passing. No ADR is planned.
 
+### M34 — Agenda and Ticket Board status icon menus
+
+Status: Complete — the user declared M34 complete on 2026-10-08. Implementation, non-browser checks, and follow-up Plannotator code review are recorded in [`docs/milestones/m34-agenda-board-status-icon-menus.md`](docs/milestones/m34-agenda-board-status-icon-menus.md). Focused/full E2E and 1280 CSS px live review were not run and are explicitly deferred by the completion declaration; they are not claimed as passing. See [ADR 0048](docs/decisions/0048-agenda-and-board-status-icon-menus.md). See [`docs/milestones/m34-agenda-board-status-icon-menus.md`](docs/milestones/m34-agenda-board-status-icon-menus.md) and [ADR 0048](docs/decisions/0048-agenda-and-board-status-icon-menus.md).
+
+Goal: remove the redundant Agenda status badge and make status changes directly available from the title-adjacent status icon on both Agenda entries and Ticket Board cards.
+
+- On Agenda entries, replace the status badge in the context strip with an icon-only status-menu trigger beside the ticket title; preserve the separate ticket-title link.
+- Add the same icon-triggered flat status menu to Ticket Board cards while retaining drag-and-drop. Reuse the existing Agenda and Board mutation/recovery paths.
+- Keep fixed status options, archive/busy/current-status semantics, other card context actions, APIs, data, and time/Board geometry unchanged.
+- Update Agenda and Ticket Board interaction coverage; verify keyboard access, status writes/failures, title navigation, drag protections, and supported-width layout.
+- ADR 0048 was accepted after code review; it supersedes only ADR 0013's prohibition on an additional direct Board status action. The removed next-status arrow and established drag behavior remain unchanged.
+
+Acceptance: Agenda's labeled status badge is absent and its title-adjacent icon opens the fixed status menu; the Ticket Board icon does the same while lane drag-and-drop still works. Existing status updates, title navigation, archive restrictions, errors/retries, keyboard access, and unrelated ticket surfaces remain correct. Non-browser verification and human code review are recorded in M34. Focused/full E2E and 1280 CSS px visual review were not run and are explicitly deferred by the user's completion declaration, not claimed as passing.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

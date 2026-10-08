@@ -29,7 +29,22 @@ withDefaults(
 
 <template>
   <div v-if="mode === 'entry'" class="flex min-w-0 items-center gap-2 whitespace-nowrap">
+    <div v-if="$slots['status-icon-action']" class="inline-flex min-w-0 shrink items-center gap-1">
+      <slot name="status-icon-action" />
+      <NuxtLink
+        :to="to"
+        :title="titleHint"
+        :class="
+          titleClass ??
+          'inline-flex min-w-0 shrink items-center gap-1 font-medium text-highlighted hover:text-primary'
+        "
+        data-ticket-title-link
+      >
+        <span :class="titleTextClass ?? 'truncate'">{{ title }}</span>
+      </NuxtLink>
+    </div>
     <NuxtLink
+      v-else
       :to="to"
       :title="titleHint"
       :class="
@@ -56,8 +71,25 @@ withDefaults(
       :class="headerClass ?? 'flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap'"
       aria-label="Ticket main information"
     >
+      <div
+        v-if="to && $slots['status-icon-action']"
+        class="inline-flex min-w-0 shrink items-center gap-1"
+      >
+        <slot name="status-icon-action" />
+        <NuxtLink
+          :to="to"
+          :title="titleHint"
+          :class="
+            titleClass ??
+            'inline-flex shrink-0 items-center gap-1 font-medium text-highlighted hover:text-primary'
+          "
+          data-ticket-title-link
+        >
+          <span :class="titleTextClass ?? 'max-w-36 truncate'">{{ title }}</span>
+        </NuxtLink>
+      </div>
       <NuxtLink
-        v-if="to"
+        v-else-if="to"
         :to="to"
         :title="titleHint"
         :class="

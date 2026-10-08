@@ -267,7 +267,7 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
     const card = [...document.querySelectorAll<HTMLElement>('[data-board-ticket-id]')].find(
       (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
     )
-    card?.querySelector<HTMLElement>('[data-ticket-title-link]')?.focus()
+    card?.querySelector<HTMLElement>('[data-ticket-status-trigger]')?.focus()
   }
 }
 </script>
@@ -430,6 +430,7 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
               :highlighted="highlightedId === item.ticket.id"
               @drag-start="startDrag($event, item.ticket.id)"
               @drag-end="clearDrag"
+              @change-status="moveStatus"
               @related-hover="hoveredTargetId = $event"
               @related-click="locateRelated"
               @filter="applyFilter"

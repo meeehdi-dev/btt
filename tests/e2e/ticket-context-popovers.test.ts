@@ -548,9 +548,7 @@ test('ticket board and release cards expose relation and external-link popovers'
   const matchingAgendaEntry = page
     .locator(`[data-agenda-entry="${shortManyEntry.id}"]`)
     .getByRole('article')
-  const agendaHierarchy = matchingAgendaEntry.getByLabel(
-    'Entry hierarchy, status, and ticket links',
-  )
+  const agendaHierarchy = matchingAgendaEntry.getByLabel('Entry hierarchy and ticket links')
   const agendaHierarchyBadge = agendaHierarchy.getByRole('button', {
     name: `client: ${clientRecord.name}; actions`,
   })
@@ -638,9 +636,7 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
   const compactFilter = compactAgendaCard.getByRole('button', {
     name: `Filter by ${manyTitle}`,
   })
-  const compactBadgeGroup = compactAgendaCard.getByLabel(
-    'Entry hierarchy, status, and ticket links',
-  )
+  const compactBadgeGroup = compactAgendaCard.getByLabel('Entry hierarchy and ticket links')
   const compactClient = compactBadgeGroup.getByRole('button', {
     name: `client: Context ${suffix}; actions`,
   })
@@ -650,8 +646,8 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
   const compactRelease = compactBadgeGroup.getByRole('button', {
     name: `release: Context release ${suffix}; actions`,
   })
-  const compactStatus = compactBadgeGroup.getByRole('button', {
-    name: 'Change status from Idea',
+  const compactStatus = compactAgendaCard.getByRole('button', {
+    name: `Change status for ${manyTitle} from Idea`,
   })
   const compactRelated = compactBadgeGroup.getByRole('button', { name: 'Related tickets' })
   const compactExternal = compactBadgeGroup.getByRole('button', { name: 'External links' })
@@ -659,11 +655,10 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
     compactClient,
     compactProject,
     compactRelease,
-    compactStatus,
     compactRelated,
     compactExternal,
   ]
-  const [filterHeight, compactControlMetrics, statusFontSize] = await Promise.all([
+  const [filterHeight, compactControlMetrics, statusMetrics] = await Promise.all([
     compactFilter.evaluate((element) => element.getBoundingClientRect().height),
     Promise.all(
       compactControls.map((control) =>
@@ -686,11 +681,16 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
         }),
       ),
     ),
-    compactStatus.evaluate((element) => getComputedStyle(element).fontSize),
+    compactStatus.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const icon = element.querySelector('[data-ticket-status-icon]')?.getBoundingClientRect()
+      return { x: rect.x, width: rect.width, height: rect.height, iconWidth: icon?.width ?? 0 }
+    }),
   ])
   await expect(compactFilter).toBeVisible()
   await expect(compactStatus).toBeVisible()
   await expect(compactStatus.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+  await expect(compactBadgeGroup.getByRole('button', { name: /Change status/ })).toHaveCount(0)
   await expect(compactRelated).toBeVisible()
   await expect(compactExternal).toBeVisible()
   await expect(compactBadgeGroup.getByRole('button', { name: 'Related tickets' })).toHaveCount(1)
@@ -698,36 +698,35 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
   const compactBadgeNames = await compactBadgeGroup
     .getByRole('button')
     .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
-  expect(compactBadgeNames).toHaveLength(6)
-  expect(compactBadgeNames.slice(0, 3)).toEqual([
+  expect(compactBadgeNames).toHaveLength(5)
+  expect(compactBadgeNames).toEqual([
     `client: Context ${suffix}; actions`,
     `project: Context project ${suffix}; actions`,
     `release: Context release ${suffix}; actions`,
+    'Related tickets',
+    'External links',
   ])
-  expect(compactBadgeNames[3]).toBe('Change status from Idea')
-  expect(compactBadgeNames[4]).toBe('Related tickets')
-  expect(compactBadgeNames[5]).toBe('External links')
   expect(filterHeight).toBe(20)
-  expect(compactControlMetrics.map((control) => control.height)).toEqual([20, 20, 20, 20, 20, 20])
-  expect(compactControlMetrics.map((control) => control.iconWidth)).toEqual([
-    12, 12, 12, 12, 12, 12,
-  ])
-  expect(compactControlMetrics.map((control) => control.iconHeight)).toEqual([
-    12, 12, 12, 12, 12, 12,
-  ])
+  expect(statusMetrics.height).toBe(20)
+  expect(statusMetrics.width).toBe(20)
+  expect(statusMetrics.iconWidth).toBe(16)
+  const statusTitleBox = await compactAgendaCard
+    .getByRole('link', { name: manyTitle })
+    .boundingBox()
+  if (!statusTitleBox)
+    throw new Error('Agenda ticket title must be visible next to its status icon')
+  expect(statusMetrics.x + statusMetrics.width).toBeLessThanOrEqual(statusTitleBox.x + 1)
+  expect(compactControlMetrics.map((control) => control.height)).toEqual([20, 20, 20, 20, 20])
+  expect(compactControlMetrics.map((control) => control.iconWidth)).toEqual([12, 12, 12, 12, 12])
+  expect(compactControlMetrics.map((control) => control.iconHeight)).toEqual([12, 12, 12, 12, 12])
   const compactControlGaps = compactControlMetrics.slice(1).map((control, index) => {
     const previous = compactControlMetrics[index]!
     return control.x - (previous.x + previous.width)
   })
   for (const gap of compactControlGaps) expect(gap).toBeCloseTo(4, 2)
-  expect(compactControlMetrics.map((control) => control.borderRadius)).toEqual([
-    compactControlMetrics[0]!.borderRadius,
-    compactControlMetrics[0]!.borderRadius,
-    compactControlMetrics[0]!.borderRadius,
-    compactControlMetrics[0]!.borderRadius,
-    compactControlMetrics[0]!.borderRadius,
-    compactControlMetrics[0]!.borderRadius,
-  ])
+  expect(compactControlMetrics.map((control) => control.borderRadius)).toEqual(
+    Array.from({ length: compactControls.length }, () => compactControlMetrics[0]!.borderRadius),
+  )
   expect(compactControlMetrics.slice(0, 3).map((control) => control.backgroundColor)).toEqual([
     compactControlMetrics[0]!.backgroundColor,
     compactControlMetrics[0]!.backgroundColor,
@@ -758,15 +757,12 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
   expect(compactControlMetrics.slice(3).map((control) => control.backgroundColor)).toEqual([
     compactControlMetrics[3]!.backgroundColor,
     compactControlMetrics[3]!.backgroundColor,
-    compactControlMetrics[3]!.backgroundColor,
   ])
-  expect(compactControlMetrics.slice(0, 4).map((control) => control.fontSize)).toEqual([
-    '10px',
+  expect(compactControlMetrics.slice(0, 3).map((control) => control.fontSize)).toEqual([
     '10px',
     '10px',
     '10px',
   ])
-  expect(statusFontSize).toBe('10px')
   await expectCenteredIcon(compactFilter, compactFilter.locator('[data-slot="leadingIcon"]'))
   await expectCenteredIcon(compactRelated, compactRelated.locator('[aria-hidden="true"]').first())
   await expectCenteredIcon(compactExternal, compactExternal.locator('[aria-hidden="true"]').first())
@@ -800,15 +796,15 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
   await page.keyboard.press('Escape')
 
   const tallAgendaCard = page.locator(`[data-agenda-entry="${tallEntry.id}"]`).getByRole('article')
-  const tallBadgeGroup = tallAgendaCard.getByLabel('Entry hierarchy, status, and ticket links')
+  const tallBadgeGroup = tallAgendaCard.getByLabel('Entry hierarchy and ticket links')
   expect(await tallBadgeGroup.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
     'wrap',
   )
   const tallContextNames = await tallBadgeGroup
     .getByRole('button')
     .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
-  expect(tallContextNames).toHaveLength(6)
-  expect(tallContextNames.slice(4)).toEqual(['Related tickets', 'External links'])
+  expect(tallContextNames).toHaveLength(5)
+  expect(tallContextNames.slice(3)).toEqual(['Related tickets', 'External links'])
   const [tallCardBox, tallGroupBox] = await Promise.all([
     tallAgendaCard.boundingBox(),
     tallBadgeGroup.boundingBox(),

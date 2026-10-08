@@ -602,7 +602,7 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     )
     const shortCard = shortBlock.getByRole('article')
     await expect(shortCard).toHaveClass(/border-accented\/50/)
-    const shortHierarchy = shortCard.getByLabel('Entry hierarchy, status, and ticket links')
+    const shortHierarchy = shortCard.getByLabel('Entry hierarchy and ticket links')
     await expect(shortBlock).toBeVisible()
     expect(await shortHierarchy.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
       'nowrap',
@@ -633,22 +633,30 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
       shortCardBox.y + shortCardBox.height + 3,
     )
     expect(shortCardBox.height).toBeLessThanOrEqual(shortBlockBox.height + 1)
-    const shortStatus = shortHierarchy.getByRole('button', { name: /Change status from / })
+    const shortStatus = shortCard.getByRole('button', {
+      name: 'Change status for Weekly second ticket from Idea',
+    })
     await expect(shortStatus).toBeVisible()
-    const shortStatusBox = await shortStatus.boundingBox()
-    if (!shortStatusBox) throw new Error('30-minute entry status action must be visible')
+    await expect(shortStatus.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+    await expect(shortHierarchy.getByRole('button', { name: /Change status/ })).toHaveCount(0)
+    const [shortStatusBox, shortTitleBox] = await Promise.all([
+      shortStatus.boundingBox(),
+      shortCard.getByRole('link', { name: 'Weekly second ticket' }).boundingBox(),
+    ])
+    if (!shortStatusBox || !shortTitleBox)
+      throw new Error('30-minute entry status action and ticket title must be visible')
+    expect(shortStatusBox.x + shortStatusBox.width).toBeLessThanOrEqual(shortTitleBox.x + 1)
     expect(shortStatusBox.y + shortStatusBox.height).toBeLessThanOrEqual(
       shortCardBox.y + shortCardBox.height + 3,
     )
     const shortBadgeNames = await shortHierarchy
       .getByRole('button')
       .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
-    expect(shortBadgeNames.slice(0, 3)).toEqual([
+    expect(shortBadgeNames).toEqual([
       'client: Weekly client; actions',
       'project: Weekly project; actions',
       'release: Weekly release; actions',
     ])
-    expect(shortBadgeNames[3]).toMatch(/^Change status from .+$/)
     expect(shortBlockBox.height).toBeCloseTo(54, 0)
     expect(adjacentBox.height).toBeCloseTo(54, 0)
     expect(Math.abs(shortBlockBox.y + shortBlockBox.height - adjacentBox.y)).toBeLessThanOrEqual(1)
@@ -656,21 +664,13 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await finalShortBadge.focus()
     expect(await shortHierarchy.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
     await shortStatus.focus()
-    await shortHierarchy.evaluate((element) => {
-      element.scrollLeft = element.scrollWidth
-    })
-    const focusedStatusBox = await shortStatus.boundingBox()
-    if (!focusedStatusBox) throw new Error('30-minute entry status action must be focusable')
-    expect(focusedStatusBox.x).toBeGreaterThanOrEqual(shortHierarchyBox.x - 1)
-    expect(focusedStatusBox.x + focusedStatusBox.width).toBeLessThanOrEqual(
-      shortHierarchyBox.x + shortHierarchyBox.width + 1,
-    )
+    await expect(shortStatus).toBeFocused()
     const middleBlock = page.locator(
       `[data-week-date="${dates[0]}"] [data-agenda-entry="${entries[0]}"]`,
     )
     const middleHierarchy = middleBlock
       .getByRole('article')
-      .getByLabel('Entry hierarchy, status, and ticket links')
+      .getByLabel('Entry hierarchy and ticket links')
     expect(await middleHierarchy.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
       'nowrap',
     )
@@ -682,7 +682,7 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
       `[data-week-date="${dates[1]}"] [data-agenda-entry="${entries[2]}"]`,
     )
     const tallCard = tallBlock.getByRole('article')
-    const tallHierarchy = tallCard.getByLabel('Entry hierarchy, status, and ticket links')
+    const tallHierarchy = tallCard.getByLabel('Entry hierarchy and ticket links')
     expect(await tallHierarchy.evaluate((element) => getComputedStyle(element).flexWrap)).toBe(
       'wrap',
     )
@@ -700,8 +700,14 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     const tallBadgeNames = await tallHierarchy
       .getByRole('button')
       .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
-    expect(tallBadgeNames).toHaveLength(4)
-    expect(tallBadgeNames[3]).toMatch(/^Change status from .+$/)
+    expect(tallBadgeNames).toEqual([
+      'client: Weekly client; actions',
+      'project: Weekly project; actions',
+      'release: Weekly release; actions',
+    ])
+    await expect(
+      tallCard.getByRole('button', { name: /Change status for Weekly second ticket/ }),
+    ).toBeVisible()
 
     expect(
       (

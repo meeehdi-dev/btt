@@ -149,6 +149,44 @@ test('board status moves work across lanes, without reordering or changing card 
       )
     await expect(card(idea.id).locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
     await expect(card(done.id).locator('[data-ticket-status-icon="Done"]')).toBeVisible()
+    const initialStatusTrigger = card(idea.id).getByRole('button', {
+      name: 'Change status for Idea source from Idea',
+    })
+    await expect(initialStatusTrigger).toBeVisible()
+    await expect(card(idea.id).getByRole('link', { name: 'Idea source' })).toHaveAttribute(
+      'href',
+      `/tickets/${idea.id}`,
+    )
+    await initialStatusTrigger.focus()
+    await expect(initialStatusTrigger).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(new RegExp(`/tickets\\?release=${r.id}$`))
+    for (const status of ticketStatuses) {
+      const item = page.getByRole('menuitem', { name: status, exact: true })
+      await expect(item).toBeVisible()
+      const leadingIcon = item.locator('[data-slot="itemLeadingIcon"]')
+      const label = item.locator('[data-slot="itemLabel"]')
+      await expect(leadingIcon).toHaveCount(1)
+      const [iconBox, labelBox] = await Promise.all([
+        leadingIcon.boundingBox(),
+        label.boundingBox(),
+      ])
+      if (!iconBox || !labelBox)
+        throw new Error(`Status menu item ${status} must have an icon and label`)
+      expect(iconBox.x + iconBox.width).toBeLessThanOrEqual(labelBox.x)
+      if (status === 'Idea') {
+        await expect(item).toBeDisabled()
+        await expect(item.locator('[data-slot="ticketStatusCurrentIcon"]')).toBeVisible()
+      } else {
+        await expect(item).toBeEnabled()
+        await expect(item.locator('[data-slot="ticketStatusCurrentIcon"]')).toHaveCount(0)
+      }
+    }
+    await page.keyboard.press('Escape')
+    await card(idea.id).getByRole('link', { name: 'Idea source' }).click()
+    await expect(page).toHaveURL(`/tickets/${idea.id}`)
+    await page.goBack()
+    await waitForClientMount(page)
     await expect(lane('Idea').getByText('Idea source')).toBeVisible()
     await expect(lane('Done').getByText('Done source')).toBeVisible()
     await expect(board.getByText('Other ticket')).toHaveCount(0)
@@ -158,7 +196,9 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(card(idea.id).getByText('Board comment')).toHaveCount(0)
     await expect(card(idea.id).getByLabel('Ticket context')).toBeVisible()
     await expect(board.getByText('No estimate')).toHaveCount(0)
-    await expect(board.getByText('Change status')).toHaveCount(0)
+    await expect(
+      card(idea.id).getByLabel('Ticket main information').getByRole('button'),
+    ).toHaveCount(1)
 
     // Source lane drop and cancelled drag must not write anything.
     await card(idea.id).dragTo(lane('Idea'), { sourcePosition: { x: 2, y: 2 } })
@@ -170,6 +210,9 @@ test('board status moves work across lanes, without reordering or changing card 
     })
     await expect(page.locator('html')).toHaveAttribute('data-drag-image-ticket-id', idea.id)
     await card(idea.id).getByRole('link', { name: 'Idea source' }).dragTo(lane('Done'))
+    await card(idea.id)
+      .getByRole('button', { name: 'Change status for Idea source from Idea' })
+      .dragTo(lane('Done'))
     await card(idea.id).getByRole('button', { name: 'Related tickets' }).hover()
     await page.locator(`[data-related-ticket-id="${done.id}"]`).dragTo(lane('Done'))
     await expect(page).toHaveURL(new RegExp(`/tickets\\?release=${r.id}$`))
@@ -259,17 +302,34 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(lane('Test').getByText('Done source')).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
 
-    // Status changes on the board use desktop drag; ticket detail provides a direct status selector.
-    await expect(card(idea.id).getByRole('button', { name: /Move Idea source/ })).toHaveCount(0)
+    // Board status changes are available from the title icon as well as desktop drag.
     await dragBetweenLanes(page, board, card(idea.id), lane('Test'))
     await expect(lane('Test').getByText('Idea source')).toBeVisible()
+    const testStatusTrigger = card(idea.id).getByRole('button', {
+      name: 'Change status for Idea source from Test',
+    })
+    await testStatusTrigger.click()
+    await page.getByRole('menuitem', { name: 'Review', exact: true }).click()
+    await expect(lane('Review').getByText('Idea source')).toBeVisible()
+    const reviewStatusTrigger = card(idea.id).getByRole('button', {
+      name: 'Change status for Idea source from Review',
+    })
+    await expect(reviewStatusTrigger).toBeFocused()
+    failNext = true
+    await reviewStatusTrigger.click()
+    await page.getByRole('menuitem', { name: 'Deploy', exact: true }).click()
+    await expect(page.getByRole('alert')).toContainText('Could not update ticket')
+    await expect(lane('Review').getByText('Idea source')).toBeVisible()
+    await page.getByRole('button', { name: 'Retry status change' }).click()
+    await expect(lane('Deploy').getByText('Idea source')).toBeVisible()
+    await expect(page.getByRole('status')).toHaveText('Moved Idea source to Deploy.')
     await page.goto(`/tickets/${idea.id}`)
     await expect(page).toHaveURL(`/tickets/${idea.id}`)
     const ticketStatus = page.getByRole('combobox', { name: 'Ticket status for Idea source' })
     const releaseLink = page
       .getByRole('navigation', { name: 'Breadcrumb' })
       .getByRole('link', { name: 'Move Release' })
-    await expect(ticketStatus).toContainText('Test')
+    await expect(ticketStatus).toContainText('Deploy')
     await expect(releaseLink).toBeVisible()
     await expect(releaseLink).toHaveAttribute('href', `/releases/${r.id}`)
     await page.goto(`/releases/${r.id}`)
@@ -285,6 +345,9 @@ test('board status moves work across lanes, without reordering or changing card 
     await page.getByRole('option', { name: 'Include archived', exact: true }).click()
     await expect(card(archived.id)).toBeVisible()
     await expect(card(archived.id)).toHaveAttribute('draggable', 'false')
+    await expect(
+      card(archived.id).getByRole('button', { name: /Change status for Archived source/ }),
+    ).toBeDisabled()
     await expect(card(archived.id).getByRole('button', { name: /^Move to / })).toHaveCount(0)
     await expect(
       card(archived.id).getByRole('button', { name: /^(client|project|release): .*; actions$/ }),
