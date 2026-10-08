@@ -646,6 +646,16 @@ Goal: remove the redundant Agenda status badge and make status changes directly 
 
 Acceptance: Agenda's labeled status badge is absent and its title-adjacent icon opens the fixed status menu; the Ticket Board icon does the same while lane drag-and-drop still works. Existing status updates, title navigation, archive restrictions, errors/retries, keyboard access, and unrelated ticket surfaces remain correct. Non-browser verification and human code review are recorded in M34. Focused/full E2E and 1280 CSS px visual review were not run and are explicitly deferred by the user's completion declaration, not claimed as passing.
 
+### M35 — Nuxt UI semantic color theme
+
+Status: Complete by the user's declaration on 2026-10-08; code review accepted. Browser tests and the 1280 CSS px visual/focus review were explicitly deferred, not claimed as passing. See [`docs/milestones/m35-nuxt-ui-color-theme.md`](docs/milestones/m35-nuxt-ui-color-theme.md) and [ADR 0049](docs/decisions/0049-nuxt-ui-semantic-color-theme.md).
+
+- Configure primary amber, neutral zinc, and secondary blue for the compact client/project/release hierarchy badges. Preserve info blue, success green, and error red; map warning to orange to match the existing tracked-time band.
+- Use contrast-aware semantic shades: primary amber-800/light and amber-200/dark; other semantic accent shades 800/light and 300/dark. Verify actual component contrast rather than relying on palette names alone.
+- Keep estimate-ratio thresholds, user-managed client/project colors, stored data, APIs, and behavior unchanged. Add focused computed-color/contrast coverage and review Agenda/Board surfaces at 1280 CSS px.
+
+Acceptance: primary/neutral/secondary mappings match the approved choices; palette-level calculations target normal-text contrast in light/dark contexts; secondary hierarchy badges and all four tracked-time ratio colors retain their semantic roles. The focused/full browser checks and live visual/focus review were explicitly deferred by the user (not claimed as passing); code review and closeout evidence are recorded in M35.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

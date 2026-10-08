@@ -83,3 +83,4 @@ NNNN-short-descriptive-slug.md
 | [0046](0046-quiet-done-ticket-board-visibility.md)             | Accepted   | Hide quiet Done tickets from the active Ticket Board       |
 | [0047](0047-muted-tracked-time-without-estimate.md)            | Accepted   | Muted tracked time without an estimate                     |
 | [0048](0048-agenda-and-board-status-icon-menus.md)             | Accepted   | Agenda and Ticket Board status icon menus                  |
+| [0049](0049-nuxt-ui-semantic-color-theme.md)                   | Accepted   | Nuxt UI semantic colors and contrast                       |
