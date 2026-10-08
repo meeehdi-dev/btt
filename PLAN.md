@@ -1,5 +1,7 @@
 # Life/Work Organizer Feature Plan
 
+**Current project name:** `btt`. The package, README, and sign-in page use this name; the authenticated header starts with navigation and has no wordmark. Existing deployment/repository identifiers and historical `nxmr` references are unchanged. See [M31](docs/milestones/m31-project-name-and-header-navigation.md) and [ADR 0045](docs/decisions/0045-btt-project-name-and-header.md).
+
 ## Context
 
 The product direction has been narrowed to a work-only app: a re-implementation/evolution of `tt` with a lightweight Linear-style ticket system for projects, tickets, estimates, and tracked time.

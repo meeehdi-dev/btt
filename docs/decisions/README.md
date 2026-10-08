@@ -79,3 +79,4 @@ NNNN-short-descriptive-slug.md
 | [0042](0042-desktop-only-ui-and-spacing.md)                    | Accepted   | Desktop-only UI and compact spacing system                 |
 | [0043](0043-release-completion-action-location.md)             | Accepted   | Keep release completion on release detail                  |
 | [0044](0044-week-only-agenda-and-status-selector.md)           | Accepted   | Week-only Agenda route and direct status selector          |
+| [0045](0045-btt-project-name-and-header.md)                    | Accepted   | BTT project name and header wordmark removal               |

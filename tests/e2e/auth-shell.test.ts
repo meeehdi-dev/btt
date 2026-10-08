@@ -139,6 +139,7 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
   await page.goto('/')
   await expect(page).toHaveURL(/\/login\?redirect=\/agenda$/)
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
+  await expect(page.getByText('btt', { exact: true })).toBeVisible()
   await expectLoginCardCentered(page)
 
   const helpers = (await testAuth.$context).test
@@ -164,6 +165,12 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
     await expect(page.getByRole('complementary', { name: 'Sidebar' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Open menu' })).toHaveCount(0)
     const mainNavigation = header.getByRole('navigation', { name: 'Main navigation' })
+    const leftHeaderBlock = header.locator('[data-header-block="left"]')
+    await expect(header.getByText('nxmr', { exact: true })).toHaveCount(0)
+    await expect(leftHeaderBlock.locator(':scope > *')).toHaveCount(1)
+    await expect(leftHeaderBlock.locator(':scope > nav[aria-label="Main navigation"]')).toHaveCount(
+      1,
+    )
     expect(
       (await mainNavigation.getByRole('link').allTextContents()).map((label) => label.trim()),
     ).toEqual(['Agenda', 'Tickets', 'Clients'])

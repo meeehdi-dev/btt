@@ -1,4 +1,4 @@
-# nxmr
+# btt
 
 A work-only organizer combining ticket-based projects with agenda-first time tracking.
 

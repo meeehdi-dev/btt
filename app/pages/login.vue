@@ -48,7 +48,7 @@ function safeRedirect(value: unknown) {
   <UCard class="w-full max-w-md">
     <template #header>
       <div>
-        <p class="text-sm font-medium text-primary">nxmr</p>
+        <p class="text-sm font-medium text-primary">btt</p>
         <h1 class="mt-2 text-2xl font-semibold text-highlighted">Welcome back</h1>
       </div>
     </template>

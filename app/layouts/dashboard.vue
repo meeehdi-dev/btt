@@ -61,7 +61,6 @@ onBeforeUnmount(() => {
         class="mx-auto grid w-full grid-cols-[minmax(0,1fr)_minmax(18rem,32rem)_minmax(0,1fr)] items-center gap-2"
       >
         <div data-header-block="left" class="flex min-w-0 items-center gap-2">
-          <NuxtLink to="/agenda" class="shrink-0 font-semibold text-highlighted">nxmr</NuxtLink>
           <nav class="flex min-w-0 items-center gap-1" aria-label="Main navigation">
             <NuxtLink
               v-for="item in navigation"

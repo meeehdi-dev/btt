@@ -5,6 +5,7 @@
 - Supersedes: ADR 0015 — compact navigation and mobile control columns
 - Superseded by: None
 - Partial supersession by ADR 0042: narrow-screen stacking and responsive overflow commitments are retired; the single three-block header, visible navigation/account actions, destinations, search, and keyboard shortcuts remain authoritative.
+- Partial supersession by ADR 0045: omit the left-block wordmark so navigation is its first content; all other header decisions remain authoritative.
 
 ## Context
 
@@ -33,6 +34,7 @@ The content area no longer reserves sidebar width, and there is one search/navig
 ## Links
 
 - `docs/milestones/m23-three-block-header-navigation.md`
+- `0045-btt-project-name-and-header.md`
 - `docs/milestones/m7-search-and-ui-polish.md`
 - `docs/decisions/0003-m1-authentication-and-database.md`
 - `docs/decisions/0015-compact-navigation-and-mobile-columns.md` (superseded)
