@@ -13,6 +13,26 @@ import {
 } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
 
+async function settledBorderTopColor(locator: Locator) {
+  return locator.evaluate(
+    (element) =>
+      new Promise<string>((resolve, reject) => {
+        let previous = getComputedStyle(element).borderTopColor
+        let stableFrames = 0
+        let frames = 0
+        const check = () => {
+          const current = getComputedStyle(element).borderTopColor
+          stableFrames = current === previous ? stableFrames + 1 : 0
+          previous = current
+          if (stableFrames >= 3) resolve(current)
+          else if (++frames >= 120) reject(new Error('Border color did not settle'))
+          else requestAnimationFrame(check)
+        }
+        requestAnimationFrame(check)
+      }),
+  )
+}
+
 async function expectNoHorizontalOverflow(locator: Locator) {
   await expect
     .poll(() => locator.evaluate((element) => element.scrollWidth <= element.clientWidth))
@@ -174,6 +194,9 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
   const header = card.getByLabel('Ticket main information')
   const context = card.getByLabel('Ticket context')
   const titleLink = header.getByRole('link', { name: title })
+  const statusTrigger = header.getByRole('button', {
+    name: `Change status for ${title} from Idea`,
+  })
   const usage = header.getByLabel('Ticket usage')
   const hierarchy = context.getByLabel('Ticket hierarchy')
   await expectNoHorizontalOverflow(context)
@@ -184,7 +207,9 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
   const related = context.getByRole('button', { name: 'Related tickets' })
   await expect(usage).toBeVisible()
   await expect(usage.getByLabel(/Estimate usage:/)).toHaveCount(0)
-  await expect(titleLink.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+  await expect(statusTrigger).toBeVisible()
+  await expect(statusTrigger.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+  await expect(titleLink.locator('[data-ticket-status-icon]')).toHaveCount(0)
   await expect(hierarchyBadge).toHaveClass(/bg-secondary\/10/)
   await expect(hierarchyBadge.locator('span').last()).toHaveClass(/text-secondary-700/)
   await expect(hierarchyBadge.locator('span').last()).toHaveClass(/dark:text-secondary-300/)
@@ -210,6 +235,9 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
     !relatedBox
   )
     throw new Error('Board ticket card rows must be visible')
+  const statusBox = await statusTrigger.boundingBox()
+  if (!statusBox) throw new Error('Board ticket status icon must be visible beside its title')
+  expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(titleBox.x + 1)
   expect(usageBox.x - (titleBox.x + titleBox.width)).toBeGreaterThanOrEqual(0)
   expect(usageBox.x - (titleBox.x + titleBox.width)).toBeLessThanOrEqual(12)
   expect(contextBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height)
@@ -434,10 +462,10 @@ test('ticket board and release cards expose relation and external-link popovers'
     }
   })
   await boardCard.hover({ position: { x: 8, y: 8 } })
-  const boardHoverBorderColor = await boardCard.evaluate(
-    (element) => getComputedStyle(element).borderTopColor,
-  )
-  expect(boardHoverBorderColor).not.toBe(boardSurfaceMetrics.borderColor)
+  await expect
+    .poll(() => boardCard.evaluate((element) => getComputedStyle(element).borderTopColor))
+    .not.toBe(boardSurfaceMetrics.borderColor)
+  const boardHoverBorderColor = await settledBorderTopColor(boardCard)
   const boardBadgeMetrics = await boardHierarchyBadge.evaluate((element) => {
     const style = getComputedStyle(element)
     const rect = element.getBoundingClientRect()
@@ -590,9 +618,7 @@ test('ticket board and release cards expose relation and external-link popovers'
   }))
   await page.mouse.move(0, 0)
   await matchingAgendaEntry.hover({ position: { x: 8, y: 8 } })
-  const agendaHoverBorderColor = await matchingAgendaEntry.evaluate(
-    (element) => getComputedStyle(element).borderTopColor,
-  )
+  const agendaHoverBorderColor = await settledBorderTopColor(matchingAgendaEntry)
   expect(agendaHoverBorderColor).toBe(boardHoverBorderColor)
   expect(agendaHoverBorderColor).not.toBe(agendaSurfaceMetrics.borderColor)
   expect(boardSurfaceMetrics).toEqual(agendaSurfaceMetrics)
@@ -750,6 +776,9 @@ test('Agenda entry context controls retain compact layout and weekly behavior', 
   await root.evaluate((element) => element.classList.remove('dark'))
   const lightContrast = await measureCompactBadgeContrast(compactClient.locator('span').last())
   await root.evaluate((element) => element.classList.add('dark'))
+  await expect
+    .poll(() => measureCompactBadgeContrast(compactClient.locator('span').last()))
+    .toBeGreaterThanOrEqual(4.5)
   const darkContrast = await measureCompactBadgeContrast(compactClient.locator('span').last())
   await root.evaluate((element) => element.classList.remove('dark'))
   expect(lightContrast).toBeGreaterThanOrEqual(4.5)

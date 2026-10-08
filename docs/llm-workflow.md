@@ -74,6 +74,19 @@ A task is done only when:
 - The diff is ready for human code review.
 - Any follow-up work is captured in the milestone file or roadmap.
 
+### Local verification and server handoff
+
+Before an implementation is handed to a human for code review, run every automated check required by its approved plan against the final worktree. For application changes, this includes the full E2E/browser suite; listing tests, running only focused tests, or skipping browser execution because a server is unavailable does not count as full verification. Record exact commands and outcomes in the active milestone.
+
+Run non-browser gates before browser tests (database migration on an isolated test database, format, lint, both typechecks, unit tests, build, workflow/documentation checks, and diff checks as applicable). Then:
+
+1. Start and track a local app server owned by the agent. Do not silently attach to or terminate a process whose owner is unknown.
+2. Run focused browser tests as needed, then the full Playwright suite against that already-running server. Use `PLAYWRIGHT_SKIP_DEV_SERVER=1` and `PLAYWRIGHT_BASE_URL` as needed so Playwright does not own and automatically stop the server.
+3. If any check fails, keep the agent-owned server running while investigating and fixing the issue; repeat focused checks and then the full suite. Do not report the work ready for review or stop the server while required checks remain failing.
+4. Only after all required checks pass on the final worktree, stop the server started by the agent and verify it exited/released its port. Then hand off for human code review. Never stop a user-owned server without explicit permission.
+
+Keep first-failure evidence visible. Do not add automatic retries or raise global assertion/test/job timeouts to make a red check pass. A per-test timeout increase may be used only when recent run durations show that a specific test regularly takes over 20–25 seconds or approaches the default 30-second budget and trace evidence shows its intended work continues to progress. Add only bounded, test-specific headroom, document the before/after budget and evidence in the milestone, and do not use extra time to mask missing state, stale/detached locators, wrong expectations, or fixture defects. Preserve ADR 0041's no-automatic-retry CI policy.
+
 ## Agent roles and handoffs
 
 Agents may perform multiple roles in one session, but they must make the active role clear in their artifacts.

@@ -59,8 +59,8 @@ const weekDates = computed(() =>
 )
 const weekStart = computed(() => weekDates.value[0] ?? '')
 const isCurrentPeriod = computed(() => {
-  const current = currentDate.value || today(getLocalTimeZone()).toString()
-  return weekDates.value.includes(current)
+  const current = currentDate.value
+  return current !== '' && weekDates.value.includes(current)
 })
 const weekRangeLabel = computed(() =>
   weekDates.value.length === 7

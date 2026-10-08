@@ -656,6 +656,15 @@ Status: Complete by the user's declaration on 2026-10-08; code review accepted. 
 
 Acceptance: primary/neutral/secondary mappings match the approved choices; palette-level calculations target normal-text contrast in light/dark contexts; secondary hierarchy badges and all four tracked-time ratio colors retain their semantic roles. The focused/full browser checks and live visual/focus review were explicitly deferred by the user (not claimed as passing); code review and closeout evidence are recorded in M35.
 
+### M36 — E2E verification and server handoff
+
+Status: Implementation and local verification complete on 2026-10-08: all approved local gates passed, including 43/43 E2E tests, and the agent-owned server/database ports were released. Code review was accepted via Plannotator pn-5cfb1d on 2026-10-08; the human completion declaration remains pending. See [`docs/milestones/m36-e2e-verification-and-server-handoff.md`](docs/milestones/m36-e2e-verification-and-server-handoff.md); accepted [ADR 0050](docs/decisions/0050-e2e-verification-and-server-handoff.md) records the local verification/server handoff policy.
+
+- Require all approved local quality gates and the complete E2E suite to pass on the final worktree before handoff. Keep an agent-owned app server available during failure diagnosis; stop it only after all checks pass, then release it for human review.
+- Diagnose the current E2E failures without automatic retries or global timeout increases. Allow a narrowly scoped per-test timeout only when repeated runtime/trace evidence shows legitimate progress needs bounded headroom. Preserve the existing CI workflow and its strict first-attempt policy.
+
+Acceptance: current E2E issues are resolved within approved product behavior; full local checks pass; any targeted timeout has recorded evidence; the agent-owned server remains available while failing and is stopped/released only after all checks pass. Human code review and completion evidence are recorded in M36.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

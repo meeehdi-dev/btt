@@ -4,6 +4,7 @@ import { getWeekDates } from '../../shared/agenda-week'
 import { db } from '../../server/db'
 import { client, project, release, ticket, timeEntry } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+import { waitForClientMount } from './wait-for-client-mount'
 
 type AgendaFixture = {
   clientId: string
@@ -127,6 +128,7 @@ async function openWeekAgenda(page: Page, date: string) {
   const html = await response.text()
   expect(html).toContain('aria-label="Week timeline"')
   await expect(page.getByText('Loading agenda…', { exact: true })).toHaveCount(0)
+  await waitForClientMount(page)
   return page.getByRole('region', { name: 'Week timeline' })
 }
 
@@ -241,6 +243,9 @@ test('Agenda cards show drag affordance without overriding link, badge, or resiz
   const card = wrapper.getByRole('article')
   const baseBorderColor = await card.evaluate((element) => getComputedStyle(element).borderTopColor)
   await card.hover({ position: { x: 10, y: 25 } })
+  await expect
+    .poll(() => card.evaluate((element) => getComputedStyle(element).borderTopColor))
+    .not.toBe(baseBorderColor)
   const hovered = await card.evaluate((element) => ({
     borderColor: getComputedStyle(element).borderTopColor,
     cursor: getComputedStyle(element).cursor,
@@ -299,10 +304,22 @@ test('Agenda reports a server-side overlap when a blocker appears after loading'
   await add(hiddenTicketId, date, 960, 180, 'Concurrent blocker') // leave the loaded week stale
   const stale = await moving.boundingBox()
   if (!stale) throw new Error('Entry missing before concurrent conflict')
+  const moveStart = { x: stale.x + 2, y: stale.y + 20 }
+  const startHit = await page.evaluate(({ x, y }) => {
+    const target = document.elementFromPoint(x, y)
+    return {
+      entryId: target?.closest<HTMLElement>('[data-agenda-entry]')?.dataset.agendaEntry,
+      interactive: !!target?.closest(
+        'a,button,input,select,textarea,[role="button"],[role="combobox"]',
+      ),
+    }
+  }, moveStart)
+  expect(startHit).toEqual({ entryId: movingId, interactive: false })
   const staleTarget = await point(page, timeline, date, 960, 25)
-  await page.mouse.move(stale.x + 2, stale.y + 20)
+  await page.mouse.move(moveStart.x, moveStart.y)
   await page.mouse.down()
   await page.mouse.move(staleTarget.x, staleTarget.y, { steps: 8 })
+  await expect(timeline.getByRole('status')).toHaveText('16:00–17:00')
   await page.mouse.up()
   await expect(page.getByRole('alert').filter({ hasText: /conflict|overlap/i })).toBeVisible()
   const week = await (

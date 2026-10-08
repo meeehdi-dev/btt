@@ -4,6 +4,7 @@ import { getWeekDates } from '../../shared/agenda-week'
 import { db } from '../../server/db'
 import { client, project, release, ticket, timeEntry, userSettings } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+import { waitForClientMount } from './wait-for-client-mount'
 
 async function createHierarchy(page: import('@playwright/test').Page, name: string) {
   const clientRecord = await (
@@ -86,6 +87,10 @@ function clockLabel(hour: number, minute: number) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
+function normalizeIntlWhitespace(value: string | null) {
+  return value?.replace(/\s+/gu, ' ').trim() ?? ''
+}
+
 async function browserCurrentDateTimeLabel(page: import('@playwright/test').Page) {
   return page.evaluate(() => {
     const now = new Date()
@@ -129,7 +134,6 @@ test('Agenda marks the current local date and time in its week-only view', async
     await page.setViewportSize({ width: 1280, height: 1900 })
     await page.goto(`/agenda?date=${current.date}`)
     await page.waitForLoadState('networkidle')
-
     const currentWeekButton = page.getByRole('button', { name: /^Go to current week/ })
     const weekRangeButton = page.locator('button[aria-label^="Agenda week:"]')
     let currentButtonLabel = await browserCurrentDateTimeLabel(page)
@@ -487,11 +491,16 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await expect(progressTooltip).toContainText('Worked 1hr of 1hr target')
     await expect(progressTooltip).toBeVisible()
     const weekRange = page.locator('button[aria-label^="Agenda week:"]')
-    const initialRange = await weekRange.getAttribute('aria-label')
+    const initialRange = normalizeIntlWhitespace(await weekRange.getAttribute('aria-label'))
+    expect(initialRange).not.toBe('')
     await page.getByRole('button', { name: 'Next week' }).click()
-    await expect(weekRange).not.toHaveAttribute('aria-label', initialRange!)
+    await expect
+      .poll(async () => normalizeIntlWhitespace(await weekRange.getAttribute('aria-label')))
+      .not.toBe(initialRange)
     await page.getByRole('button', { name: 'Previous week' }).click()
-    await expect(weekRange).toHaveAttribute('aria-label', initialRange!)
+    await expect
+      .poll(async () => normalizeIntlWhitespace(await weekRange.getAttribute('aria-label')))
+      .toBe(initialRange)
     await expect(page.getByRole('button', { name: 'Day', exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Week', exact: true })).toHaveCount(0)
     await expect(page.getByRole('progressbar')).toHaveCount(7)
@@ -776,8 +785,9 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
       ),
     ).toBeLessThan(3)
     await localizedPage.goto('/settings')
+    await waitForClientMount(localizedPage)
     await localizedPage.getByRole('combobox', { name: 'Week starts on' }).click()
-    await expect(localizedPage.getByText('Sonntag', { exact: true })).toBeVisible()
+    await expect(localizedPage.getByRole('option', { name: 'Sonntag', exact: true })).toBeVisible()
   } finally {
     await localeContext?.close()
     for (const ticketId of tickets) {

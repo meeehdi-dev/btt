@@ -121,6 +121,7 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
       await search.fill(query)
       await expect(page.getByRole('option', { name: match, exact: true })).toBeVisible()
       await expect(page.getByRole('option', { name: miss, exact: true })).toHaveCount(0)
+      await page.keyboard.press('Escape')
     }
 
     await page.setViewportSize({ width: 1280, height: 900 })
@@ -225,7 +226,9 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
       await searchFilter(filter.kind, filter.placeholder, filter.query, filter.match, filter.miss)
 
     await page.getByRole('button', { name: 'Filter ticket' }).click()
-    await page.getByPlaceholder('Search tickets…').fill('Searchable')
+    const boardTicketSearch = page.getByPlaceholder('Search tickets…')
+    await expect(boardTicketSearch).toBeVisible()
+    await boardTicketSearch.fill('Searchable')
     await page.getByRole('option', { name: `Searchable ticket ${suffix}`, exact: true }).click()
     await expect(page.getByRole('button', { name: 'Filter ticket' })).toContainText(
       `Searchable ticket ${suffix}`,
@@ -297,7 +300,9 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
       await searchFilter(filter.kind, filter.placeholder, filter.query, filter.match, filter.miss)
 
     await page.getByRole('button', { name: 'Filter ticket' }).click()
-    await page.getByPlaceholder('Search tickets…').fill('Searchable')
+    const agendaTicketSearch = page.getByPlaceholder('Search tickets…')
+    await expect(agendaTicketSearch).toBeVisible()
+    await agendaTicketSearch.fill('Searchable')
     await page.getByRole('option', { name: `Searchable ticket ${suffix}`, exact: true }).click()
     await expect(page.getByRole('button', { name: 'Filter client' })).toContainText(
       `Searchable client ${suffix}`,

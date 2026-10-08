@@ -144,7 +144,8 @@ test('semantic colors keep primary, hierarchy, and tracked-time text contrasted'
       await create('/api/time-entries', {
         ticketId: ticket.id,
         date,
-        startMinute: 540 + index * 30,
+        startMinute:
+          540 + usageCases.slice(0, index).reduce((total, previous) => total + previous.minutes, 0),
         durationMinutes: usage.minutes,
         description: usage.name,
       })
@@ -180,10 +181,9 @@ test('semantic colors keep primary, hierarchy, and tracked-time text contrasted'
     await setTheme(page, 'dark')
     for (const [index, ticket] of tickets.entries()) {
       const usageValue = cards[index]!.locator(`[aria-label^="Tracked:"] .text-${ticket.semantic}`)
-      expect(
-        await contrastRatio(usageValue),
-        `dark ${ticket.semantic} usage text`,
-      ).toBeGreaterThanOrEqual(4.5)
+      await expect
+        .poll(() => contrastRatio(usageValue), `dark ${ticket.semantic} usage text`)
+        .toBeGreaterThanOrEqual(4.5)
     }
     await expect(hierarchyLabel).toHaveClass(/dark:text-secondary-300/)
     expect(

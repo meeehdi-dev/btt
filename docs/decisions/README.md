@@ -84,3 +84,4 @@ NNNN-short-descriptive-slug.md
 | [0047](0047-muted-tracked-time-without-estimate.md)            | Accepted   | Muted tracked time without an estimate                     |
 | [0048](0048-agenda-and-board-status-icon-menus.md)             | Accepted   | Agenda and Ticket Board status icon menus                  |
 | [0049](0049-nuxt-ui-semantic-color-theme.md)                   | Accepted   | Nuxt UI semantic colors and contrast                       |
+| [0050](0050-e2e-verification-and-server-handoff.md)            | Accepted   | Complete local verification before server handoff          |
