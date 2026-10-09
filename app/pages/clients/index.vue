@@ -1,10 +1,19 @@
 <script setup lang="ts">
+import { trackAppApiFetch } from '~/composables/useAppDataInvalidation'
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
 const showArchived = ref(false)
-const { data, pending, error, refresh } = await useApiFetch('/api/clients', {
-  query: computed(() => ({ archived: showArchived.value ? 'true' : undefined })),
-})
+const clientsKey = computed(
+  () => `app-api:clients:list:${showArchived.value ? 'archived' : 'active'}`,
+)
+const { data, pending, error, refresh } = await trackAppApiFetch(
+  useApiFetch('/api/clients', {
+    key: clientsKey,
+    query: computed(() => ({ archived: showArchived.value ? 'true' : undefined })),
+  }),
+  { key: clientsKey, resources: ['clients', 'hierarchy', 'search'] },
+)
 const clients = computed(() => data.value?.clients ?? [])
 </script>
 

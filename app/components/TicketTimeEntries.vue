@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
 import { usageColor } from '#shared/time-entry'
@@ -8,9 +9,15 @@ const props = defineProps<{
   estimateMinutes: number | null
   canCreate: boolean
 }>()
-const { data, refresh, error } = await useApiFetch('/api/time-entries', {
-  query: { ticketId: props.ticketId },
-})
+const timeEntriesKey = computed(() => `app-api:time-entries:${props.ticketId}`)
+const { data, error } = await trackAppApiFetch(
+  useApiFetch('/api/time-entries', {
+    key: timeEntriesKey,
+    query: computed(() => ({ ticketId: props.ticketId })),
+  }),
+  { key: timeEntriesKey, resources: ['time-entries', 'tickets'] },
+)
+const { invalidateMutation } = useAppDataInvalidation()
 const date = shallowRef<CalendarDate | null>(null)
 const datePickerOpen = ref(false)
 onMounted(() => {
@@ -68,7 +75,7 @@ function reset() {
   description.value = ''
 }
 async function retryEntries() {
-  const result = await runClientEffect(refreshEffect(refresh, () => error.value))
+  const result = await invalidateMutation('time-entry')
   if (result._tag === 'Success' && actionNeedsRefresh.value) {
     actionNeedsRefresh.value = false
     actionError.value = ''
@@ -108,11 +115,11 @@ async function save() {
       return
     }
     reset()
-    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const refreshed = await invalidateMutation('time-entry')
     if (refreshed._tag === 'Failure') {
       actionNeedsRefresh.value = true
       actionErrorTitle.value = 'Time entry saved; refresh failed'
-      actionError.value = `The time entry was saved, but tracked time could not be refreshed. ${refreshed.failure.userMessage}`
+      actionError.value = `The time entry was saved, but affected tracked-time data could not be refreshed. ${refreshed.failure.userMessage}`
     }
   } finally {
     busy.value = false
@@ -133,11 +140,11 @@ async function remove(id: string) {
       return
     }
     if (editingId.value === id) reset()
-    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const refreshed = await invalidateMutation('time-entry')
     if (refreshed._tag === 'Failure') {
       actionNeedsRefresh.value = true
       actionErrorTitle.value = 'Time entry deleted; refresh failed'
-      actionError.value = `The time entry was deleted, but tracked time could not be refreshed. ${refreshed.failure.userMessage}`
+      actionError.value = `The time entry was deleted, but affected tracked-time data could not be refreshed. ${refreshed.failure.userMessage}`
     }
   } finally {
     busy.value = false

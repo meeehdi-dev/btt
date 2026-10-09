@@ -12,6 +12,7 @@ import {
   type HierarchyFilterState,
 } from '~/composables/useHierarchyFilters'
 import { validDate } from '#shared/time-entry'
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 
 type TicketStatus = (typeof ticketStatuses)[number]
 
@@ -53,7 +54,10 @@ const {
   data: settings,
   error: settingsError,
   refresh: refreshSettings,
-} = await useApiFetch('/api/settings')
+} = await trackAppApiFetch(useApiFetch('/api/settings', { key: 'app-api:settings' }), {
+  key: 'app-api:settings',
+  resources: ['settings', 'agenda'],
+})
 const weekDates = computed(() =>
   day.value ? (getWeekDates(day.value, settings.value?.startOfWeekDay ?? 1) ?? []) : [],
 )
@@ -67,21 +71,30 @@ const weekRangeLabel = computed(() =>
     ? formatAgendaWeekRange(weekDates.value[0]!, weekDates.value[6]!, locale.value)
     : 'Loading week…',
 )
+const weekAgendaKey = computed(() => `app-api:agenda:week:${weekStart.value}`)
 const {
   data: weekAgenda,
   pending: weekPending,
   error: weekError,
   refresh: refreshWeek,
-} = await useApiFetch('/api/agenda/week', {
-  query: computed(() => ({ startDate: weekStart.value })),
-  immediate: Boolean(date.value),
-  watch: false,
-})
+} = await trackAppApiFetch(
+  useApiFetch('/api/agenda/week', {
+    key: weekAgendaKey,
+    query: computed(() => ({ startDate: weekStart.value })),
+    immediate: Boolean(date.value),
+    watch: false,
+  }),
+  { key: weekAgendaKey, resources: ['agenda', 'tickets', 'hierarchy', 'time-entries'] },
+)
 const {
   data: ticketsData,
   error: ticketsError,
   refresh: refreshTickets,
-} = await useApiFetch('/api/tickets')
+} = await trackAppApiFetch(useApiFetch('/api/tickets', { key: 'app-api:tickets:list:active' }), {
+  key: 'app-api:tickets:list:active',
+  resources: ['tickets', 'hierarchy', 'time-entries', 'search'],
+})
+const { invalidateMutation } = useAppDataInvalidation()
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
 const eligibleTickets = computed(() =>
   tickets.value.filter(({ ticket }) => ticket.status !== 'Done'),
@@ -242,11 +255,11 @@ async function saveEdit() {
       return
     }
     editingOpen.value = false
-    const refreshed = await runClientEffect(refreshEffect(refreshWeek, () => weekError.value))
+    const refreshed = await invalidateMutation('time-entry')
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Time entry corrected; refresh failed'
-      pageActionError.value = `Your correction was saved, but the agenda could not be refreshed. ${refreshed.failure.userMessage}`
+      pageActionError.value = `Your correction was saved, but affected agenda and tracked-time data could not be refreshed. ${refreshed.failure.userMessage}`
     }
   } finally {
     busy.value = false
@@ -275,11 +288,11 @@ async function deleteEdit() {
     }
     editingOpen.value = false
     editingId.value = null
-    const refreshed = await runClientEffect(refreshEffect(refreshWeek, () => weekError.value))
+    const refreshed = await invalidateMutation('time-entry')
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Time entry deleted; refresh failed'
-      pageActionError.value = `The time entry was deleted, but the agenda could not be refreshed. ${refreshed.failure.userMessage}`
+      pageActionError.value = `The time entry was deleted, but affected agenda and tracked-time data could not be refreshed. ${refreshed.failure.userMessage}`
     }
   } finally {
     deletingEdit.value = false
@@ -324,11 +337,11 @@ async function changeEntry(
       }
       return
     }
-    const refreshed = await runClientEffect(refreshEffect(refreshWeek, () => weekError.value))
+    const refreshed = await invalidateMutation('time-entry')
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       dragErrorTitle.value = 'Time entry moved; refresh failed'
-      dragError.value = `The time entry was moved, but the agenda could not be refreshed. ${refreshed.failure.userMessage}`
+      dragError.value = `The time entry was moved, but affected agenda and tracked-time data could not be refreshed. ${refreshed.failure.userMessage}`
     }
   } finally {
     busy.value = false
@@ -401,12 +414,12 @@ async function changeTicketStatus(id: string, destination: TicketStatus) {
       }
       return
     }
-    const refreshed = await refreshAgendaData()
+    const refreshed = await invalidateMutation('ticket')
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       statusWriteNeedsRefresh.value = true
       statusMessage.value = ''
-      statusError.value = `Ticket updated, but Agenda could not refresh its data. ${refreshed.failure.userMessage}`
+      statusError.value = `Ticket updated, but affected ticket and Agenda data could not be refreshed. ${refreshed.failure.userMessage}`
       return
     }
     statusMessage.value = `Changed ${source.ticket.title} to ${destination}.`
@@ -444,11 +457,11 @@ async function add() {
     }
     description.value = ''
     addOpen.value = false
-    const refreshed = await runClientEffect(refreshEffect(refreshWeek, () => weekError.value))
+    const refreshed = await invalidateMutation('time-entry')
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Work added; agenda refresh failed'
-      pageActionError.value = `Your time entry was saved, but the agenda could not be refreshed. ${refreshed.failure.userMessage}`
+      pageActionError.value = `Your time entry was saved, but affected agenda and tracked-time data could not be refreshed. ${refreshed.failure.userMessage}`
     }
   } finally {
     busy.value = false

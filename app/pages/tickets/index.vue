@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { useHierarchyFilters, type HierarchyFilterSource } from '~/composables/useHierarchyFilters'
 import { entityIcons } from '~/utils/entity-icons'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+const { invalidateMutation } = useAppDataInvalidation()
 const route = useRoute()
 const showArchived = ref(false)
 const archiveFilterOptions = [
@@ -13,13 +15,21 @@ const archiveFilterOptions = [
 const releaseId = computed(() =>
   typeof route.query.release === 'string' ? route.query.release : undefined,
 )
-const { data, pending, error, refresh } = await useApiFetch('/api/tickets', {
-  query: computed(() => ({
-    releaseId: releaseId.value,
-    archived: showArchived.value ? 'true' : undefined,
-    board: 'true',
-  })),
-})
+const ticketsKey = computed(
+  () =>
+    `app-api:tickets:board:${releaseId.value ?? 'all'}:${showArchived.value ? 'archived' : 'active'}`,
+)
+const { data, pending, error } = await trackAppApiFetch(
+  useApiFetch('/api/tickets', {
+    key: ticketsKey,
+    query: computed(() => ({
+      releaseId: releaseId.value,
+      archived: showArchived.value ? 'true' : undefined,
+      board: 'true',
+    })),
+  }),
+  { key: ticketsKey, resources: ['tickets', 'hierarchy', 'time-entries', 'search'] },
+)
 const tickets = computed(() => data.value?.tickets ?? [])
 const filterSources = computed<HierarchyFilterSource[]>(() =>
   tickets.value.map((item) => ({
@@ -99,7 +109,7 @@ watch(tickets, () => {
 onBeforeUnmount(clearDrag)
 
 async function retryTickets() {
-  const result = await runClientEffect(refreshEffect(refresh, () => error.value))
+  const result = await invalidateMutation('ticket')
   if (result._tag === 'Success' && actionNeedsRefresh.value) {
     actionNeedsRefresh.value = false
     actionError.value = ''
@@ -247,11 +257,11 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       failedMove.value = { id, status: destination }
       return
     }
-    const refreshResult = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const refreshResult = await invalidateMutation('ticket')
     if (refreshResult._tag === 'Failure') {
       actionNeedsRefresh.value = true
       actionErrorTitle.value = 'Ticket updated; board refresh failed'
-      actionError.value = `Ticket saved, but the board could not refresh. ${refreshResult.failure.userMessage}`
+      actionError.value = `Ticket saved, but affected ticket data could not refresh. ${refreshResult.failure.userMessage}`
       return
     }
     statusMessage.value = `Moved ${source.ticket.title} to ${destination}.`

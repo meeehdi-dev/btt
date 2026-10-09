@@ -1,22 +1,35 @@
 <script setup lang="ts">
+import { trackAppApiFetch } from '~/composables/useAppDataInvalidation'
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
 const route = useRoute()
 const id = route.params.id as string
 const archived = route.query.archived === 'true'
+const clientKey = `app-api:clients:detail:${id}:${archived ? 'archived' : 'active'}`
 const {
   data: clientData,
   error: clientError,
   refresh: refreshClient,
-} = await useApiFetch(`/api/clients/${id}`, {
-  query: { archived: archived ? 'true' : undefined },
-})
+} = await trackAppApiFetch(
+  useApiFetch(`/api/clients/${id}`, {
+    key: clientKey,
+    query: { archived: archived ? 'true' : undefined },
+  }),
+  { key: clientKey, resources: ['clients', 'hierarchy'] },
+)
 const client = computed(() => clientData.value)
 const {
   data: projectData,
   error: projectsError,
   refresh: refreshProjects,
-} = await useApiFetch('/api/projects', { query: { archived: 'true' } })
+} = await trackAppApiFetch(
+  useApiFetch('/api/projects', {
+    key: 'app-api:projects:list:archived',
+    query: { archived: 'true' },
+  }),
+  { key: 'app-api:projects:list:archived', resources: ['projects', 'hierarchy'] },
+)
 const projects = computed(() =>
   (projectData.value?.projects ?? []).filter((item) => item.project.clientId === id),
 )

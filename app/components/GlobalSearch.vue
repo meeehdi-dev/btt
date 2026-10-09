@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { ticketStatusIcon, type TicketStatus } from '#shared/ticket-status'
 import { entityIcons } from '~/utils/entity-icons'
 
@@ -42,8 +43,11 @@ const hits = ref<Hit[]>([])
 let request = 0
 let timer: ReturnType<typeof setTimeout> | undefined
 let activeController: AbortController | undefined
+let stale = false
 const items = computed(() => hits.value)
-watch(query, (value) => {
+const { onInvalidated } = useAppDataInvalidation()
+
+function search(value: string, delay = 250) {
   clearTimeout(timer)
   activeController?.abort()
   activeController = undefined
@@ -52,7 +56,8 @@ watch(query, (value) => {
   selected.value = 0
   failed.value = false
   loading.value = false
-  if (value.trim().length < 2) return
+  const normalized = value.trim()
+  if (normalized.length < 2) return
   loading.value = true
   timer = setTimeout(async () => {
     const controller = new AbortController()
@@ -60,7 +65,7 @@ watch(query, (value) => {
     const searchEndpoint: string = '/api/search'
     const result = await runClientRequest<SearchResponse>(() =>
       $fetch<SearchResponse>(searchEndpoint, {
-        query: { q: value.trim() },
+        query: { q: normalized },
         signal: controller.signal,
       }),
     )
@@ -116,16 +121,47 @@ watch(query, (value) => {
     ]
     open.value = true
     loading.value = false
-  }, 250)
+  }, delay)
+}
+
+watch(query, (value) => {
+  stale = false
+  search(value)
 })
+onInvalidated(['search'], () => {
+  stale = true
+  searchStateOnInvalidation()
+})
+
+function searchStateOnInvalidation() {
+  clearTimeout(timer)
+  activeController?.abort()
+  activeController = undefined
+  request++
+  hits.value = []
+  selected.value = 0
+  failed.value = false
+  loading.value = false
+  if (open.value && query.value.trim().length >= 2) {
+    stale = false
+    search(query.value, 0)
+  }
+}
 onBeforeUnmount(() => {
   clearTimeout(timer)
   activeController?.abort()
   request++
 })
+function openSearch() {
+  open.value = true
+  if (stale) {
+    stale = false
+    search(query.value, 0)
+  }
+}
 function focus() {
   input.value?.focus()
-  open.value = true
+  openSearch()
 }
 defineExpose({ focus })
 function choose(hit: Hit) {
@@ -179,7 +215,7 @@ function keydown(event: KeyboardEvent) {
         :aria-activedescendant="open && items[selected] ? `${resultsId}-${selected}` : undefined"
         class="min-w-0 flex-1 bg-transparent py-2 text-sm text-default outline-none placeholder:text-muted"
         placeholder="Search workspace…"
-        @focus="open = true"
+        @focus="openSearch"
         @keydown="keydown"
       />
       <span class="text-xs text-muted" aria-hidden="true">/ or ⌘K</span>

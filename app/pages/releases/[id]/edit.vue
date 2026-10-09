@@ -1,13 +1,20 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
 const endpoint: string = '/api/releases/' + id
+const { invalidateMutation } = useAppDataInvalidation()
+const releaseKey = `app-api:releases:detail:${id}:archived`
 const {
   data: release,
   error: releaseError,
   refresh: refreshRelease,
-} = await useApiFetch(`/api/releases/${id}`, { query: { archived: 'true' } })
+} = await trackAppApiFetch(
+  useApiFetch(`/api/releases/${id}`, { key: releaseKey, query: { archived: 'true' } }),
+  { key: releaseKey, resources: ['releases', 'hierarchy'] },
+)
 if (releaseError.value && clientFailureStatus(releaseError.value) === 404)
   throw createError({ statusCode: 404, statusMessage: 'Release not found' })
 if (!release.value && !releaseError.value)
@@ -37,6 +44,7 @@ async function save() {
       errorMessage.value = result.failure.userMessage
       return
     }
+    await invalidateMutation('release')
     await navigateTo(`/releases/${id}${archived.value ? '?archived=true' : ''}`)
   } finally {
     pending.value = false
@@ -44,6 +52,7 @@ async function save() {
 }
 async function remove() {
   if (pending.value || !confirm('Permanently delete this archived release?')) return
+  const projectPath = parentProjectPath.value
   pending.value = true
   errorMessage.value = ''
   try {
@@ -54,7 +63,8 @@ async function remove() {
       errorMessage.value = result.failure.userMessage
       return
     }
-    await navigateTo(parentProjectPath.value)
+    await invalidateMutation('release')
+    await navigateTo(projectPath)
   } finally {
     pending.value = false
   }

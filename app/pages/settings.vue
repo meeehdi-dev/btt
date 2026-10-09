@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { defaultAgendaSettings, validAgendaSettings } from '#shared/agenda'
 import { localizedWeekdays } from '~/utils/agenda-week'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-const { data, error, refresh } = await useApiFetch('/api/settings')
+const { invalidateMutation } = useAppDataInvalidation()
+const { data, error } = await trackAppApiFetch(
+  useApiFetch('/api/settings', { key: 'app-api:settings' }),
+  { key: 'app-api:settings', resources: ['settings', 'agenda'] },
+)
 const start = ref<number>(defaultAgendaSettings.visibleStartMinute)
 const end = ref<number>(defaultAgendaSettings.visibleEndMinute)
 const target = ref<number>(defaultAgendaSettings.workDayDurationMinutes)
@@ -35,7 +40,7 @@ const messageTitle = ref('Could not save settings')
 const saved = ref(false)
 const refreshNeedsRetry = ref(false)
 async function retrySettings() {
-  const result = await runClientEffect(refreshEffect(refresh, () => error.value))
+  const result = await invalidateMutation('settings')
   if (result._tag === 'Success' && messageTitle.value === 'Settings saved; refresh failed') {
     refreshNeedsRetry.value = false
     message.value = ''
@@ -66,11 +71,11 @@ async function save() {
       message.value = result.failure.userMessage
       return
     }
-    const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const refreshed = await invalidateMutation('settings')
     if (refreshed._tag === 'Failure') {
       refreshNeedsRetry.value = true
       messageTitle.value = 'Settings saved; refresh failed'
-      message.value = `Your settings were saved, but the current view could not be refreshed. ${refreshed.failure.userMessage}`
+      message.value = `Your settings were saved, but settings and Agenda data could not be refreshed. ${refreshed.failure.userMessage}`
       return
     }
     saved.value = true

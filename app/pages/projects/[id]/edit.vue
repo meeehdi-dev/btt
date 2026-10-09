@@ -1,13 +1,23 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
 const endpoint: string = '/api/projects/' + id
+const { invalidateMutation } = useAppDataInvalidation()
+const projectKey = `app-api:projects:detail:${id}:archived`
 const {
   data: project,
   error: projectError,
   refresh: refreshProject,
-} = await useApiFetch(`/api/projects/${id}`, { query: { archived: 'true' } })
+} = await trackAppApiFetch(
+  useApiFetch(`/api/projects/${id}`, {
+    key: projectKey,
+    query: { archived: 'true' },
+  }),
+  { key: projectKey, resources: ['projects', 'hierarchy'] },
+)
 if (projectError.value && clientFailureStatus(projectError.value) === 404)
   throw createError({ statusCode: 404, statusMessage: 'Project not found' })
 if (!project.value && !projectError.value)
@@ -37,6 +47,7 @@ async function save() {
       errorMessage.value = result.failure.userMessage
       return
     }
+    await invalidateMutation('project')
     await navigateTo(`/projects/${id}${archived.value ? '?archived=true' : ''}`)
   } finally {
     pending.value = false
@@ -44,6 +55,7 @@ async function save() {
 }
 async function remove() {
   if (pending.value || !confirm('Permanently delete this archived project?')) return
+  const clientPath = parentClientPath.value
   pending.value = true
   errorMessage.value = ''
   try {
@@ -54,7 +66,8 @@ async function remove() {
       errorMessage.value = result.failure.userMessage
       return
     }
-    await navigateTo(parentClientPath.value)
+    await invalidateMutation('project')
+    await navigateTo(clientPath)
   } finally {
     pending.value = false
   }

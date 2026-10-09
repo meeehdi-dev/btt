@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { ticketLinkLabel } from '~/utils/ticket-link-label'
 import { formatTicketEstimate, parseTicketEstimate } from '~/utils/ticket-estimate'
@@ -23,9 +24,16 @@ const route = useRoute()
 const id = route.params.id as string
 const endpoint = `/api/tickets/${id}`
 const showArchived = computed(() => route.query.archived === 'true')
-const { data, error, refresh } = await useApiFetch(`/api/tickets/${id}`, {
-  query: computed(() => ({ archived: showArchived.value ? 'true' : undefined })),
-})
+const ticketKey = computed(
+  () => `app-api:tickets:detail:${id}:${showArchived.value ? 'archived' : 'active'}`,
+)
+const { data, error } = await trackAppApiFetch(
+  useApiFetch(`/api/tickets/${id}`, {
+    key: ticketKey,
+    query: computed(() => ({ archived: showArchived.value ? 'true' : undefined })),
+  }),
+  { key: ticketKey, resources: ['tickets', 'hierarchy', 'time-entries'] },
+)
 if (error.value && clientFailureStatus(error.value) === 404)
   throw createError({ statusCode: 404, statusMessage: 'Ticket not found' })
 if (!data.value && !error.value)
@@ -36,12 +44,18 @@ const {
   data: choices,
   error: choicesError,
   refresh: refreshChoices,
-} = await useApiFetch('/api/tickets')
+} = await trackAppApiFetch(useApiFetch('/api/tickets', { key: 'app-api:tickets:list:active' }), {
+  key: 'app-api:tickets:list:active',
+  resources: ['tickets', 'hierarchy', 'time-entries', 'search'],
+})
 const {
   data: releaseChoices,
   error: releasesError,
   refresh: refreshReleases,
-} = await useApiFetch('/api/releases')
+} = await trackAppApiFetch(useApiFetch('/api/releases', { key: 'app-api:releases:list:active' }), {
+  key: 'app-api:releases:list:active',
+  resources: ['releases', 'hierarchy', 'search'],
+})
 
 const statusDraft = ref<TicketStatus>(record.value?.status ?? ticketStatuses[0])
 const descriptionDraft = ref(record.value?.description ?? '')
@@ -136,6 +150,7 @@ const relatedTicketPickerOpen = ref(false)
 const label = ref('')
 const url = ref('')
 
+const { invalidateMutation } = useAppDataInvalidation()
 const pending = ref(false)
 const refreshBusy = ref(false)
 const actionNeedsRefresh = ref(false)
@@ -185,15 +200,15 @@ async function mutateTicket(
     }
 
     options.onWriteSuccess?.()
-    if (options.refresh !== false) {
-      const refreshed = await runClientEffect(refreshEffect(refresh, () => error.value))
-      if (refreshed._tag === 'Failure') {
-        actionNeedsRefresh.value = true
-        actionErrorTitle.value = 'Ticket updated; refresh failed'
-        actionMessage.value = ''
-        actionError.value = `The ticket was updated, but its details could not be refreshed. ${refreshed.failure.userMessage}`
-        return 'partial'
-      }
+    const refreshed = await invalidateMutation('ticket', {
+      refreshActive: options.refresh !== false,
+    })
+    if (refreshed._tag === 'Failure' && options.refresh !== false) {
+      actionNeedsRefresh.value = true
+      actionErrorTitle.value = 'Ticket updated; refresh failed'
+      actionMessage.value = ''
+      actionError.value = `The ticket was updated, but affected ticket data could not be refreshed. ${refreshed.failure.userMessage}`
+      return 'partial'
     }
     actionMessage.value = options.successMessage
     return 'saved'
@@ -206,9 +221,9 @@ async function retryTicket() {
   if (refreshBusy.value) return
   refreshBusy.value = true
   try {
-    const result = await runClientEffect(refreshEffect(refresh, () => error.value))
+    const result = await invalidateMutation('ticket')
     if (result._tag === 'Failure') {
-      actionError.value = `Ticket details are still unavailable. ${result.failure.userMessage}`
+      actionError.value = `Affected ticket data is still unavailable. ${result.failure.userMessage}`
       return
     }
     actionNeedsRefresh.value = false

@@ -1,20 +1,28 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { parseTicketEstimate } from '~/utils/ticket-estimate'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+const { invalidateMutation } = useAppDataInvalidation()
 const route = useRoute()
 const {
   data,
   pending: releasesPending,
   error: releasesError,
   refresh: refreshReleases,
-} = await useApiFetch('/api/releases')
+} = await trackAppApiFetch(useApiFetch('/api/releases', { key: 'app-api:releases:list:active' }), {
+  key: 'app-api:releases:list:active',
+  resources: ['releases', 'hierarchy', 'search'],
+})
 const releases = computed(() => data.value?.releases ?? [])
 const {
   data: ticketsData,
   error: ticketsError,
   refresh: refreshTickets,
-} = await useApiFetch('/api/tickets')
+} = await trackAppApiFetch(useApiFetch('/api/tickets', { key: 'app-api:tickets:list:active' }), {
+  key: 'app-api:tickets:list:active',
+  resources: ['tickets', 'hierarchy', 'time-entries', 'search'],
+})
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
 const releaseSearchInput = useSelectSearchInput('Search releases…')
 const releasePickerOpen = ref(false)
@@ -88,6 +96,7 @@ async function submit() {
       errorMessage.value = result.failure.userMessage
       return
     }
+    await invalidateMutation('ticket')
     await navigateTo(`/tickets/${result.value.id}`)
   } finally {
     pending.value = false

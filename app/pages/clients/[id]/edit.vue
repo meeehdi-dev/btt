@@ -1,14 +1,21 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
 const route = useRoute()
 const id = route.params.id as string
 const endpoint: string = '/api/clients/' + id
+const { invalidateMutation } = useAppDataInvalidation()
+const clientKey = `app-api:clients:detail:${id}:archived`
 const {
   data: client,
   error: clientError,
   refresh: refreshClient,
-} = await useApiFetch(`/api/clients/${id}`, { query: { archived: 'true' } })
+} = await trackAppApiFetch(
+  useApiFetch(`/api/clients/${id}`, { key: clientKey, query: { archived: 'true' } }),
+  { key: clientKey, resources: ['clients', 'hierarchy'] },
+)
 if (clientError.value && clientFailureStatus(clientError.value) === 404)
   throw createError({ statusCode: 404, statusMessage: 'Client not found' })
 if (!client.value && !clientError.value)
@@ -35,6 +42,7 @@ async function save() {
       errorMessage.value = result.failure.userMessage
       return
     }
+    await invalidateMutation('client')
     await navigateTo(`/clients/${id}${archived.value ? '?archived=true' : ''}`)
   } finally {
     pending.value = false
@@ -53,6 +61,7 @@ async function remove() {
       errorMessage.value = result.failure.userMessage
       return
     }
+    await invalidateMutation('client')
     await navigateTo('/clients')
   } finally {
     pending.value = false

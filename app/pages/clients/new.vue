@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+const { invalidateMutation } = useAppDataInvalidation()
 
 const name = ref('')
 const color = ref('#64748b')
@@ -21,6 +24,7 @@ async function submit() {
       errorMessage.value = result.failure.userMessage
       return
     }
+    await invalidateMutation('client')
     await navigateTo(`/clients/${result.value.id}`)
   } finally {
     pending.value = false

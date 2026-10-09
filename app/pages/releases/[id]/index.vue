@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 
 type TicketStatus = (typeof ticketStatuses)[number]
@@ -7,22 +8,35 @@ definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const route = useRoute()
 const id = route.params.id as string
 const endpoint: string = '/api/releases/' + id
+const { invalidateMutation } = useAppDataInvalidation()
 const archived = route.query.archived === 'true'
+const releaseKey = `app-api:releases:detail:${id}:${archived ? 'archived' : 'active'}`
 const {
   data: releaseData,
   error,
   refresh: refreshRelease,
-} = await useApiFetch(`/api/releases/${id}`, {
-  query: { archived: archived ? 'true' : undefined },
-})
+} = await trackAppApiFetch(
+  useApiFetch(`/api/releases/${id}`, {
+    key: releaseKey,
+    query: { archived: archived ? 'true' : undefined },
+  }),
+  { key: releaseKey, resources: ['releases', 'hierarchy'] },
+)
 const release = computed(() => releaseData.value?.release)
 const {
   data: ticketData,
   error: ticketsError,
   refresh: refreshTickets,
-} = await useApiFetch('/api/tickets', {
-  query: { releaseId: id },
-})
+} = await trackAppApiFetch(
+  useApiFetch('/api/tickets', {
+    key: `app-api:tickets:release:${id}:active`,
+    query: { releaseId: id },
+  }),
+  {
+    key: `app-api:tickets:release:${id}:active`,
+    resources: ['tickets', 'hierarchy', 'time-entries'],
+  },
+)
 const tickets = computed(() => ticketData.value?.tickets ?? [])
 const doneTicketCount = computed(
   () => tickets.value.filter((item) => item.ticket.status === 'Done').length,
@@ -49,7 +63,7 @@ async function retryTicketStatusRefresh() {
   if (!ticketStatusNeedsRefresh.value || ticketStatusRefreshBusy.value) return
   ticketStatusRefreshBusy.value = true
   try {
-    const result = await refreshTicketStatusData()
+    const result = await invalidateMutation('ticket')
     if (result._tag === 'Failure') {
       ticketStatusError.value = `Release ticket data is still unavailable. ${result.failure.userMessage}`
       return
@@ -96,12 +110,12 @@ async function changeTicketStatus(ticketId: string, destination: unknown) {
       return
     }
 
-    const refreshed = await refreshTicketStatusData()
+    const refreshed = await invalidateMutation('ticket')
     if (refreshed._tag === 'Failure') {
       ticketStatusNeedsRefresh.value = true
       ticketStatusErrorTitle.value = 'Ticket updated; release refresh failed'
       ticketStatusMessage.value = ''
-      ticketStatusError.value = `Ticket status changed to ${status}, but the release ticket data could not be refreshed. ${refreshed.failure.userMessage}`
+      ticketStatusError.value = `Ticket status changed to ${status}, but affected ticket and release data could not be refreshed. ${refreshed.failure.userMessage}`
       return
     }
     ticketStatusMessage.value = `Changed ${source.ticket.title} to ${status}.`
@@ -128,6 +142,7 @@ async function markDone() {
     ticketStatusNeedsRefresh.value
   )
     return
+  const projectPath = `/projects/${release.value.projectId}`
   donePending.value = true
   doneError.value = ''
   try {
@@ -138,7 +153,8 @@ async function markDone() {
       doneError.value = result.failure.userMessage
       return
     }
-    await navigateTo(`/projects/${release.value.projectId}`)
+    await invalidateMutation('release', { refreshActive: false })
+    await navigateTo(projectPath)
   } finally {
     donePending.value = false
   }

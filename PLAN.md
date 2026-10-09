@@ -665,6 +665,15 @@ Status: Implementation and local verification complete on 2026-10-08: all approv
 
 Acceptance: current E2E issues are resolved within approved product behavior; full local checks pass; any targeted timeout has recorded evidence; the agent-owned server remains available while failing and is stopped/released only after all checks pass. Human code review and completion evidence are recorded in M36.
 
+### M38 — Same-tab API data invalidation
+
+Status: Complete — the user declared M38 complete on 2026-10-09 after code review and manual testing. The full local suite passed, including all 48 Playwright tests; see [`docs/milestones/m38-same-tab-api-data-invalidation.md`](docs/milestones/m38-same-tab-api-data-invalidation.md) and accepted [ADR 0051](docs/decisions/0051-same-tab-api-data-invalidation.md).
+
+- After a successful in-app mutation, use typed resource dependencies to refresh affected active Nuxt readers and clear affected inactive data so later SPA navigation does not reuse stale responses.
+- Keep Nuxt/Effect as the read-state boundary, preserve write-success/read-refresh-failure behavior, and refresh or clear retained Global Search results without introducing polling or cross-tab synchronization.
+
+Acceptance: same-tab mutations update dependent views without a document reload; failures do not trigger invalidation; regression coverage and all required local checks pass; human review and completion declaration are recorded in M38.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

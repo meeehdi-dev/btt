@@ -1,27 +1,41 @@
 <script setup lang="ts">
+import { trackAppApiFetch } from '~/composables/useAppDataInvalidation'
+
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
 const route = useRoute()
 const id = route.params.id as string
 const archived = route.query.archived === 'true'
 const showArchived = ref(route.query.archived === 'true')
+const projectKey = `app-api:projects:detail:${id}:${archived ? 'archived' : 'active'}`
 const {
   data: projectData,
   error: projectError,
   refresh: refreshProject,
-} = await useApiFetch(`/api/projects/${id}`, {
-  query: { archived: archived ? 'true' : undefined },
-})
+} = await trackAppApiFetch(
+  useApiFetch(`/api/projects/${id}`, {
+    key: projectKey,
+    query: { archived: archived ? 'true' : undefined },
+  }),
+  { key: projectKey, resources: ['projects', 'hierarchy'] },
+)
 const project = computed(() => projectData.value)
 const {
   data: releaseData,
   error: releaseError,
   refresh: refreshReleases,
-} = await useApiFetch('/api/releases', {
-  query: computed(() => ({
-    archived: showArchived.value ? 'true' : undefined,
-  })),
-})
+} = await trackAppApiFetch(
+  useApiFetch('/api/releases', {
+    key: computed(() => `app-api:releases:list:${showArchived.value ? 'archived' : 'active'}`),
+    query: computed(() => ({
+      archived: showArchived.value ? 'true' : undefined,
+    })),
+  }),
+  {
+    key: computed(() => `app-api:releases:list:${showArchived.value ? 'archived' : 'active'}`),
+    resources: ['releases', 'hierarchy', 'search'],
+  },
+)
 const releases = computed(() =>
   (releaseData.value?.releases ?? []).filter((item) => item.release.projectId === id),
 )

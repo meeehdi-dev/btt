@@ -85,3 +85,4 @@ NNNN-short-descriptive-slug.md
 | [0048](0048-agenda-and-board-status-icon-menus.md)             | Accepted   | Agenda and Ticket Board status icon menus                  |
 | [0049](0049-nuxt-ui-semantic-color-theme.md)                   | Accepted   | Nuxt UI semantic colors and contrast                       |
 | [0050](0050-e2e-verification-and-server-handoff.md)            | Accepted   | Complete local verification before server handoff          |
+| [0051](0051-same-tab-api-data-invalidation.md)                 | Accepted   | Same-tab API data invalidation                             |

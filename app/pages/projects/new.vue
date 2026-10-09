@@ -1,13 +1,18 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 
+definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+const { invalidateMutation } = useAppDataInvalidation()
 const route = useRoute()
 const {
   data: clientData,
   pending: clientsPending,
   error: clientsError,
   refresh: refreshClients,
-} = await useApiFetch('/api/clients')
+} = await trackAppApiFetch(useApiFetch('/api/clients', { key: 'app-api:clients:list:active' }), {
+  key: 'app-api:clients:list:active',
+  resources: ['clients', 'hierarchy', 'search'],
+})
 const clients = computed(() => clientData.value?.clients ?? [])
 const clientSearchInput = useSelectSearchInput('Search clients…')
 const clientPickerOpen = ref(false)
@@ -50,6 +55,7 @@ async function submit() {
       errorMessage.value = result.failure.userMessage
       return
     }
+    await invalidateMutation('project')
     await navigateTo(`/projects/${result.value.id}`)
   } finally {
     pending.value = false
