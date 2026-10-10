@@ -15,7 +15,7 @@ function formatCalendarDate(date: Date): string | null {
   return `${String(year).padStart(4, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
 }
 
-export function addCalendarDays(value: string, offset: number): string | null {
+function addCalendarDays(value: string, offset: number): string | null {
   if (!Number.isInteger(offset)) return null
   const date = parseCalendarDate(value)
   if (!date) return null

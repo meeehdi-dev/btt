@@ -9,7 +9,7 @@ import { conflict, notFound, requireUserId, validation } from '../utils/domain'
 import { promiseEffect } from '../utils/effect'
 import { ownedTicket, validId } from './tickets'
 
-export function validateEntry(date: string, startMinute: number, durationMinutes: number) {
+function validateEntry(date: string, startMinute: number, durationMinutes: number) {
   if (!validDate(date) || !validSlot(startMinute, durationMinutes))
     return validation('Enter a valid date and 30-minute slots ending by midnight')
   return Effect.void

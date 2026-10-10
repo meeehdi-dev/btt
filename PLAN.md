@@ -111,7 +111,7 @@ No local Nuxt, Nuxt UI, or Effect TS skill is currently installed in the scanned
 ### CI, release, and deploy
 
 - Dependabot is intended for npm, Docker, and GitHub Actions with grouped minor/patch updates.
-- GitHub Actions run push/PR quality checks for lint, format, typecheck, tests, and build on Node 24+.
+- GitHub Actions run push/PR quality checks for format, lint, jscpd duplicate detection, Knip unused-code analysis, typechecks, tests, and build on Node 24+.
 - M0 established quality checks and Dependabot; it deferred release/deployment automation until a separately approved follow-up.
 - For the first production deployment, Coolify connects to the Git repository and builds the repository Dockerfile directly on the Coolify host. No image registry, GHCR publishing, release-please, or Coolify API deployment workflow is required (ADR 0036).
 - Keep GitHub Actions as the quality gate. Prefer required checks on protected `main` before enabling Coolify auto-deploy; otherwise deploy manually in Coolify after checks pass. A CI-success Coolify webhook can be considered later if needed, without adding image publishing.
@@ -673,6 +673,15 @@ Status: Complete — the user declared M38 complete on 2026-10-09 after code rev
 - Keep Nuxt/Effect as the read-state boundary, preserve write-success/read-refresh-failure behavior, and refresh or clear retained Global Search results without introducing polling or cross-tab synchronization.
 
 Acceptance: same-tab mutations update dependent views without a document reload; failures do not trigger invalidation; regression coverage and all required local checks pass; human review and completion declaration are recorded in M38.
+
+### M39 — jscpd and Knip code-quality gates
+
+Status: Complete — the user declared M39 complete on 2026-10-10 after code review. See the approved plan, verification, and closeout evidence in [`docs/milestones/m39-jscpd-knip-code-checks.md`](docs/milestones/m39-jscpd-knip-code-checks.md).
+
+- Add exact-clone duplication detection with a reviewed fingerprint baseline and comprehensive Knip analysis to local and existing CI checks. Keep the checks strict while using only documented, narrowly scoped framework exceptions.
+- Record the existing duplication baseline and any required behavior-preserving unused-code cleanup in M39; do not broaden into a general refactor.
+
+Acceptance: both checks pass locally and in the existing quality workflow; the initial baseline and Knip exceptions are documented; all approved local gates, including full E2E, pass; human code review and completion declaration are recorded in M39. ADR 0052 is accepted.
 
 ### Later, post-MVP
 

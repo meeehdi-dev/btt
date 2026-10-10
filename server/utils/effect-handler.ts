@@ -14,7 +14,7 @@ function unexpectedError() {
   return createError({ status: 500, statusText: 'Internal Server Error' })
 }
 
-export function effectFailureToHttpError(
+function effectFailureToHttpError(
   cause: Cause.Cause<ServerFailure>,
   route: string,
   log: UnexpectedFailureLogger = console.error,

@@ -1,0 +1,8 @@
+{
+  "path": ["app", "server", "shared", "scripts", "tests"],
+  "format": ["javascript", "jsx", "typescript", "tsx", "vue"],
+  "minTokens": 50,
+  "minLines": 5,
+  "reporters": ["console"],
+  "noTips": true
+}

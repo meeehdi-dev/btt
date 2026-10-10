@@ -39,6 +39,8 @@ Automated tests use Better Auth Test Utils and do not contact GitHub.
 ```sh
 pnpm format:check
 pnpm lint
+pnpm check:duplicates
+pnpm check:unused
 pnpm typecheck
 pnpm typecheck:tsgo
 pnpm test
@@ -46,6 +48,8 @@ pnpm test:e2e
 pnpm build
 pnpm check:workflow
 ```
+
+`check:duplicates` uses the committed jscpd fingerprint baseline and fails on new exact clones. To intentionally refresh the baseline, inspect the report and run `pnpm exec jscpd --baseline .jscpd-baseline.json --update-baseline`; include the reviewed baseline diff. `check:unused` runs Knip without requiring a database: it supplies a placeholder `DATABASE_URL` because Knip loads the Drizzle config but does not connect. See `.jscpd.json`, `.jscpd-baseline.json`, and `knip.json` for scan scope and documented exceptions.
 
 Playwright browser setup, when needed:
 

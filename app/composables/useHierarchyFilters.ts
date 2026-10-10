@@ -1,6 +1,6 @@
 import { computed, reactive, type ComputedRef } from 'vue'
 
-export const hierarchyFilterKinds = ['client', 'project', 'release', 'ticket'] as const
+const hierarchyFilterKinds = ['client', 'project', 'release', 'ticket'] as const
 export type HierarchyFilterKind = (typeof hierarchyFilterKinds)[number]
 export type HierarchyFilterState = Record<HierarchyFilterKind, string>
 export type HierarchyFilterSource = {

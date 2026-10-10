@@ -45,6 +45,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm typecheck:tsgo
+      - run: pnpm check:duplicates
+      - run: pnpm check:unused
       - run: pnpm test
       - name: Run Playwright E2E tests
         id: e2e

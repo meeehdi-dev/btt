@@ -86,9 +86,3 @@ export const TimeEntryUpdate = Schema.Struct({
   durationMinutes: Schema.optional(EntryMinute),
   description: Schema.optional(Description),
 })
-export type ClientCreateInput = Schema.Schema.Type<typeof ClientCreate>
-export type ClientUpdateInput = Schema.Schema.Type<typeof ClientUpdate>
-export type ProjectCreateInput = Schema.Schema.Type<typeof ProjectCreate>
-export type ProjectUpdateInput = Schema.Schema.Type<typeof ProjectUpdate>
-export type ReleaseCreateInput = Schema.Schema.Type<typeof ReleaseCreate>
-export type ReleaseUpdateInput = Schema.Schema.Type<typeof ReleaseUpdate>

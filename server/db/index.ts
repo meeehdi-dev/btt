@@ -8,5 +8,5 @@ if (!connectionString) {
   throw new Error('DATABASE_URL must be defined')
 }
 
-export const pool = new Pool({ connectionString, max: 1 })
+const pool = new Pool({ connectionString, max: 1 })
 export const db = drizzle({ client: pool, schema })
