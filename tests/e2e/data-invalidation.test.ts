@@ -129,6 +129,7 @@ async function openAgendaAddDialog(page: Page, date: string) {
   await page.mouse.up()
   const dialog = page.getByRole('dialog', { name: 'Add completed work' })
   await expect(dialog).toBeVisible()
+  await expect(page.getByPlaceholder('Search tickets…')).toBeFocused()
   return dialog
 }
 
@@ -168,7 +169,7 @@ test('ticket and time-entry writes update the Agenda picker and inactive board w
     await expect(boardCard).toBeVisible()
     await navigateMain(page, 'Agenda')
     const addDialog = await openAgendaAddDialog(page, date)
-    await addDialog.getByRole('button', { name: 'Ticket' }).click()
+    await page.getByPlaceholder('Search tickets…').fill('Same-tab new ticket')
     await expect(page.getByRole('option', { name: /Same-tab new ticket/ })).toBeVisible()
     await page.getByRole('option', { name: /Same-tab new ticket/ }).click()
     await addDialog

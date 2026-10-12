@@ -101,6 +101,9 @@ const eligibleTickets = computed(() =>
 )
 const ticketSearchInput = useSelectSearchInput('Search tickets…')
 const ticketPickerOpen = ref(false)
+watch(addOpen, (open) => {
+  ticketPickerOpen.value = open
+})
 const activeEntries = computed(() => weekAgenda.value?.entries ?? [])
 const filters = reactive<HierarchyFilterState>({
   client: '',

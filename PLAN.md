@@ -693,6 +693,16 @@ Status: Complete — implementation, local verification, Plannotator code review
 
 Acceptance: Board title/status and clock/tracked-time/estimate content appear vertically aligned at supported widths; other card surfaces and status, time, drag, navigation, and context behavior remain unchanged. No API/data/schema/dependency changes or new ADR are planned.
 
+### M41 — Agenda time-entry ticket autofocus
+
+Status: Complete — amended behavior, full local verification, Plannotator code review, and the user's completion declaration are recorded in [`docs/milestones/m41-agenda-time-entry-ticket-autofocus.md`](docs/milestones/m41-agenda-time-entry-ticket-autofocus.md).
+
+- Open the Ticket selector when the Agenda's “Add completed work” modal opens and focus its search input so users can type immediately.
+- Preserve ticket eligibility, searchable options, selection/save behavior, and close/reset the picker correctly with the modal.
+- Add browser coverage for immediate search and selection, then run the full approved local verification suite.
+
+Acceptance: the Ticket search textbox is focused and ready to type when the add modal opens; users can search/select without first activating the selector. Other selectors and all API/data/schema/dependency behavior remain unchanged.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.
