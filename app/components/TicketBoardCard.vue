@@ -117,7 +117,7 @@ function dragEnd() {
         header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
         title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted hover:text-primary"
         title-text-class="truncate"
-        header-usage-class="shrink-0"
+        header-usage-class="flex shrink-0 items-center"
       >
         <template #status-icon-action>
           <UTooltip :text="`Change status for ${item.ticket.title}`">

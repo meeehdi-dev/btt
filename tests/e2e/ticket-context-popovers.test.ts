@@ -251,6 +251,49 @@ async function expectTwoRowBoardTicketCard(card: Locator, title: string) {
   ).toBe(true)
 }
 
+async function expectBoardCardVerticalAlignment(card: Locator, title: string) {
+  const header = card.getByLabel('Ticket main information')
+  const measurements = await header.evaluate((element) => {
+    const bounds = (node: Element | null) => {
+      if (!node) return null
+      const rect = node.getBoundingClientRect()
+      return { centerY: rect.y + rect.height / 2 }
+    }
+    const titleText = element.querySelector('[data-ticket-title-link] span')
+    const statusButton = element.querySelector('[data-ticket-status-trigger]')
+    const usage = element.querySelector('[aria-label="Ticket usage"]')
+    const trackedGroup = usage?.querySelector('[aria-label^="Tracked:"]')
+    return {
+      title: bounds(titleText),
+      status: bounds(statusButton),
+      usage: bounds(usage),
+      clock: bounds(trackedGroup?.children.item(0) ?? null),
+      tracked: bounds(trackedGroup?.children.item(1) ?? null),
+      estimate: bounds(trackedGroup?.children.item(2) ?? null),
+    }
+  })
+  if (
+    !measurements.title ||
+    !measurements.status ||
+    !measurements.usage ||
+    !measurements.clock ||
+    !measurements.tracked
+  )
+    throw new Error(`Ticket title and tracked usage must be rendered for ${title}`)
+  // Allow subpixel rounding while rejecting the observed 2px inline-baseline offset.
+  const aligned = (first: { centerY: number }, second: { centerY: number }) =>
+    expect(Math.abs(first.centerY - second.centerY)).toBeLessThanOrEqual(1.5)
+  aligned(measurements.title, measurements.status)
+  aligned(measurements.title, measurements.usage)
+  aligned(measurements.title, measurements.clock)
+  aligned(measurements.title, measurements.tracked)
+  aligned(measurements.clock, measurements.tracked)
+  if (measurements.estimate) {
+    aligned(measurements.title, measurements.estimate)
+    aligned(measurements.tracked, measurements.estimate)
+  }
+}
+
 async function cleanup(userId: string) {
   const clients = await db.select({ id: client.id }).from(client).where(eq(client.userId, userId))
   const clientIds = clients.map((row) => row.id)
@@ -440,10 +483,16 @@ test('ticket board and release cards expose relation and external-link popovers'
     )?.label,
   ).toBeNull()
 
+  await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/tickets')
   await waitForClientMount(page)
   const boardCard = page.locator(`[data-board-ticket-id="${many.id}"]`).filter({ visible: true })
   await expectTwoRowBoardTicketCard(boardCard, manyTitle)
+  await expectBoardCardVerticalAlignment(boardCard, manyTitle)
+  const noEstimateCard = page
+    .locator(`[data-board-ticket-id="${one.id}"]`)
+    .filter({ visible: true })
+  await expectBoardCardVerticalAlignment(noEstimateCard, `Context one ${suffix}`)
   const boardHierarchy = boardCard.getByLabel('Ticket hierarchy')
   const boardHierarchyBadge = boardHierarchy.getByRole('button').first()
   await page.mouse.move(0, 0)

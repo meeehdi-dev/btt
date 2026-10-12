@@ -683,6 +683,16 @@ Status: Complete — the user declared M39 complete on 2026-10-10 after code rev
 
 Acceptance: both checks pass locally and in the existing quality workflow; the initial baseline and Knip exceptions are documented; all approved local gates, including full E2E, pass; human code review and completion declaration are recorded in M39. ADR 0052 is accepted.
 
+### M40 — Ticket Board card title and tracked-time alignment
+
+Status: Complete — implementation, local verification, Plannotator code review, and the user's completion declaration are recorded. Live measurement confirmed a 2px inline-baseline offset between tracked usage and the title; see [`docs/milestones/m40-ticket-board-card-title-time-alignment.md`](docs/milestones/m40-ticket-board-card-title-time-alignment.md).
+
+- Reproduce and measure the reported vertical/optical alignment issue between the Ticket Board card's status/title and tracked-time/estimate row at the supported 1280 CSS px minimum.
+- Apply the smallest evidenced presentation-only fix, scoped to Board cards; preserve other ticket surfaces, usage semantics/colors, status hit targets, and Board interactions.
+- Add E2E alignment assertions for tracked usage with and without an estimate, and record full verification and visual-review evidence.
+
+Acceptance: Board title/status and clock/tracked-time/estimate content appear vertically aligned at supported widths; other card surfaces and status, time, drag, navigation, and context behavior remain unchanged. No API/data/schema/dependency changes or new ADR are planned.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.
