@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import {
+  ticketPriorityLabel,
+  ticketPrioritySortRank,
+  type TicketPriorityValue,
+} from '#shared/ticket-priority'
 import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { useHierarchyFilters, type HierarchyFilterSource } from '~/composables/useHierarchyFilters'
 import { entityIcons } from '~/utils/entity-icons'
+import { patchTicket } from '~/utils/ticket-patch'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const { invalidateMutation } = useAppDataInvalidation()
@@ -62,7 +68,13 @@ const visibleTickets = computed(() =>
 const groups = computed(() =>
   ticketStatuses.map((status) => ({
     status,
-    items: visibleTickets.value.filter((item) => item.ticket.status === status),
+    items: visibleTickets.value
+      .filter((item) => item.ticket.status === status)
+      .toSorted(
+        (left, right) =>
+          ticketPrioritySortRank(left.ticket.priority) -
+          ticketPrioritySortRank(right.ticket.priority),
+      ),
   })),
 )
 function setArchiveFilter(value: string | null | undefined) {
@@ -79,6 +91,8 @@ const actionNeedsRefresh = ref(false)
 const actionErrorTitle = ref('Could not update ticket')
 const statusMessage = ref('')
 const failedMove = ref<{ id: string; status: TicketStatus } | null>(null)
+const priorityChangingId = ref<string | null>(null)
+const failedPriorityChange = ref<{ id: string; priority: TicketPriorityValue } | null>(null)
 const board = ref<HTMLElement | null>(null)
 const draggingId = ref<string | null>(null)
 const overStatus = ref<TicketStatus | null>(null)
@@ -145,7 +159,13 @@ function updateEdgeScroll(event: DragEvent) {
 
 function startDrag(event: DragEvent, id: string) {
   const source = tickets.value.find(({ ticket }) => ticket.id === id)
-  if (changing.value || !source || source.ticket.archivedAt || !event.dataTransfer) {
+  if (
+    changing.value ||
+    priorityChangingId.value ||
+    !source ||
+    source.ticket.archivedAt ||
+    !event.dataTransfer
+  ) {
     event.preventDefault()
     return
   }
@@ -163,6 +183,7 @@ function validDrag(event: DragEvent) {
   return (
     !!draggingId.value &&
     !changing.value &&
+    !priorityChangingId.value &&
     !!event.dataTransfer?.types.includes(dragType) &&
     tickets.value.some(({ ticket }) => ticket.id === draggingId.value && !ticket.archivedAt)
   )
@@ -209,6 +230,23 @@ async function retryMove() {
   if (failedMove.value) await moveStatus(failedMove.value.id, failedMove.value.status, false)
 }
 
+async function retryPriorityChange() {
+  if (failedPriorityChange.value)
+    await changePriority(failedPriorityChange.value.id, failedPriorityChange.value.priority, false)
+}
+
+async function waitForBoardLayout() {
+  await nextTick()
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  )
+}
+function findVisibleBoardCard(id: string) {
+  return [...document.querySelectorAll<HTMLElement>('[data-board-ticket-id]')].find(
+    (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
+  )
+}
+
 const hoveredTargetId = ref<string | null>(null)
 const pinnedTargetId = ref<string | null>(null)
 const highlightedId = computed(() => hoveredTargetId.value ?? pinnedTargetId.value)
@@ -221,37 +259,45 @@ async function locateRelated(event: MouseEvent, id: string) {
     return
   }
   pinnedTargetId.value = id
-  await nextTick()
-  await new Promise<void>((resolve) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-  )
-  const card = [...document.querySelectorAll<HTMLElement>('[data-board-ticket-id]')].find(
-    (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
-  )
-  card?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+  await waitForBoardLayout()
+  findVisibleBoardCard(id)?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+    inline: 'center',
+  })
+}
+
+function findActiveTicket(id: string) {
+  const source = tickets.value.find(({ ticket }) => ticket.id === id)
+  return source && !source.ticket.archivedAt ? source : null
+}
+function resetTicketAction(title: string) {
+  actionError.value = ''
+  actionErrorTitle.value = title
+  statusMessage.value = ''
+  failedMove.value = null
+  failedPriorityChange.value = null
+}
+async function focusTicketControl(id: string, selector: string) {
+  await waitForBoardLayout()
+  findVisibleBoardCard(id)?.querySelector<HTMLElement>(selector)?.focus()
 }
 
 async function moveStatus(id: string, destination: TicketStatus, restoreFocus = true) {
-  const source = tickets.value.find(({ ticket }) => ticket.id === id)
+  const source = findActiveTicket(id)
   if (
     !source ||
-    source.ticket.archivedAt ||
     changing.value ||
+    priorityChangingId.value ||
     !ticketStatuses.includes(destination) ||
     source.ticket.status === destination
   )
     return
   changing.value = id
-  actionError.value = ''
-  actionErrorTitle.value = 'Could not update ticket'
-  statusMessage.value = ''
-  failedMove.value = null
+  resetTicketAction('Could not update ticket')
   let refreshed = false
   try {
-    const endpoint: string = '/api/tickets/' + id
-    const result = await runClientRequest<unknown>((signal) =>
-      $fetch<unknown>(endpoint, { method: 'PATCH', body: { status: destination }, signal }),
-    )
+    const result = await patchTicket(id, { status: destination })
     if (result._tag === 'Failure') {
       actionError.value = result.failure.userMessage
       failedMove.value = { id, status: destination }
@@ -269,16 +315,41 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
   } finally {
     changing.value = null
   }
-  if (refreshed && restoreFocus) {
-    await nextTick()
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    )
-    const card = [...document.querySelectorAll<HTMLElement>('[data-board-ticket-id]')].find(
-      (node) => node.dataset.boardTicketId === id && node.getClientRects().length > 0,
-    )
-    card?.querySelector<HTMLElement>('[data-ticket-status-trigger]')?.focus()
+  if (refreshed && restoreFocus) await focusTicketControl(id, '[data-ticket-status-trigger]')
+}
+
+async function changePriority(id: string, destination: TicketPriorityValue, restoreFocus = true) {
+  const source = findActiveTicket(id)
+  if (
+    !source ||
+    changing.value ||
+    priorityChangingId.value ||
+    source.ticket.priority === destination
+  )
+    return
+  priorityChangingId.value = id
+  resetTicketAction('Could not change ticket priority')
+  let refreshed = false
+  try {
+    const result = await patchTicket(id, { priority: destination })
+    if (result._tag === 'Failure') {
+      actionError.value = result.failure.userMessage
+      failedPriorityChange.value = { id, priority: destination }
+      return
+    }
+    const refreshResult = await invalidateMutation('ticket')
+    if (refreshResult._tag === 'Failure') {
+      actionNeedsRefresh.value = true
+      actionErrorTitle.value = 'Ticket priority updated; board refresh failed'
+      actionError.value = `Priority saved, but affected ticket data could not refresh. ${refreshResult.failure.userMessage}`
+      return
+    }
+    statusMessage.value = `Changed ${source.ticket.title} priority to ${ticketPriorityLabel(destination)}.`
+    refreshed = true
+  } finally {
+    priorityChangingId.value = null
   }
+  if (refreshed && restoreFocus) await focusTicketControl(id, '[data-ticket-priority-trigger]')
 }
 </script>
 
@@ -381,6 +452,14 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       label="Retry status change"
       @click="retryMove"
     />
+    <UButton
+      v-else-if="failedPriorityChange"
+      color="neutral"
+      variant="outline"
+      icon="lucide:refresh-cw"
+      label="Retry priority change"
+      @click="retryPriorityChange"
+    />
     <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
     <UCard v-if="pending && !data"><p class="text-muted">Loading tickets…</p></UCard>
     <template v-else-if="!error && !actionNeedsRefresh">
@@ -436,11 +515,13 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
               :key="item.ticket.id"
               :item="item"
               :changing="changing === item.ticket.id"
-              :busy="!!changing"
+              :busy="!!changing || !!priorityChangingId"
+              :priority-busy="!!changing || priorityChangingId === item.ticket.id"
               :highlighted="highlightedId === item.ticket.id"
               @drag-start="startDrag($event, item.ticket.id)"
               @drag-end="clearDrag"
               @change-status="moveStatus"
+              @change-priority="changePriority"
               @related-hover="hoveredTargetId = $event"
               @related-click="locateRelated"
               @filter="applyFilter"

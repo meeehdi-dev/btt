@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+import { ticketPriorities } from '../../shared/ticket-priority'
 import { ticketStatuses } from '../../shared/ticket-status'
 
 export const user = pgTable('user', {
@@ -113,6 +114,7 @@ export const release = pgTable(
 )
 
 export const ticketStatus = pgEnum('ticket_status', ticketStatuses)
+export const ticketPriority = pgEnum('ticket_priority', ticketPriorities)
 
 export const ticket = pgTable(
   'ticket',
@@ -124,6 +126,7 @@ export const ticket = pgTable(
     title: text('title').notNull(),
     description: text('description').notNull().default(''),
     status: ticketStatus('status').notNull().default('Idea'),
+    priority: ticketPriority('priority'),
     estimateMinutes: integer('estimate_minutes'),
     archivedAt: timestamp('archived_at'),
     createdAt: timestamp('created_at').notNull(),

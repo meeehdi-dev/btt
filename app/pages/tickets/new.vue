@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import {
+  ticketPriorityFromOption,
+  ticketPriorityIcon,
+  ticketPriorityOptions,
+  type TicketPriorityOptionValue,
+} from '#shared/ticket-priority'
 import { parseTicketEstimate } from '~/utils/ticket-estimate'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
@@ -42,6 +48,8 @@ const selectedRelease = computed(() =>
 const title = ref('')
 const description = ref('')
 const estimate = ref('')
+const priorityOption = ref<TicketPriorityOptionValue>('none')
+const selectedPriority = computed(() => ticketPriorityFromOption(priorityOption.value) ?? null)
 const links = ref<{ label: string; url: string }[]>([])
 const relatedTicketIds = ref<string[]>([])
 const selectedRelation = ref('')
@@ -83,6 +91,7 @@ async function submit() {
           title: title.value,
           description: description.value,
           estimateMinutes: parseTicketEstimate(estimate.value),
+          priority: selectedPriority.value,
           links: links.value.map(({ label, url }) => ({
             ...(label.trim() ? { label: label.trim() } : {}),
             url,
@@ -185,6 +194,24 @@ async function submit() {
         <UFormField label="Estimate" hint="Optional · try 1hr 30m or 90 (minutes)"
           ><UInput v-model="estimate" type="text" class="w-full" placeholder="1hr 30m"
         /></UFormField>
+        <UFormField label="Priority" hint="Optional">
+          <USelect
+            v-model="priorityOption"
+            :items="ticketPriorityOptions"
+            value-key="value"
+            class="w-full"
+            aria-label="Ticket priority"
+            :disabled="pending"
+          >
+            <template #leading>
+              <UIcon
+                :name="ticketPriorityIcon(selectedPriority)"
+                class="size-4 text-muted"
+                aria-hidden="true"
+              />
+            </template>
+          </USelect>
+        </UFormField>
         <div class="space-y-2 border-t border-muted pt-4">
           <h2 class="font-medium text-highlighted">External links</h2>
           <div

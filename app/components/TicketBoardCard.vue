@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ticketStatusIcon, ticketStatuses, type TicketStatus } from '#shared/ticket-status'
+import type { TicketPriorityValue } from '#shared/ticket-priority'
+import type { TicketStatus } from '#shared/ticket-status'
 import type { Ticket } from '../../server/db/schema'
 
 type BoardTicket = Pick<
   Ticket,
-  'id' | 'title' | 'description' | 'status' | 'estimateMinutes' | 'releaseId'
+  'id' | 'title' | 'description' | 'status' | 'priority' | 'estimateMinutes' | 'releaseId'
 > & {
   archivedAt: string | null
 }
@@ -23,6 +24,7 @@ const props = defineProps<{
   }
   changing: boolean
   busy: boolean
+  priorityBusy: boolean
   highlighted: boolean
 }>()
 const hierarchyItems = computed(() => [
@@ -51,18 +53,9 @@ const emit = defineEmits<{
   'related-hover': [id: string | null]
   'related-click': [event: MouseEvent, id: string]
   'change-status': [id: string, status: TicketStatus]
+  'change-priority': [id: string, priority: TicketPriorityValue]
   filter: [kind: 'client' | 'project' | 'release', id: string]
 }>()
-const statusMenuItems = computed(() =>
-  ticketStatuses.map((status) => ({
-    label: status,
-    icon: ticketStatusIcon(status),
-    current: props.item.ticket.status === status,
-    disabled: props.busy || !!props.item.ticket.archivedAt || props.item.ticket.status === status,
-    onSelect: () => emit('change-status', props.item.ticket.id, status),
-  })),
-)
-
 let startedOnControl = false
 const interactive = 'a, button, input, select, textarea, [role="button"], [role="combobox"]'
 function pointerDown(event: PointerEvent) {
@@ -120,41 +113,16 @@ function dragEnd() {
         header-usage-class="flex shrink-0 items-center"
       >
         <template #status-icon-action>
-          <UTooltip :text="`Change status for ${item.ticket.title}`">
-            <UDropdownMenu
-              :items="statusMenuItems"
-              :content="{ side: 'top', avoidCollisions: false }"
-              size="xs"
-            >
-              <template #item-trailing="{ item }">
-                <UIcon
-                  v-if="item.current"
-                  name="lucide:check"
-                  data-slot="ticketStatusCurrentIcon"
-                  class="size-4 shrink-0"
-                  aria-hidden="true"
-                />
-              </template>
-              <UButton
-                size="xs"
-                square
-                color="neutral"
-                variant="ghost"
-                :disabled="busy || !!item.ticket.archivedAt"
-                :aria-busy="changing || undefined"
-                :aria-label="`Change status for ${item.ticket.title} from ${item.ticket.status}`"
-                data-ticket-status-trigger
-                class="!h-5 !min-h-5 !w-5 !min-w-5 !p-0 !justify-center !text-muted hover:!text-default"
-              >
-                <UIcon
-                  :name="ticketStatusIcon(item.ticket.status)"
-                  :data-ticket-status-icon="item.ticket.status"
-                  class="size-4 shrink-0"
-                  aria-hidden="true"
-                />
-              </UButton>
-            </UDropdownMenu>
-          </UTooltip>
+          <TicketStatusMenu
+            :ticket-title="item.ticket.title"
+            :status="item.ticket.status"
+            :busy="busy"
+            :disabled="!!item.ticket.archivedAt"
+            :item-disabled="!!item.ticket.archivedAt"
+            :busy-indicator="changing"
+            compact
+            @change="emit('change-status', item.ticket.id, $event)"
+          />
         </template>
         <template #title-trailing>
           <UBadge v-if="item.ticket.archivedAt" color="neutral">Archived</UBadge>
@@ -164,6 +132,14 @@ function dragEnd() {
     </template>
     <template #context>
       <div class="flex min-w-0 flex-wrap items-center gap-1" aria-label="Ticket context">
+        <TicketPriorityMenu
+          :ticket-title="item.ticket.title"
+          :priority="item.ticket.priority"
+          :busy="priorityBusy"
+          :disabled="!!item.ticket.archivedAt"
+          compact
+          @change="emit('change-priority', item.ticket.id, $event)"
+        />
         <TicketHierarchyBadges
           mode="filter-actions"
           truncate-labels

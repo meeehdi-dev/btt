@@ -25,6 +25,7 @@ export default defineEffectHandler((event) =>
           ...(body.title === undefined ? {} : { title: body.title }),
           ...(body.description === undefined ? {} : { description: body.description }),
           ...(body.status === undefined ? {} : { status: body.status }),
+          ...(body.priority === undefined ? {} : { priority: body.priority }),
           ...(body.estimateMinutes === undefined ? {} : { estimateMinutes: body.estimateMinutes }),
           ...(body.archived === undefined ? {} : { archivedAt: body.archived ? now() : null }),
           updatedAt: now(),

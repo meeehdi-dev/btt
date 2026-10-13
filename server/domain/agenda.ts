@@ -21,6 +21,7 @@ export function loadAgendaEntries(userId: string, startDate: string, endDate: st
           ticketId: ticket.id,
           ticketTitle: ticket.title,
           status: ticket.status,
+          priority: ticket.priority,
           ticketArchivedAt: ticket.archivedAt,
           releaseId: release.id,
           releaseName: release.name,

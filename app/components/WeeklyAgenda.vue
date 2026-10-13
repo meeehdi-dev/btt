@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ticketStatuses } from '#shared/ticket-status'
+import type { AgendaTicketFields } from '#shared/agenda'
+import type { TicketPriorityValue } from '#shared/ticket-priority'
+import type { TicketStatus } from '#shared/ticket-status'
 import { overlaps, slotMinutes } from '#shared/time-entry'
 import {
   creationRange,
@@ -11,8 +13,7 @@ import {
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
 import { formatAgendaDate } from '~/utils/agenda-week'
 
-type TicketStatus = (typeof ticketStatuses)[number]
-type Row = {
+type Row = AgendaTicketFields & {
   entry: {
     id: string
     date: string
@@ -20,21 +21,6 @@ type Row = {
     durationMinutes: number
     description: string
   }
-  ticketId: string
-  ticketTitle: string
-  ticketArchivedAt: string | null
-  releaseId: string
-  releaseName: string
-  releaseArchivedAt: string | null
-  projectId: string
-  projectName: string
-  projectArchivedAt: string | null
-  clientId: string
-  clientName: string
-  clientArchivedAt: string | null
-  status: TicketStatus
-  relatedTickets: { id: string; title: string; archived: boolean }[]
-  externalLinks: { id: string; label: string | null; url: string }[]
 }
 type WeekPreview = MovePreview & { date: string }
 type Gesture = {
@@ -64,6 +50,7 @@ const props = defineProps<{
   locale: string
   busy?: boolean
   statusChangingId?: string | null
+  priorityChangingId?: string | null
 }>()
 const emit = defineEmits<{
   filter: [kind: 'client' | 'project' | 'release' | 'ticket', id: string]
@@ -71,7 +58,11 @@ const emit = defineEmits<{
   change: [id: string, date: string, startMinute: number, durationMinutes: number]
   edit: [id: string]
   'change-status': [id: string, status: TicketStatus]
+  'change-priority': [id: string, priority: TicketPriorityValue]
 }>()
+function forwardPriorityChange(id: string, priority: TicketPriorityValue) {
+  emit('change-priority', id, priority)
+}
 const pixelsPerMinute = 1.8
 const timeline = ref<HTMLElement | null>(null)
 const alert = ref('')
@@ -482,9 +473,11 @@ function hiddenRows(date: string) {
               :row="row"
               compact-timeline
               :status-busy="statusChangingId === row.ticketId"
+              :priority-busy="priorityChangingId === row.ticketId"
               @filter="(kind, id) => emit('filter', kind, id)"
               @edit="emit('edit', row.entry.id)"
               @change-status="(id, status) => emit('change-status', id, status)"
+              @change-priority="forwardPriorityChange"
             />
             <div
               data-drag-edge="top"
@@ -508,8 +501,10 @@ function hiddenRows(date: string) {
                 :row="row"
                 compact-timeline
                 :status-busy="statusChangingId === row.ticketId"
+                :priority-busy="priorityChangingId === row.ticketId"
                 @filter="(kind, id) => emit('filter', kind, id)"
                 @change-status="(id, status) => emit('change-status', id, status)"
+                @change-priority="forwardPriorityChange"
               />
             </div>
             <div
@@ -533,43 +528,30 @@ function hiddenRows(date: string) {
           </template>
         </div>
       </div>
-      <template v-for="(date, dayIndex) in dates" :key="`early-${date}`">
-        <div
-          v-if="column(date)?.early.length"
-          class="col-span-8 grid grid-cols-[2.375rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
-        >
-          <h3 class="col-span-8 text-xs font-medium text-muted">
-            Before visible hours · {{ dayLabel(date) }}
-          </h3>
-          <TodayAgendaEntry
-            v-for="row in column(date)?.early"
-            :key="row.entry.id"
-            :row="row"
-            :style="{ gridColumnStart: dayIndex + 2 }"
-            :status-busy="statusChangingId === row.ticketId"
-            @filter="(kind, id) => emit('filter', kind, id)"
-            @edit="emit('edit', row.entry.id)"
-            @change-status="(id, status) => emit('change-status', id, status)"
-          />
-        </div>
-        <div
-          v-if="column(date)?.late.length"
-          class="col-span-8 grid grid-cols-[2.375rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
-        >
-          <h3 class="col-span-8 text-xs font-medium text-muted">
-            After visible hours · {{ dayLabel(date) }}
-          </h3>
-          <TodayAgendaEntry
-            v-for="row in column(date)?.late"
-            :key="row.entry.id"
-            :row="row"
-            :style="{ gridColumnStart: dayIndex + 2 }"
-            :status-busy="statusChangingId === row.ticketId"
-            @filter="(kind, id) => emit('filter', kind, id)"
-            @edit="emit('edit', row.entry.id)"
-            @change-status="(id, status) => emit('change-status', id, status)"
-          />
-        </div>
+      <template v-for="(date, dayIndex) in dates" :key="date">
+        <template v-for="period in ['early', 'late'] as const" :key="`${period}-${date}`">
+          <div
+            v-if="column(date)?.[period].length"
+            class="col-span-8 grid grid-cols-[2.375rem_repeat(7,minmax(0,1fr))] gap-1 border-b border-default py-1"
+          >
+            <h3 class="col-span-8 text-xs font-medium text-muted">
+              {{ period === 'early' ? 'Before visible hours' : 'After visible hours' }} ·
+              {{ dayLabel(date) }}
+            </h3>
+            <TodayAgendaEntry
+              v-for="row in column(date)?.[period]"
+              :key="row.entry.id"
+              :row="row"
+              :style="{ gridColumnStart: dayIndex + 2 }"
+              :status-busy="statusChangingId === row.ticketId"
+              :priority-busy="priorityChangingId === row.ticketId"
+              @filter="(kind, id) => emit('filter', kind, id)"
+              @edit="emit('edit', row.entry.id)"
+              @change-status="(id, status) => emit('change-status', id, status)"
+              @change-priority="forwardPriorityChange"
+            />
+          </div>
+        </template>
       </template>
     </div>
   </div>

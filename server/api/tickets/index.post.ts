@@ -35,6 +35,7 @@ export default defineEffectHandler((event) =>
             title: body.title,
             description: body.description ?? '',
             status: body.status ?? 'Idea',
+            priority: body.priority ?? null,
             estimateMinutes: body.estimateMinutes ?? null,
             createdAt: timestamp,
             updatedAt: timestamp,

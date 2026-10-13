@@ -5,6 +5,7 @@ import { formatTicketEstimate } from '~/utils/ticket-estimate'
 import { formatAgendaDate, formatAgendaWeekRange } from '~/utils/agenda-week'
 import { getWeekDates } from '#shared/agenda-week'
 import { entityIcons } from '~/utils/entity-icons'
+import { ticketPriorityLabel, type TicketPriorityValue } from '#shared/ticket-priority'
 import { ticketStatuses } from '#shared/ticket-status'
 import {
   useHierarchyFilters,
@@ -13,6 +14,7 @@ import {
 } from '~/composables/useHierarchyFilters'
 import { validDate } from '#shared/time-entry'
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import { patchTicket } from '~/utils/ticket-patch'
 
 type TicketStatus = (typeof ticketStatuses)[number]
 
@@ -163,7 +165,12 @@ const dragError = ref('')
 const dragErrorBase = ref('')
 const dragErrorTitle = ref('Could not update time entry')
 const statusChangingId = ref<string | null>(null)
+const priorityChangingId = ref<string | null>(null)
 const statusError = ref('')
+const priorityError = ref('')
+const priorityErrorBase = ref('')
+const priorityErrorNeedsRefresh = ref(false)
+const priorityWriteNeedsRefresh = ref(false)
 const statusErrorBase = ref('')
 const statusErrorNeedsRefresh = ref(false)
 const statusWriteNeedsRefresh = ref(false)
@@ -206,6 +213,13 @@ async function retryAgendaReads() {
     } else if (statusErrorNeedsRefresh.value) {
       statusError.value = statusErrorBase.value
       statusErrorNeedsRefresh.value = false
+    }
+    if (priorityWriteNeedsRefresh.value) {
+      priorityError.value = ''
+      priorityWriteNeedsRefresh.value = false
+    } else if (priorityErrorNeedsRefresh.value) {
+      priorityError.value = priorityErrorBase.value
+      priorityErrorNeedsRefresh.value = false
     }
   }
 }
@@ -384,15 +398,17 @@ function changeWeek(offset: number) {
 function goToCurrentWeek() {
   date.value = today(getLocalTimeZone())
 }
-async function changeTicketStatus(id: string, destination: TicketStatus) {
-  if (statusChangingId.value || pageActionNeedsRefresh.value) return
+function findActionableTicket(id: string) {
   const source = tickets.value.find(({ ticket }) => ticket.id === id)
-  if (
-    !source ||
-    source.ticket.archivedAt ||
-    source.ticket.status === destination ||
-    !ticketStatuses.includes(destination)
-  )
+  return source && !source.ticket.archivedAt ? source : null
+}
+function ticketActionBlocked() {
+  return statusChangingId.value || priorityChangingId.value || pageActionNeedsRefresh.value
+}
+async function changeTicketStatus(id: string, destination: TicketStatus) {
+  if (ticketActionBlocked()) return
+  const source = findActionableTicket(id)
+  if (!source || source.ticket.status === destination || !ticketStatuses.includes(destination))
     return
   statusChangingId.value = id
   statusError.value = ''
@@ -401,10 +417,7 @@ async function changeTicketStatus(id: string, destination: TicketStatus) {
   statusWriteNeedsRefresh.value = false
   statusMessage.value = `Changing ${source.ticket.title} to ${destination}.`
   try {
-    const endpoint: string = '/api/tickets/' + id
-    const result = await runClientRequest<unknown>((signal) =>
-      $fetch<unknown>(endpoint, { method: 'PATCH', body: { status: destination }, signal }),
-    )
+    const result = await patchTicket(id, { status: destination })
     if (result._tag === 'Failure') {
       statusMessage.value = ''
       statusErrorBase.value = result.failure.userMessage
@@ -428,6 +441,43 @@ async function changeTicketStatus(id: string, destination: TicketStatus) {
     statusMessage.value = `Changed ${source.ticket.title} to ${destination}.`
   } finally {
     statusChangingId.value = null
+  }
+}
+async function changeTicketPriority(id: string, destination: TicketPriorityValue) {
+  if (ticketActionBlocked()) return
+  const source = findActionableTicket(id)
+  if (!source || source.ticket.priority === destination) return
+  priorityChangingId.value = id
+  priorityError.value = ''
+  priorityErrorBase.value = ''
+  priorityErrorNeedsRefresh.value = false
+  priorityWriteNeedsRefresh.value = false
+  statusMessage.value = `Changing ${source.ticket.title} priority to ${ticketPriorityLabel(destination)}.`
+  try {
+    const result = await patchTicket(id, { priority: destination })
+    if (result._tag === 'Failure') {
+      statusMessage.value = ''
+      priorityErrorBase.value = result.failure.userMessage
+      priorityError.value = priorityErrorBase.value
+      const refreshed = await refreshAgendaData()
+      if (refreshed._tag === 'Failure') {
+        pageActionNeedsRefresh.value = true
+        priorityErrorNeedsRefresh.value = true
+        priorityError.value += ` Agenda could not refresh its data. ${refreshed.failure.userMessage}`
+      }
+      return
+    }
+    const refreshed = await invalidateMutation('ticket')
+    if (refreshed._tag === 'Failure') {
+      pageActionNeedsRefresh.value = true
+      priorityWriteNeedsRefresh.value = true
+      statusMessage.value = ''
+      priorityError.value = `Ticket priority updated, but affected ticket and Agenda data could not be refreshed. ${refreshed.failure.userMessage}`
+      return
+    }
+    statusMessage.value = `Changed ${source.ticket.title} priority to ${ticketPriorityLabel(destination)}.`
+  } finally {
+    priorityChangingId.value = null
   }
 }
 async function add() {
@@ -794,6 +844,13 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
       title="Could not change ticket status"
       :description="statusError"
     />
+    <UAlert
+      v-if="priorityError"
+      role="alert"
+      color="error"
+      title="Could not change ticket priority"
+      :description="priorityError"
+    />
     <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
     <UButton
       v-if="weekError && !pageActionNeedsRefresh"
@@ -857,11 +914,13 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
           :locale="locale"
           :busy="busy || weekPending || pageActionNeedsRefresh"
           :status-changing-id="statusChangingId"
+          :priority-changing-id="priorityChangingId"
           @filter="applyHierarchyFilter"
           @create="beginDragCreate"
           @change="changeEntry"
           @edit="beginEdit"
           @change-status="changeTicketStatus"
+          @change-priority="changeTicketPriority"
         />
       </UCard>
     </template>

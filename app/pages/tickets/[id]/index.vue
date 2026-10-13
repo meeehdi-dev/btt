@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import {
+  ticketPriorityFromOption,
+  ticketPriorityIcon,
+  ticketPriorityLabel,
+  ticketPriorityOptionValue,
+  ticketPriorityOptions,
+  type TicketPriorityOptionValue,
+  type TicketPriorityValue,
+} from '#shared/ticket-priority'
 import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { ticketLinkLabel } from '~/utils/ticket-link-label'
 import { formatTicketEstimate, parseTicketEstimate } from '~/utils/ticket-estimate'
@@ -58,6 +67,9 @@ const {
 })
 
 const statusDraft = ref<TicketStatus>(record.value?.status ?? ticketStatuses[0])
+const priorityDraft = ref<TicketPriorityOptionValue>(
+  ticketPriorityOptionValue(record.value?.priority ?? null),
+)
 const descriptionDraft = ref(record.value?.description ?? '')
 const descriptionFocused = ref(false)
 const descriptionError = ref('')
@@ -73,6 +85,12 @@ watch(
   () => record.value?.status,
   (value) => {
     if (value) statusDraft.value = value
+  },
+)
+watch(
+  () => record.value?.priority,
+  (value) => {
+    priorityDraft.value = ticketPriorityOptionValue(value ?? null)
   },
 )
 watch(
@@ -171,6 +189,7 @@ function applyTicketPatch(patch: {
   title?: string
   description?: string
   status?: TicketStatus
+  priority?: TicketPriorityValue
   estimateMinutes?: number | null
   releaseId?: string
 }) {
@@ -302,6 +321,26 @@ async function changeStatus(value: unknown) {
     },
   )
   if (outcome === 'failed') statusDraft.value = record.value?.status ?? ticketStatuses[0]
+}
+
+async function changePriority(value: unknown) {
+  const priority = ticketPriorityFromOption(value)
+  if (priority === undefined || priority === record.value?.priority) return
+  if (controlsDisabled.value) {
+    priorityDraft.value = ticketPriorityOptionValue(record.value?.priority ?? null)
+    return
+  }
+  priorityDraft.value = ticketPriorityOptionValue(priority)
+  const outcome = await mutateTicket(
+    (signal) => $fetch<unknown>(endpoint, { method: 'PATCH', body: { priority }, signal }),
+    {
+      errorTitle: 'Could not change ticket priority',
+      successMessage: `Ticket priority changed to ${ticketPriorityLabel(priority)}.`,
+      onWriteSuccess: () => applyTicketPatch({ priority }),
+    },
+  )
+  if (outcome === 'failed')
+    priorityDraft.value = ticketPriorityOptionValue(record.value?.priority ?? null)
 }
 
 async function changeEstimate() {
@@ -569,7 +608,7 @@ async function removeRelation(relationId: string) {
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-2" aria-label="Ticket fields">
+      <div class="grid grid-cols-4 gap-2" aria-label="Ticket fields">
         <UFormField label="Status" class="min-w-0">
           <USelect
             :model-value="statusDraft"
@@ -585,6 +624,27 @@ async function removeRelation(relationId: string) {
                 :name="ticketStatusIcon(data.ticket.status)"
                 class="size-4 text-muted"
                 :data-ticket-status-icon="data.ticket.status"
+                aria-hidden="true"
+              />
+            </template>
+          </USelect>
+        </UFormField>
+        <UFormField label="Priority" class="min-w-0">
+          <USelect
+            :model-value="priorityDraft"
+            :items="ticketPriorityOptions"
+            value-key="value"
+            class="w-full"
+            :aria-label="`Ticket priority for ${data.ticket.title}`"
+            :disabled="controlsDisabled"
+            :loading="pending && actionErrorTitle === 'Could not change ticket priority'"
+            @update:model-value="changePriority"
+          >
+            <template #leading>
+              <UIcon
+                :name="ticketPriorityIcon(data.ticket.priority)"
+                class="size-4 text-muted"
+                :data-ticket-priority-icon="ticketPriorityOptionValue(data.ticket.priority)"
                 aria-hidden="true"
               />
             </template>

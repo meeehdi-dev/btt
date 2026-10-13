@@ -703,6 +703,19 @@ Status: Complete — amended behavior, full local verification, Plannotator code
 
 Acceptance: the Ticket search textbox is focused and ready to type when the add modal opens; users can search/select without first activating the selector. Other selectors and all API/data/schema/dependency behavior remain unchanged.
 
+### M42 — Ticket priorities on Board, Agenda, and ticket forms
+
+Status: Plan approved via Plannotator session `pn-0a93c6` on 2026-10-12; implementation in progress. See [`docs/milestones/m42-ticket-priorities.md`](docs/milestones/m42-ticket-priorities.md) and Proposed [ADR 0053](docs/decisions/0053-ticket-priorities.md).
+
+Goal: add optional Low/Mid/High priority to tickets and make it easy to change from the main ticket work surfaces.
+
+- Persist nullable `low`, `mid`, or `high` priority (`NULL` means none); do not add “On hold.” Add field selectors to ticket creation and detail inline editing.
+- Add icon-only priority menus to Ticket Board cards and Agenda entries, immediately before hierarchy badges. Use neutral Lucide signal-zero/low/medium/high icons; menu options show labels and icons. Priority-specific colors are deferred.
+- Sort tickets within each Board status lane High → Mid → Low → None; preserve the current ticket order for ties and leave other list/Agenda ordering unchanged.
+- Keep status, Board drag-and-drop, archive, time-entry, and estimate behavior unchanged.
+
+Acceptance: the nullable migration preserves existing tickets as None; all approved surfaces can set and clear priority; Board/Agenda displays and menu interactions are accessible; priority ordering and existing tie ordering are covered; focused and full local checks (including E2E) and the supported-width visual review pass; code review and completion are recorded in M42.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

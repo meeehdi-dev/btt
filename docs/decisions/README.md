@@ -87,3 +87,5 @@ NNNN-short-descriptive-slug.md
 | [0050](0050-e2e-verification-and-server-handoff.md)            | Accepted   | Complete local verification before server handoff          |
 | [0051](0051-same-tab-api-data-invalidation.md)                 | Accepted   | Same-tab API data invalidation                             |
 | [0052](0052-jscpd-knip-quality-gates.md)                       | Accepted   | jscpd and Knip code-quality gates                          |
+| [0053](0053-ticket-priorities.md)                              | Superseded | Ticket priorities and Board ordering                       |
+| [0054](0054-ticket-priority-icon-presentation.md)              | Accepted   | Ticket priority icon presentation                          |

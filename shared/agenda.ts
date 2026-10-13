@@ -1,3 +1,25 @@
+import type { TicketPriorityValue } from './ticket-priority'
+import type { TicketStatus } from './ticket-status'
+
+export type AgendaTicketFields = {
+  ticketId: string
+  ticketTitle: string
+  ticketArchivedAt: string | null
+  releaseId: string
+  releaseName: string
+  releaseArchivedAt: string | null
+  projectId: string
+  projectName: string
+  projectArchivedAt: string | null
+  clientId: string
+  clientName: string
+  clientArchivedAt: string | null
+  status: TicketStatus
+  priority: TicketPriorityValue
+  relatedTickets: { id: string; title: string; archived: boolean }[]
+  externalLinks: { id: string; label: string | null; url: string }[]
+}
+
 export const defaultAgendaSettings = {
   visibleStartMinute: 480,
   visibleEndMinute: 1200,

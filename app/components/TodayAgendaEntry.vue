@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
+import type { AgendaTicketFields } from '#shared/agenda'
+import type { TicketPriorityValue } from '#shared/ticket-priority'
+import type { TicketStatus } from '#shared/ticket-status'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
 
-type TicketStatus = (typeof ticketStatuses)[number]
-
-type Row = {
+type Row = AgendaTicketFields & {
   entry: {
     id: string
     date?: string
@@ -12,25 +12,11 @@ type Row = {
     durationMinutes: number
     description: string
   }
-  ticketId: string
-  ticketTitle: string
-  ticketArchivedAt: string | null
-  releaseId: string
-  releaseName: string
-  releaseArchivedAt: string | null
-  projectId: string
-  projectName: string
-  projectArchivedAt: string | null
-  clientId: string
-  clientName: string
-  clientArchivedAt: string | null
-  status: TicketStatus
-  relatedTickets: { id: string; title: string; archived: boolean }[]
-  externalLinks: { id: string; label: string | null; url: string }[]
 }
 const props = defineProps<{
   row: Row
   statusBusy?: boolean
+  priorityBusy?: boolean
   compactTimeline?: boolean
 }>()
 const spacious = computed(() => props.row.entry.durationMinutes >= 60)
@@ -43,6 +29,7 @@ const emit = defineEmits<{
   filter: [kind: 'client' | 'project' | 'release' | 'ticket', id: string]
   edit: []
   'change-status': [id: string, status: TicketStatus]
+  'change-priority': [id: string, priority: TicketPriorityValue]
 }>()
 function onDoubleClick(event: MouseEvent) {
   if (
@@ -86,15 +73,6 @@ const hierarchyItems = computed(() => [
     to: `/releases/${props.row.releaseId}${props.row.clientArchivedAt || props.row.projectArchivedAt || props.row.releaseArchivedAt ? '?archived=true' : ''}`,
   },
 ])
-const statusMenuItems = computed(() =>
-  ticketStatuses.map((status) => ({
-    label: status,
-    icon: ticketStatusIcon(status),
-    current: props.row.status === status,
-    disabled: archived.value || props.statusBusy || props.row.status === status,
-    onSelect: () => emit('change-status', props.row.ticketId, status),
-  })),
-)
 </script>
 <template>
   <article
@@ -118,45 +96,16 @@ const statusMenuItems = computed(() =>
         class="min-w-0 flex-1"
       >
         <template #status-icon-action>
-          <UTooltip :text="`Change status for ${row.ticketTitle}`">
-            <UDropdownMenu
-              :items="statusMenuItems"
-              :content="{ side: 'top', avoidCollisions: false }"
-              size="xs"
-            >
-              <template #item-trailing="{ item }">
-                <UIcon
-                  v-if="item.current"
-                  name="lucide:check"
-                  data-slot="ticketStatusCurrentIcon"
-                  class="size-4 shrink-0"
-                  aria-hidden="true"
-                />
-              </template>
-              <UButton
-                size="xs"
-                square
-                color="neutral"
-                variant="ghost"
-                :loading="statusBusy"
-                :disabled="statusBusy"
-                :aria-busy="statusBusy || undefined"
-                :aria-label="`Change status for ${row.ticketTitle} from ${row.status}`"
-                data-ticket-status-trigger
-                :class="[
-                  '!text-muted hover:!text-default',
-                  compactTimeline ? '!h-5 !min-h-5 !w-5 !min-w-5 !p-0 !justify-center' : '',
-                ]"
-              >
-                <UIcon
-                  :name="ticketStatusIcon(row.status)"
-                  :data-ticket-status-icon="row.status"
-                  class="size-4 shrink-0"
-                  aria-hidden="true"
-                />
-              </UButton>
-            </UDropdownMenu>
-          </UTooltip>
+          <TicketStatusMenu
+            :ticket-title="row.ticketTitle"
+            :status="row.status"
+            :busy="statusBusy || priorityBusy"
+            :loading="statusBusy"
+            :item-disabled="archived"
+            :busy-indicator="statusBusy || priorityBusy"
+            :compact="compactTimeline"
+            @change="emit('change-status', row.ticketId, $event)"
+          />
         </template>
         <template #entry-title-action>
           <UTooltip :text="`Filter by ${row.ticketTitle}`">
@@ -205,6 +154,14 @@ const statusMenuItems = computed(() =>
       :class="compactTimeline && !hierarchyCanWrap ? 'flex-nowrap' : 'flex-wrap'"
       aria-label="Entry context"
     >
+      <TicketPriorityMenu
+        :ticket-title="row.ticketTitle"
+        :priority="row.priority"
+        :busy="priorityBusy || statusBusy"
+        :disabled="archived"
+        :compact="compactTimeline"
+        @change="(priority) => emit('change-priority', row.ticketId, priority)"
+      />
       <TicketHierarchyBadges
         mode="filter-actions"
         truncate-labels

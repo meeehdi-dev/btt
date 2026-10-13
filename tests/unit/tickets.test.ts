@@ -8,7 +8,8 @@ import {
   TicketUpdate,
 } from '../../server/domain/schemas'
 import { nextStatus, ticketStatuses, ticketStatusIcons } from '../../shared/ticket-status'
-import { ticketStatus } from '../../server/db/schema'
+import { ticketPriority, ticketStatus } from '../../server/db/schema'
+import { ticketPriorities } from '../../shared/ticket-priority'
 import { externalUrl } from '../../shared/ticket-url'
 import { ticketLinkLabel } from '../../app/utils/ticket-link-label'
 
@@ -40,7 +41,19 @@ describe('ticket workflow', () => {
       Done: 'lucide:circle-check',
     })
   })
-  it('validates create/update estimates and fixed status', async () => {
+  it('validates create/update estimates, status, and priority', async () => {
+    expect(ticketPriority.enumValues).toEqual(ticketPriorities)
+    for (const priority of ticketPriorities) {
+      await expect(
+        decode(TicketCreate, { releaseId: 'r', title: 'Work', priority }),
+      ).resolves.toMatchObject({ priority })
+      await expect(decode(TicketUpdate, { priority })).resolves.toEqual({ priority })
+    }
+    await expect(decode(TicketUpdate, { priority: null })).resolves.toEqual({ priority: null })
+    await expect(decode(TicketUpdate, { status: 'Done' })).resolves.toEqual({ status: 'Done' })
+    await expect(
+      decode(TicketCreate, { releaseId: 'r', title: 'Work', priority: 'on-hold' }),
+    ).rejects.toThrow()
     await expect(
       decode(TicketCreate, { releaseId: 'r', title: 'Work', estimateMinutes: 30 }),
     ).resolves.toBeTruthy()
