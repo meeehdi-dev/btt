@@ -11,6 +11,7 @@ import {
   timeEntry,
 } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+import { waitForClientMount } from './wait-for-client-mount'
 
 async function makeHierarchy(api: APIRequestContext, suffix: string) {
   const c = await (
@@ -25,7 +26,9 @@ async function makeHierarchy(api: APIRequestContext, suffix: string) {
     await api.post('/api/releases', { data: { projectId: p.id, name: `Needle release ${suffix}` } })
   ).json()
   const t = await (
-    await api.post('/api/tickets', { data: { releaseId: r.id, title: `Needle ticket ${suffix}` } })
+    await api.post('/api/tickets', {
+      data: { releaseId: r.id, title: `Needle ticket ${suffix}`, status: 'On hold' },
+    })
   ).json()
   const e = await (
     await api.post('/api/time-entries', {
@@ -86,6 +89,9 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
       )
       expect(result[key].length).toBeLessThanOrEqual(8)
     }
+    expect(result.tickets.find((item: { id: string }) => item.id === own.t.id).status).toBe(
+      'On hold',
+    )
     expect(result.timeEntries[0]).toMatchObject({
       date: '2030-02-10',
       startMinute: 540,
@@ -265,5 +271,38 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
       if (cids.length) await db.delete(client).where(inArray(client.id, cids))
       await helpers.deleteUser(user.id)
     }
+  }
+})
+
+test('global search shows the On hold pause icon for ticket results', async ({ page, context }) => {
+  const helpers = (await testAuth.$context).test
+  const user = helpers.createUser({
+    name: 'Search status owner',
+    email: `search-status-${crypto.randomUUID()}@example.com`,
+  })
+  await helpers.saveUser(user)
+  let hierarchy: Awaited<ReturnType<typeof makeHierarchy>> | undefined
+  try {
+    await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
+    hierarchy = await makeHierarchy(page.request, 'status icon')
+    await page.goto('/tickets')
+    await waitForClientMount(page)
+    const search = page.getByRole('searchbox', { name: 'Search workspace' })
+    await search.fill('Needle ticket status icon')
+    const ticketResult = page
+      .getByRole('listbox', { name: 'Search results' })
+      .getByRole('option')
+      .filter({ has: page.locator('[data-ticket-status-icon="On hold"]') })
+    await expect(ticketResult).toHaveCount(1)
+    await expect(ticketResult.locator('[data-ticket-status-icon="On hold"]')).toBeVisible()
+  } finally {
+    if (hierarchy) {
+      await db.delete(timeEntry).where(eq(timeEntry.ticketId, hierarchy.t.id))
+      await db.delete(ticket).where(eq(ticket.id, hierarchy.t.id))
+      await db.delete(release).where(eq(release.id, hierarchy.r.id))
+      await db.delete(project).where(eq(project.id, hierarchy.p.id))
+      await db.delete(client).where(eq(client.id, hierarchy.c.id))
+    }
+    await helpers.deleteUser(user.id)
   }
 })

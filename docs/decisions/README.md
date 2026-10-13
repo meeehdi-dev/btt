@@ -89,3 +89,4 @@ NNNN-short-descriptive-slug.md
 | [0052](0052-jscpd-knip-quality-gates.md)                       | Accepted   | jscpd and Knip code-quality gates                          |
 | [0053](0053-ticket-priorities.md)                              | Superseded | Ticket priorities and Board ordering                       |
 | [0054](0054-ticket-priority-icon-presentation.md)              | Accepted   | Ticket priority icon presentation                          |
+| [0055](0055-on-hold-ticket-status.md)                          | Accepted   | On hold ticket status                                      |

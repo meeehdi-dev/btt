@@ -40,7 +40,7 @@ Create a concise product plan for a work-only tool that combines:
    - The Agenda as the primary work surface; M29 establishes a Week-only presentation at `/agenda` on the supported desktop UI.
 
 2. **Lite Linear-style tickets**
-   - Fixed statuses for MVP: Idea, Estimate, Develop, Review, Test, Deploy, Done.
+   - Fixed statuses for MVP: On hold, Idea, Estimate, Develop, Review, Test, Deploy, Done.
    - Clients can have multiple projects.
    - Projects can have multiple releases/milestones.
    - Releases can have an optional target date.
@@ -705,16 +705,30 @@ Acceptance: the Ticket search textbox is focused and ready to type when the add 
 
 ### M42 — Ticket priorities on Board, Agenda, and ticket forms
 
-Status: Plan approved via Plannotator session `pn-0a93c6` on 2026-10-12; implementation in progress. See [`docs/milestones/m42-ticket-priorities.md`](docs/milestones/m42-ticket-priorities.md) and Proposed [ADR 0053](docs/decisions/0053-ticket-priorities.md).
+Status: Complete — the user declared M42 complete on 2026-10-12 after approving the final visual preview and Plannotator code review. See [`docs/milestones/m42-ticket-priorities.md`](docs/milestones/m42-ticket-priorities.md) and Accepted [ADR 0054](docs/decisions/0054-ticket-priority-icon-presentation.md), which supersedes ADR 0053 only for icon/trigger presentation and reaffirms its other decisions.
 
 Goal: add optional Low/Mid/High priority to tickets and make it easy to change from the main ticket work surfaces.
 
 - Persist nullable `low`, `mid`, or `high` priority (`NULL` means none); do not add “On hold.” Add field selectors to ticket creation and detail inline editing.
-- Add icon-only priority menus to Ticket Board cards and Agenda entries, immediately before hierarchy badges. Use neutral Lucide signal-zero/low/medium/high icons; menu options show labels and icons. Priority-specific colors are deferred.
+- Add icon-only priority menus to Ticket Board cards and Agenda entries, immediately before hierarchy badges. Use neutral Lucide minus/chevron-down/chevron-right/chevron-up icons with no circular trigger outline or manual positioning; menu options show labels and icons. Priority-specific colors are deferred.
 - Sort tickets within each Board status lane High → Mid → Low → None; preserve the current ticket order for ties and leave other list/Agenda ordering unchanged.
 - Keep status, Board drag-and-drop, archive, time-entry, and estimate behavior unchanged.
 
 Acceptance: the nullable migration preserves existing tickets as None; all approved surfaces can set and clear priority; Board/Agenda displays and menu interactions are accessible; priority ordering and existing tie ordering are covered; focused and full local checks (including E2E) and the supported-width visual review pass; code review and completion are recorded in M42.
+
+### M43 — On hold ticket status
+
+Status: Complete — the human declared M43 complete on 2026-10-13 after Plannotator code review approved with no changes requested. Plan approval was via session `pn-992142` and code review via `pn-79dd64`. The approved plan and execution evidence are recorded in [`docs/milestones/m43-on-hold-ticket-status.md`](docs/milestones/m43-on-hold-ticket-status.md); Accepted [ADR 0055](docs/decisions/0055-on-hold-ticket-status.md) records the durable status decision.
+
+Goal: add a clear paused-work status without changing the existing ticket workflows.
+
+- Add the fixed status **On hold** before Idea, making it the leftmost Ticket Board lane; use the neutral `lucide:pause` icon.
+- Make it available in existing Board, Agenda, Release detail, and ticket-detail status controls, and show its icon anywhere an individual ticket status is shown.
+- Add the PostgreSQL enum value with one additive migration and validate it through the existing shared status schema. Keep existing ticket statuses and the Idea default unchanged.
+- Keep the New ticket form unchanged; new tickets continue to default to Idea. On hold is a status, not a priority, label, or synonym for Blocked.
+- Preserve the current order/behavior of the other statuses, Done-only visibility/completion rules, Board horizontal scrolling, Agenda history, and status write/error behavior.
+
+Acceptance: On hold persists through existing controls and APIs, appears first in the Board with a pause icon, renders consistently across ticket identity surfaces, remains unfinished/non-Done, and does not alter existing data/defaults. Focused and full local checks, full E2E, supported-width visual inspection, human code review, and completion evidence are recorded in M43.
 
 ### Later, post-MVP
 
@@ -760,7 +774,8 @@ Acceptance: the nullable migration preserves existing tickets as None; all appro
 - [x] Client list and client-scoped project discovery.
 - [x] Projects under clients, with color and basic metadata; there is no top-level Projects collection.
 - [x] Release/milestone lists under projects, with optional target dates.
-- [x] Ticket board grouped by the fixed statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
+- [x] Ticket board grouped by the original fixed statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
+- [x] Add On hold as the first/leftmost fixed Ticket Board status (M43 complete).
 - [x] Change ticket status through the initial edit form, Today status action, Release detail selector, or desktop board drag-and-drop (the initial ticket-detail policy is superseded by M25).
 - [ ] Ticket detail becomes the normal edit surface: title-only modal, live status/description/estimate/release fields, and no `/tickets/:id/edit` route (M25 in progress).
 - [x] Ticket title/description, required release association (with client/project context), status, estimate, external links, and related tickets.

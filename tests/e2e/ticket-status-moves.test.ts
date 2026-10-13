@@ -28,7 +28,7 @@ async function dragBetweenLanes(page: Page, board: Locator, source: Locator, tar
     destination.x + destination.width / 2 > boardBox.x + boardBox.width - 10 ||
     destination.x + destination.width / 2 < boardBox.x + 10
   ) {
-    const right = destination.x > boardBox.x + boardBox.width
+    const right = destination.x + destination.width / 2 > boardBox.x + boardBox.width
     await page.mouse.move(right ? boardBox.x + boardBox.width - 15 : boardBox.x + 15, y, {
       steps: 10,
     })
@@ -142,6 +142,10 @@ test('board status moves work across lanes, without reordering or changing card 
     const board = page.getByRole('region', { name: 'Ticket board' })
     const lane = (status: string) => board.getByRole('region', { name: `${status} tickets` })
     const card = (id: string) => board.locator(`[data-board-ticket-id="${id}"]`)
+    const laneLabels = await board
+      .locator('section[aria-label$=" tickets"]')
+      .evaluateAll((lanes) => lanes.map((element) => element.getAttribute('aria-label')))
+    expect(laneLabels).toEqual(ticketStatuses.map((status) => `${status} tickets`))
     for (const status of ticketStatuses)
       await expect(lane(status).locator('[data-ticket-status-icon]').first()).toHaveAttribute(
         'data-ticket-status-icon',
@@ -326,13 +330,21 @@ test('board status moves work across lanes, without reordering or changing card 
     await page.getByRole('button', { name: 'Retry status change' }).click()
     await expect(lane('Deploy').getByText('Idea source')).toBeVisible()
     await expect(page.getByRole('status')).toHaveText('Moved Idea source to Deploy.')
+    await card(idea.id)
+      .getByRole('button', { name: 'Change status for Idea source from Deploy' })
+      .click()
+    await page.getByRole('menuitem', { name: 'On hold', exact: true }).click()
+    await expect(lane('On hold').getByText('Idea source')).toBeVisible()
+    await expect(card(idea.id).locator('[data-ticket-status-icon="On hold"]')).toBeVisible()
+    await expect(page.getByRole('status')).toHaveText('Moved Idea source to On hold.')
     await page.goto(`/tickets/${idea.id}`)
     await expect(page).toHaveURL(`/tickets/${idea.id}`)
     const ticketStatus = page.getByRole('combobox', { name: 'Ticket status for Idea source' })
     const releaseLink = page
       .getByRole('navigation', { name: 'Breadcrumb' })
       .getByRole('link', { name: 'Move Release' })
-    await expect(ticketStatus).toContainText('Deploy')
+    await expect(ticketStatus).toContainText('On hold')
+    await expect(page.locator('[data-ticket-status-icon="On hold"]').first()).toBeVisible()
     await expect(releaseLink).toBeVisible()
     await expect(releaseLink).toHaveAttribute('href', `/releases/${r.id}`)
     await page.goto(`/releases/${r.id}`)

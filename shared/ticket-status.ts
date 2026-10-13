@@ -1,4 +1,5 @@
 export const ticketStatuses = [
+  'On hold',
   'Idea',
   'Estimate',
   'Develop',
@@ -11,6 +12,7 @@ export const ticketStatuses = [
 export type TicketStatus = (typeof ticketStatuses)[number]
 
 export const ticketStatusIcons: Record<TicketStatus, string> = {
+  'On hold': 'lucide:pause',
   Idea: 'lucide:lightbulb',
   Estimate: 'lucide:calculator',
   Develop: 'lucide:code',

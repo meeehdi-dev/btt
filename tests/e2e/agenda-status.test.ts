@@ -149,6 +149,16 @@ test('Agenda status selector changes active tickets directly and respects archiv
     )
     await page.unroute(route)
 
+    await entry
+      .getByRole('button', { name: 'Change status for Status ticket from Develop' })
+      .click()
+    await page.getByRole('menuitem', { name: 'On hold', exact: true }).click()
+    await expect(page.getByRole('status')).toHaveText('Changed Status ticket to On hold.')
+    expect((await (await page.request.get(`/api/tickets/${ticketId}`)).json()).ticket.status).toBe(
+      'On hold',
+    )
+    await expect(entry.locator('[data-ticket-status-icon="On hold"]')).toBeVisible()
+
     const archived = await page.request.patch(`/api/clients/${clientId}`, {
       data: { archived: true },
     })
@@ -159,7 +169,7 @@ test('Agenda status selector changes active tickets directly and respects archiv
       .locator(`[data-agenda-ticket-id="${ticketId}"]`)
       .filter({ visible: true })
     await historyEntry
-      .getByRole('button', { name: 'Change status for Status ticket from Develop' })
+      .getByRole('button', { name: 'Change status for Status ticket from On hold' })
       .click()
     for (const status of ticketStatuses)
       await expect(page.getByRole('menuitem', { name: status, exact: true })).toBeDisabled()

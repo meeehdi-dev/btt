@@ -105,6 +105,12 @@ test('release tickets, workflow, links and relations respect auth and archive li
       })
     ).json()
     expect(b.id).toMatch(uuidv7)
+    const onHoldResponse = await page.request.post('/api/tickets', {
+      data: { releaseId: r.id, title: 'On hold ticket', status: 'On hold' },
+    })
+    expect(onHoldResponse.ok(), await onHoldResponse.text()).toBeTruthy()
+    const onHoldTicket = await onHoldResponse.json()
+    expect(onHoldTicket.status).toBe('On hold')
     const secondRelease = await (
       await page.request.post('/api/releases', { data: { projectId: p.id, name: 'Other Release' } })
     ).json()
@@ -202,6 +208,9 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await expect(
       page.getByRole('region', { name: 'Idea tickets' }).getByText('First ticket'),
     ).toBeVisible()
+    await expect(
+      page.getByRole('region', { name: 'On hold tickets' }).getByText('On hold ticket'),
+    ).toBeVisible()
     expect(
       (await page.request.patch(`/api/tickets/${a.id}`, { data: { status: 'Estimate' } })).ok(),
     ).toBe(true)
@@ -209,11 +218,19 @@ test('release tickets, workflow, links and relations respect auth and archive li
     await expect(
       page.getByRole('region', { name: 'Estimate tickets' }).getByText('First ticket'),
     ).toBeVisible()
+    expect(
+      (await page.request.patch(`/api/tickets/${a.id}`, { data: { status: 'On hold' } })).ok(),
+    ).toBe(true)
+    await page.reload()
+    await expect(
+      page.getByRole('region', { name: 'On hold tickets' }).getByText('First ticket'),
+    ).toBeVisible()
     await page.goto(`/tickets/${a.id}`)
     const metadata = page.getByLabel('Ticket fields')
     const status = metadata.getByRole('combobox', { name: 'Ticket status for First ticket' })
     const estimate = metadata.getByRole('textbox', { name: 'Estimate for First ticket' })
-    await expect(status).toContainText('Estimate')
+    await expect(status).toContainText('On hold')
+    await expect(page.locator('[data-ticket-status-icon="On hold"]').first()).toBeVisible()
     await expect(estimate).toHaveValue('45m')
     const [statusBox, estimateBox] = await Promise.all([
       status.boundingBox(),

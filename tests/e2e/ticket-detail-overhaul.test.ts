@@ -130,14 +130,15 @@ test('ticket detail edits fields in place and creates links and relations in mod
     const status = page.getByRole('combobox', { name: 'Ticket status for Detail ticket updated' })
     await status.focus()
     await page.keyboard.press('Enter')
-    await page.getByRole('option', { name: 'Develop', exact: true }).click()
-    await expect(status).toContainText('Develop')
+    await page.getByRole('option', { name: 'On hold', exact: true }).click()
+    await expect(status).toContainText('On hold')
+    await expect(page.locator('[data-ticket-status-icon="On hold"]').first()).toBeVisible()
     await expect
       .poll(
         async () =>
           (await (await page.request.get(`/api/tickets/${ticketId}`)).json()).ticket.status,
       )
-      .toBe('Develop')
+      .toBe('On hold')
 
     const description = page.getByRole('textbox', { name: 'Description for Detail ticket updated' })
     await description.fill('Description saved on blur')

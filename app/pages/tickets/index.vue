@@ -484,7 +484,7 @@ async function changePriority(id: string, destination: TicketPriorityValue, rest
         @dragover.capture="updateEdgeScroll"
         @dragleave.self="leaveBoard"
       >
-        <div class="grid min-w-[105rem] flex-1 grid-cols-7 gap-2">
+        <div class="grid min-w-[120rem] flex-1 grid-cols-8 gap-2">
           <section
             v-for="group in groups"
             :key="group.status"

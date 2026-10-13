@@ -175,8 +175,8 @@ test('hierarchy cards show active counts and accessible release completion progr
     })
     await create('/api/tickets', {
       releaseId: activeRelease.id,
-      title: 'Active ticket',
-      status: 'Develop',
+      title: 'On hold ticket',
+      status: 'On hold',
     })
     const archivedTicket = await create('/api/tickets', {
       releaseId: activeRelease.id,

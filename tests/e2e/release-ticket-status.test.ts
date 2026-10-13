@@ -139,9 +139,14 @@ test('release ticket status selector changes status and handles failures', async
     await expect(page.getByRole('status')).toHaveText('Release ticket data refreshed.')
 
     await status.click()
-    await option('Deploy').click()
-    await expect(status).toContainText('Deploy')
+    await option('On hold').click()
+    await expect(status).toContainText('On hold')
+    await expect(status.locator('[data-ticket-status-icon="On hold"]')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Mark release as done' })).toBeEnabled()
     await expect(page).toHaveURL(`/releases/${releaseId}`)
+    expect((await (await page.request.get(`/api/tickets/${ticketId}`)).json()).ticket.status).toBe(
+      'On hold',
+    )
 
     await card.getByRole('link', { name: `Open ticket ${title}` }).click()
     await expect(page).toHaveURL(`/tickets/${ticketId}`)

@@ -59,6 +59,11 @@ test('quiet Done tickets disappear only from the active Ticket Board', async ({
       title: 'Quiet Review old activity',
       status: 'Review',
     })
+    const staleOnHold = await create('/api/tickets', {
+      releaseId: undatedRelease.id,
+      title: 'Quiet On hold old activity',
+      status: 'On hold',
+    })
     const nearCutoffDone = await create('/api/tickets', {
       releaseId: undatedRelease.id,
       title: 'Quiet Done just inside cutoff',
@@ -100,6 +105,7 @@ test('quiet Done tickets disappear only from the active Ticket Board', async ({
       db.update(timeEntry).set({ updatedAt: recentAt }).where(eq(timeEntry.id, recentEntry.id)),
       db.update(ticket).set({ updatedAt: staleAt }).where(eq(ticket.id, datedDone.id)),
       db.update(ticket).set({ updatedAt: staleAt }).where(eq(ticket.id, staleReview.id)),
+      db.update(ticket).set({ updatedAt: staleAt }).where(eq(ticket.id, staleOnHold.id)),
       db
         .update(ticket)
         .set({ updatedAt: justInsideCutoff })
@@ -120,6 +126,7 @@ test('quiet Done tickets disappear only from the active Ticket Board', async ({
         workActiveDone.id,
         datedDone.id,
         staleReview.id,
+        staleOnHold.id,
         nearCutoffDone.id,
       ]),
     )
@@ -144,7 +151,13 @@ test('quiet Done tickets disappear only from the active Ticket Board', async ({
     const boardIds = boardResponse.tickets.map((item: { ticket: { id: string } }) => item.ticket.id)
     expect(boardIds).not.toContain(staleDone.id)
     expect(boardIds).toEqual(
-      expect.arrayContaining([workActiveDone.id, datedDone.id, staleReview.id, nearCutoffDone.id]),
+      expect.arrayContaining([
+        workActiveDone.id,
+        datedDone.id,
+        staleReview.id,
+        staleOnHold.id,
+        nearCutoffDone.id,
+      ]),
     )
 
     const archivedBoardResponse = await (
@@ -182,6 +195,7 @@ test('quiet Done tickets disappear only from the active Ticket Board', async ({
     await expect(card(workActiveDone.id)).toBeVisible()
     await expect(card(datedDone.id)).toBeVisible()
     await expect(card(nearCutoffDone.id)).toBeVisible()
+    await expect(card(staleOnHold.id)).toBeVisible()
     await page.getByRole('button', { name: 'Filter archived tickets' }).click()
     await page.getByRole('option', { name: 'Include archived', exact: true }).click()
     await expect(card(archivedDone.id)).toBeVisible()

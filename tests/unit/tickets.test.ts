@@ -17,8 +17,9 @@ const decode = <S extends Schema.ConstraintDecoder<unknown>>(schema: S, input: u
   Schema.decodeUnknownPromise(schema)(input)
 
 describe('ticket workflow', () => {
-  it('advances through seven fixed statuses and stops at Done', () => {
+  it('orders eight fixed statuses with On hold first and stops at Done', () => {
     expect(ticketStatuses).toEqual([
+      'On hold',
       'Idea',
       'Estimate',
       'Develop',
@@ -32,6 +33,7 @@ describe('ticket workflow', () => {
     expect(nextStatus('Done')).toBeNull()
     expect(ticketStatus.enumValues).toEqual(ticketStatuses)
     expect(ticketStatusIcons).toEqual({
+      'On hold': 'lucide:pause',
       Idea: 'lucide:lightbulb',
       Estimate: 'lucide:calculator',
       Develop: 'lucide:code',
@@ -50,6 +52,12 @@ describe('ticket workflow', () => {
       await expect(decode(TicketUpdate, { priority })).resolves.toEqual({ priority })
     }
     await expect(decode(TicketUpdate, { priority: null })).resolves.toEqual({ priority: null })
+    await expect(
+      decode(TicketCreate, { releaseId: 'r', title: 'Paused work', status: 'On hold' }),
+    ).resolves.toMatchObject({ status: 'On hold' })
+    await expect(decode(TicketUpdate, { status: 'On hold' })).resolves.toEqual({
+      status: 'On hold',
+    })
     await expect(decode(TicketUpdate, { status: 'Done' })).resolves.toEqual({ status: 'Done' })
     await expect(
       decode(TicketCreate, { releaseId: 'r', title: 'Work', priority: 'on-hold' }),
