@@ -1,6 +1,6 @@
 # M42 — Ticket priorities on Board, Agenda, and ticket forms
 
-> **Status: Simplified priority icons are implemented, fully verified, and code-reviewed; user manual testing and completion declaration remain before M42 completion and commit.**
+> **Status: Complete — the user declared M42 complete on 2026-10-12. Verification and Plannotator code review passed; the user approved the final Board/Agenda visual preview.**
 
 ## Context
 
@@ -28,6 +28,8 @@ The Ticket Board currently groups tickets into fixed status lanes and exposes st
 ## Approved scope
 
 **Approved via Plannotator session `pn-0a93c6` on 2026-10-12.** Implemented scope:
+
+**Visual amendment:** The later plan [`m42-priority-control-visual-refinement.md`](../../plans/m42-priority-control-visual-refinement.md) was approved via Plannotator session `pn-e73224` after user feedback in `pn-9f9eeb`. It supersedes only the original icon/trigger presentation choice; see Accepted ADR 0054.
 
 - Add a nullable `priority` field to tickets with the fixed values `low`, `mid`, and `high`. `NULL` means no priority; existing tickets remain `NULL` after migration. No “on hold” value is included.
 - Validate priority in ticket create/update APIs. Omitted priority leaves the existing value unchanged on PATCH; explicit `null` clears it. New tickets default to no priority unless selected in the create form.
@@ -118,22 +120,23 @@ Release detail and global search are not planned to change.
 - User direction: use `signal-zero`, `signal-low`, `signal-medium`, and `signal-high` for None/Low/Mid/High. The user deferred state-specific colors; all priority icons stay neutral in M42. Board/Agenda card displays and closed triggers are icon-only; opened menu choices show the label and icon like the status menu.
 - Implemented schema: nullable `ticket_priority` enum, with `NULL` for no priority and no backfill. The additive SQL is in `drizzle/0010_cultured_spacker_dave.sql` and was applied to the isolated M42 database.
 - Approved scope: priority display/control on Board, Agenda, ticket creation, and ticket detail only; Release detail and global search remain unchanged.
-- Durable product/model, edit-surface, and ordering policy is recorded in accepted ADR 0053. Existing ticket ordering from ADR 0028 remains the tie-break and remains authoritative outside the Board.
+- Durable product/model, edit-surface, and ordering policy was initially recorded in ADR 0053. Accepted ADR 0054 supersedes its icon/trigger choice only and reaffirms the other M42 decisions. Existing ticket ordering from ADR 0028 remains the tie-break and remains authoritative outside the Board.
 
 ## Implementation checklist
 
 - [x] Incorporate all first-, second-, and third-round Plannotator feedback and obtain explicit approval of the revised plan before implementation (`pn-0a93c6`).
 - [x] After approval, update `PLAN.md` and add/index Proposed ADR 0053.
 - [x] Add the nullable priority model/migration and validated create/PATCH behavior; verify existing tickets remain `NULL`.
-- [x] Add the shared neutral signal-icon selector to Board cards and Agenda entries in the approved locations; present the trigger as a compact neutral outlined circle per follow-up user request.
+- [x] Add the shared neutral icon selector to Board cards and Agenda entries in the approved locations; implement the approved visual amendment with minus/chevron icons, a borderless ghost trigger, and no manual positioning.
 - [x] Add optional priority controls to the ticket creation form and the detail page's inline Ticket fields; support setting and clearing the priority.
 - [x] Sort within status lanes High → Mid → Low → None and preserve current order for ties.
 - [x] Add unit, API, and browser regression coverage for values, null, ordering, accessibility, Board/Agenda/form updates, failures/retries, and existing interactions.
 - [x] Run migration, focused and full E2E, all required local checks, and 1280 CSS px review; record exact commands/results below.
 - [x] Stop agent-owned server/database and verify their ports are released before code review.
 - [x] Submit the initial implementation for human code review and accept ADR 0053 after review.
-- [ ] Submit the user-requested visual refinement for final-diff human review.
-- [ ] Record the user's completion declaration before closing M42.
+- [x] Obtain approval of the priority icon visual-refinement plan and implement its approved icon/trigger revision.
+- [x] Submit the user-requested visual refinement for final-diff human review; Plannotator approved with no changes.
+- [x] Record the user's completion declaration before closing M42.
 
 ## Journal
 
@@ -240,6 +243,13 @@ Release detail and global search are not planned to change.
 - Handoff: after passing checks, stopped only the agent-owned server at `127.0.0.1:3001` and isolated M42 database; verified ports 3001/55432 were released. No user-owned process was signaled.
 - Status: user manual app testing and completion declaration remain pending; no commit was made.
 
+### 2026-10-12 — User completion declaration
+
+- Decision: the user declared M42 complete in chat on 2026-10-12. This closes the previously pending manual-testing/completion gate; no separate local app/database test report was provided.
+- Evidence: the user approved the final Board and Week Agenda screenshots in Plannotator preview session `pn-dea11f`; the final-diff code review was approved with no changes requested in session `pn-c212f0`; automated verification passed as recorded above.
+- Status: M42 is complete. No commit was created; the user requested a commit message to commit/push the work themselves.
+- Follow-up: apply `pnpm db:migrate` to any local development database that has not yet received the M42 migration before running `pnpm dev`.
+
 ## Verification
 
 Planning artifact checks (before final review):
@@ -266,16 +276,17 @@ Implementation verification (after approval):
 - ADR 0053: Superseded by Accepted ADR 0054 for the icon/trigger choice only. All other M42 decisions are reaffirmed in ADR 0054.
 - Automated verification of the simplified icon redesign: Passed (focused 1/1; latest full E2E 49/49).
 - Final-diff human code review: Approved via Plannotator session `pn-c212f0` on 2026-10-12.
-- User manual testing: Pending.
-- Milestone completion declaration and commit: Pending user confirmation after manual testing.
+- User manual review: Approved final Board/Agenda screenshots in Plannotator session `pn-dea11f`; no separate local app/database test report was provided.
+- Milestone completion declaration: Complete — the user declared M42 complete in chat on 2026-10-12.
+- Commit: Not created; the user requested a one-line commit message to commit/push themselves.
 
 ## Follow-ups
 
-- User to apply the migration to the intended local development database, run the app, and manually verify the feature. Do not declare M42 complete or commit before the user reports the manual test results.
+- Apply `pnpm db:migrate` to any local development database that has not yet received the M42 migration before running `pnpm dev`.
 
 ## Closeout checklist
 
-- [ ] Approved checklist complete or explicitly deferred (user manual testing pending).
+- [x] Approved checklist complete; the user explicitly declared the milestone complete.
 - [x] Final verification evidence recorded for the simplified icon redesign.
 - [x] Final human code review accepted.
-- [ ] Human completion declaration recorded in the journal and review status.
+- [x] Human completion declaration recorded in the journal and review status.
