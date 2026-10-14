@@ -730,6 +730,22 @@ Goal: add a clear paused-work status without changing the existing ticket workfl
 
 Acceptance: On hold persists through existing controls and APIs, appears first in the Board with a pause icon, renders consistently across ticket identity surfaces, remains unfinished/non-Done, and does not alter existing data/defaults. Focused and full local checks, full E2E, supported-width visual inspection, human code review, and completion evidence are recorded in M43.
 
+### M44 — Entity modals, inline editing, and action toasts
+
+Status: M44 is complete. The original implementation and approved amendments are verified and passed Plannotator code review; ADRs [0056](docs/decisions/0056-entity-modal-creation-inline-editing-and-action-toasts.md), [0057](docs/decisions/0057-sibling-ui-consistency-and-shared-presentation.md), [0058](docs/decisions/0058-settings-in-shell-modal.md), and [0059](docs/decisions/0059-modal-action-placement-and-keyboard-shortcuts.md) are Accepted. The user-reported modal-shortcut follow-up was approved with no changes requested in session `pn-c4e6ca`. The human declared M44 complete; evidence is recorded in [`docs/milestones/m44-entity-modals-inline-editing-and-action-toasts.md`](docs/milestones/m44-entity-modals-inline-editing-and-action-toasts.md).
+
+Goal: keep entity creation and hierarchy editing in context while providing clear confirmation for explicit server-backed actions.
+
+- Replace client/project/release/ticket create pages with local modals; preserve the ticket draft through required client → project → release setup and offer **Open** actions in creation toasts.
+- Edit client, project, and release fields directly on their detail pages; keep ticket detail as its existing editable page.
+- Separate Archive/Restore and archived-only permanent Delete actions on entity details, preserving archived-ancestor routing and deletion destinations.
+- Add success/partial-success toasts for the approved action groups, while retaining inline write errors, refresh retry controls, same-tab invalidation, and quiet Agenda drag/resize writes.
+- Remove the Agenda empty-ticket creation link; retain Ticket Board and Release detail creation entry points.
+- Open Settings from the authenticated header in a shell-level modal without leaving the current route; retire direct `/settings` visits with an authenticated 404 while preserving existing settings save/retry behavior.
+- Align modal action groups to the right with the primary action farthest right; close the topmost modal with Escape and submit the active modal form via Command+Enter/Ctrl+Enter through its existing validation path. Keep action-only confirmation dialogs button-driven.
+
+Acceptance: retired routes return 404; entity modal creation stays on the initiating page and preserves changeable hierarchy context; Settings opens over the current page and direct `/settings` returns an authenticated 404; detail fields and lifecycle actions retain existing API and ownership behavior; approved notifications distinguish successful and partial-success writes; full local checks, including Playwright, and supported-width interaction review pass before code review.
+
 ### Later, post-MVP
 
 - Weekly/monthly summaries by client/project/release/ticket.

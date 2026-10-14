@@ -13,7 +13,7 @@ withDefaults(
   {
     as: 'div',
     contentInteractive: false,
-    padding: 'compact',
+    padding: 'standard',
     borderTone: 'default',
     hoverBorderTone: 'default',
     contentSpacing: 'standard',

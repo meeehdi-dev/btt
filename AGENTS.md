@@ -18,6 +18,7 @@ Before planning or implementation, every agent must read:
 - Record implementation evidence in the active milestone file: commands, outcomes, manual checks, deviations, and follow-ups.
 - Distinguish facts, decisions, hypotheses, and open questions.
 - Stay within the approved scope. Ask before making high-impact changes to architecture, auth/security, schema, dependencies, deployment, or workflow.
+- For UI changes on analogous surfaces, inspect sibling routes/components and relevant tests. Share presentation components when rendering should match, test parity, and preserve intentional density or interaction differences.
 
 ## Current workflow state
 

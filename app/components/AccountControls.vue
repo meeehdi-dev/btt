@@ -5,6 +5,7 @@ const props = defineProps<{
   name?: string | null
   image?: string | null
 }>()
+const emit = defineEmits<{ openSettings: [] }>()
 </script>
 
 <template>
@@ -27,13 +28,14 @@ const props = defineProps<{
     </div>
     <UTooltip text="Settings">
       <UButton
-        to="/settings"
+        type="button"
         color="neutral"
         variant="ghost"
         size="md"
         :icon="entityIcons.settings"
         aria-label="Settings"
         class="shrink-0 cursor-pointer px-2 py-2 hover:bg-accented hover:text-highlighted"
+        @click="emit('openSettings')"
       >
         <span>Settings</span>
       </UButton>

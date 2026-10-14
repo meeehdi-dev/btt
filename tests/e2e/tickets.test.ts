@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { eq, inArray, or } from 'drizzle-orm'
 import { testAuth } from '../../server/utils/auth-test'
+import { expectModalActionsRightAligned } from './helpers/modal-actions'
+import { openToastAction, renderedAppToast } from './helpers/toasts'
+import { waitForClientMount } from './wait-for-client-mount'
 import { db } from '../../server/db'
 import {
   client,
@@ -55,7 +58,7 @@ test('release tickets, workflow, links and relations respect auth and archive li
 }) => {
   const helpers = (await testAuth.$context).test
   const users = await Promise.all(
-    ['A', 'B'].map(async (label) => {
+    ['A', 'B', 'Wizard'].map(async (label) => {
       const user = helpers.createUser({
         name: `M3 ${label}`,
         email: `nxmr-m3-${crypto.randomUUID()}@example.com`,
@@ -64,12 +67,19 @@ test('release tickets, workflow, links and relations respect auth and archive li
       return user
     }),
   )
-  const [owner, stranger] = users
-  if (!owner || !stranger) throw new Error('Fixtures unavailable')
+  const [owner, stranger, wizardOwner] = users
+  if (!owner || !stranger || !wizardOwner) throw new Error('Fixtures unavailable')
   try {
     await context.addCookies(await helpers.getCookies({ userId: owner.id, domain: '127.0.0.1' }))
-    await page.goto('/tickets/new')
-    await expect(page.getByRole('heading', { name: 'Create a release first' })).toBeVisible()
+    await page.goto('/tickets')
+    await waitForClientMount(page)
+    await page.getByRole('button', { name: 'New ticket' }).click()
+    const emptyTicketDialog = page.getByRole('dialog', { name: 'New ticket' })
+    await expect(
+      emptyTicketDialog.getByText('Create a release first', { exact: true }),
+    ).toBeVisible()
+    await expect(emptyTicketDialog.getByRole('button', { name: 'Create a release' })).toBeVisible()
+    await emptyTicketDialog.getByRole('button', { name: 'Cancel' }).click()
     const c = await (
       await page.request.post('/api/clients', { data: { name: 'Ticket Client' } })
     ).json()
@@ -164,24 +174,75 @@ test('release tickets, workflow, links and relations respect auth and archive li
     expect((await (await page.request.get('/api/tickets')).json()).tickets).toHaveLength(
       ticketCount,
     )
-    await page.goto(`/tickets/new?release=${r.id}`)
-    await page.waitForLoadState('networkidle')
-    await page.getByRole('textbox', { name: 'Title' }).fill('Created in browser')
-    await page.getByRole('textbox', { name: 'Estimate' }).fill('1 hr 30m')
-    await page.getByRole('button', { name: 'Add link' }).click()
-    await page.getByRole('textbox', { name: 'Link 1 label' }).fill('Brief')
-    await page.getByRole('textbox', { name: 'Link 1 URL' }).fill('https://example.com/brief')
-    await page.getByRole('button', { name: 'Add link' }).click()
-    await page
-      .getByRole('textbox', { name: 'Link 2 URL' })
+    await page.reload()
+    await waitForClientMount(page)
+    await page.getByRole('button', { name: 'New ticket' }).click()
+    const ticketDialog = page.getByRole('dialog', { name: 'New ticket' })
+    await ticketDialog.getByRole('button', { name: 'Release' }).click()
+    await page.getByPlaceholder('Search releases…').fill('Ticket Release')
+    await page.getByRole('option', { name: /Ticket Project · Ticket Release/ }).click()
+    await ticketDialog.getByRole('textbox', { name: 'Title' }).fill('Created in browser')
+    await ticketDialog.getByRole('textbox', { name: 'Estimate' }).fill('1 hr 30m')
+    await ticketDialog.getByRole('button', { name: 'Add link' }).click()
+    const firstLinkDialog = page.getByRole('dialog', { name: 'Add external link' })
+    await expectModalActionsRightAligned(firstLinkDialog, ['Cancel', 'Add link'])
+    await page.keyboard.press('Escape')
+    await expect(firstLinkDialog).toBeHidden()
+    await expect(ticketDialog).toBeVisible()
+    await ticketDialog.getByRole('button', { name: 'Add link' }).click()
+    await firstLinkDialog.getByRole('textbox', { name: 'Link label' }).fill('Brief')
+    await firstLinkDialog.getByRole('textbox', { name: 'URL' }).fill('https://example.com/brief')
+    await page.keyboard.press('Meta+Enter')
+    await ticketDialog.getByRole('button', { name: 'Add link' }).click()
+    const secondLinkDialog = page.getByRole('dialog', { name: 'Add external link' })
+    await secondLinkDialog
+      .getByRole('textbox', { name: 'URL' })
       .fill('https://jira.atlassian.com/browse/NXMR-CREATE')
-    await page.getByRole('button', { name: 'Choose related ticket' }).click()
+    await secondLinkDialog.getByRole('button', { name: 'Add link' }).click()
+    await ticketDialog.getByRole('button', { name: 'Link ticket' }).click()
+    const newTicketRelationDialog = page.getByRole('dialog', { name: 'Link a related ticket' })
+    await newTicketRelationDialog.getByRole('button', { name: 'Choose related ticket' }).click()
     const relatedTicketSearch = page.getByPlaceholder('Search tickets…')
     await relatedTicketSearch.fill('Second ticket')
     await expect(page.getByRole('option', { name: /Second ticket/ })).toBeVisible()
     await page.getByRole('option', { name: /Second ticket/ }).click()
-    await page.getByRole('button', { name: 'Add related ticket' }).click()
-    await page.getByRole('button', { name: 'Create ticket' }).click()
+    await newTicketRelationDialog.getByRole('button', { name: 'Add related ticket' }).focus()
+    await page.keyboard.press('Control+Enter')
+    await expectModalActionsRightAligned(ticketDialog, ['Cancel', 'Create ticket'])
+    const createTicketButton = ticketDialog.getByRole('button', { name: 'Create ticket' })
+    await expect(createTicketButton).toHaveAttribute(
+      'aria-keyshortcuts',
+      'Meta+Enter Control+Enter',
+    )
+    let releaseTicketPost: (() => void) | undefined
+    let notifyTicketPostStarted: (() => void) | undefined
+    const ticketPostRelease = new Promise<void>((resolve) => {
+      releaseTicketPost = resolve
+    })
+    const ticketPostStarted = new Promise<void>((resolve) => {
+      notifyTicketPostStarted = resolve
+    })
+    await page.route('**/api/tickets', async (route) => {
+      if (route.request().method() === 'POST') {
+        notifyTicketPostStarted?.()
+        await ticketPostRelease
+      }
+      await route.continue()
+    })
+    try {
+      await createTicketButton.focus()
+      await page.keyboard.press('Meta+Enter')
+      await ticketPostStarted
+      await expect(createTicketButton).toBeDisabled()
+      await page.keyboard.press('Escape')
+      await expect(ticketDialog).toBeVisible()
+    } finally {
+      releaseTicketPost?.()
+    }
+    await expect(ticketDialog).toBeHidden()
+    await page.unroute('**/api/tickets')
+    await expect(page).toHaveURL('/tickets')
+    await openToastAction(page, 'Ticket created.', 'Open ticket')
     await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]+$/)
     await expect(page.getByRole('heading', { name: 'Created in browser' })).toBeVisible()
     await expect(
@@ -461,14 +522,69 @@ test('release tickets, workflow, links and relations respect auth and archive li
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     ).toBeTruthy()
     await page.setViewportSize({ width: 1920, height: 1080 })
-    await page.goto('/clients/new')
+    await page.goto('/clients')
     expect((await page.locator('main').boundingBox())?.width).toBeGreaterThan(1800)
     expect((await page.locator('main > div').boundingBox())?.width).toBeGreaterThan(1800)
     expect(linkId).toMatch(uuidv7)
+
+    await context.addCookies(
+      await helpers.getCookies({ userId: wizardOwner.id, domain: '127.0.0.1' }),
+    )
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto('/tickets')
+    await waitForClientMount(page)
+    await page.getByRole('button', { name: 'New ticket' }).click()
+    const ticketWizard = page.getByRole('dialog', { name: 'New ticket' })
+    await ticketWizard.getByRole('textbox', { name: 'Title' }).fill('Preserved hierarchy draft')
+    await ticketWizard.getByRole('textbox', { name: 'Description' }).fill('Keep this description')
+    await ticketWizard.getByRole('textbox', { name: 'Estimate' }).fill('90m')
+    await ticketWizard.getByRole('button', { name: 'Create a release' }).click()
+
+    const clientSetup = page.getByRole('dialog', { name: 'Create a client' })
+    await clientSetup.getByRole('textbox', { name: 'Name' }).fill('Wizard Client')
+    await clientSetup.getByRole('button', { name: 'Create client' }).click()
+
+    const projectSetup = page.getByRole('dialog', { name: 'Create a project' })
+    await expect(projectSetup).toBeVisible()
+    await expect(renderedAppToast(page, 'Client created.')).toBeVisible()
+    await expect(projectSetup.getByRole('button', { name: 'Client' })).toContainText(
+      'Wizard Client',
+    )
+    await projectSetup.getByRole('textbox', { name: 'Name' }).fill('Wizard Project')
+    await projectSetup.getByRole('button', { name: 'Create project' }).click()
+
+    const releaseSetup = page.getByRole('dialog', { name: 'Create a release' })
+    await expect(releaseSetup).toBeVisible()
+    await expect(renderedAppToast(page, 'Project created.')).toBeVisible()
+    await expect(releaseSetup.getByRole('button', { name: 'Project' })).toContainText(
+      'Wizard Project',
+    )
+    await releaseSetup.getByRole('textbox', { name: 'Name' }).fill('Wizard Release')
+    await releaseSetup.getByRole('button', { name: 'Create release' }).click()
+
+    const resumedTicket = page.getByRole('dialog', { name: 'New ticket' })
+    await expect(resumedTicket).toBeVisible()
+    await expect(renderedAppToast(page, 'Release created.')).toBeVisible()
+    await expect(resumedTicket.getByRole('button', { name: 'Release' })).toContainText(
+      'Wizard Release',
+    )
+    await expect(resumedTicket.getByRole('textbox', { name: 'Title' })).toHaveValue(
+      'Preserved hierarchy draft',
+    )
+    await expect(resumedTicket.getByRole('textbox', { name: 'Description' })).toHaveValue(
+      'Keep this description',
+    )
+    await expect(resumedTicket.getByRole('textbox', { name: 'Estimate' })).toHaveValue('90m')
+    await resumedTicket.getByRole('button', { name: 'Create ticket' }).click()
+    await expect(page).toHaveURL('/tickets')
+    await openToastAction(page, 'Ticket created.', 'Open ticket')
+    await expect(page.getByRole('heading', { name: 'Preserved hierarchy draft' })).toBeVisible()
   } finally {
     await cleanup(owner.id)
     await cleanup(stranger.id)
+    await cleanup(wizardOwner.id)
     await helpers.deleteUser(owner.id)
     await helpers.deleteUser(stranger.id)
+    await helpers.deleteUser(wizardOwner.id)
   }
 })

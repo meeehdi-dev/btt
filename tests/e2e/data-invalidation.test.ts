@@ -12,6 +12,9 @@ import {
   userSettings,
 } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+import { openAgendaAddDialog } from './helpers/agenda'
+import { expectModalActionsRightAligned } from './helpers/modal-actions'
+import { appToast, appToasts, renderedAppToast } from './helpers/toasts'
 import { waitForClientMount } from './wait-for-client-mount'
 
 async function createOwner(context: BrowserContext, label: string) {
@@ -113,26 +116,6 @@ async function documentTimeOrigin(page: Page) {
   return page.evaluate(() => performance.timeOrigin)
 }
 
-async function openAgendaAddDialog(page: Page, date: string) {
-  const timeline = page.getByRole('region', { name: 'Week timeline' })
-  const column = timeline.locator(`[data-week-date="${date}"]`)
-  const [timelineBox, columnBox] = await Promise.all([timeline.boundingBox(), column.boundingBox()])
-  if (!timelineBox || !columnBox)
-    throw new Error('Agenda timeline and current-day column must be visible')
-  const start = {
-    x: columnBox.x + columnBox.width / 2,
-    y: timelineBox.y + (540 - 480) * 1.8 + 5,
-  }
-  await page.mouse.move(start.x, start.y)
-  await page.mouse.down()
-  await page.mouse.move(start.x, start.y + 10, { steps: 5 })
-  await page.mouse.up()
-  const dialog = page.getByRole('dialog', { name: 'Add completed work' })
-  await expect(dialog).toBeVisible()
-  await expect(page.getByPlaceholder('Search tickets…')).toBeFocused()
-  return dialog
-}
-
 test('ticket and time-entry writes update the Agenda picker and inactive board without reload', async ({
   page,
   context,
@@ -150,16 +133,20 @@ test('ticket and time-entry writes update the Agenda picker and inactive board w
     const initialTimeOrigin = await documentTimeOrigin(page)
 
     await navigateMain(page, 'Tickets')
-    await page.getByRole('link', { name: 'New ticket' }).click()
-    await page.getByRole('button', { name: 'Release' }).click()
+    await page.getByRole('button', { name: 'New ticket' }).click()
+    const ticketDialog = page.getByRole('dialog', { name: 'New ticket' })
+    await ticketDialog.getByRole('button', { name: 'Release' }).click()
     await page.getByPlaceholder('Search releases…').fill(hierarchy.releaseName)
     await page
       .getByRole('option', {
         name: `${hierarchy.projectName} · ${hierarchy.releaseName}`,
       })
       .click()
-    await page.getByRole('textbox', { name: 'Title' }).fill('Same-tab new ticket')
-    await page.getByRole('button', { name: 'Create ticket' }).click()
+    await ticketDialog.getByRole('textbox', { name: 'Title' }).fill('Same-tab new ticket')
+    await ticketDialog.getByRole('button', { name: 'Create ticket' }).click()
+    await expect(page).toHaveURL('/tickets')
+    await expect(appToast(page, 'Ticket created.')).toBeVisible()
+    await page.getByRole('link', { name: 'Open ticket' }).click()
     await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]+$/)
     await expect(page.getByRole('heading', { name: 'Same-tab new ticket' })).toBeVisible()
     const ticketId = new URL(page.url()).pathname.split('/').at(-1)!
@@ -212,11 +199,12 @@ test('hierarchy rename/archive refreshes inactive lists and clears retained sear
     await search.press('Escape')
     await navigateMain(page, 'Clients')
     await page.getByRole('link', { name: `Open client ${hierarchy.clientName}` }).click()
-    await page.getByRole('link', { name: 'Edit client' }).click()
     const newName = 'Renamed same-tab client'
-    await page.getByRole('textbox', { name: 'Name' }).fill(newName)
-    await page.getByRole('button', { name: 'Save changes' }).click()
+    const nameField = page.getByRole('textbox', { name: 'Client name' })
+    await nameField.fill(newName)
+    await nameField.press('Tab')
     await expect(page.getByRole('heading', { name: newName })).toBeVisible()
+    await expect(appToast(page, 'Client name saved.')).toBeVisible()
 
     await navigateMain(page, 'Clients')
     await expect(page.getByRole('link', { name: `Open client ${newName}` })).toBeVisible()
@@ -227,9 +215,8 @@ test('hierarchy rename/archive refreshes inactive lists and clears retained sear
     await search.press('Escape')
 
     await page.getByRole('link', { name: `Open client ${newName}` }).click()
-    await page.getByRole('link', { name: 'Edit client' }).click()
-    await page.getByRole('checkbox', { name: 'Archived' }).check()
-    await page.getByRole('button', { name: 'Save changes' }).click()
+    await page.getByRole('button', { name: 'Archive client' }).click()
+    await expect(appToast(page, 'Client archived.')).toBeVisible()
     await expect(page).toHaveURL(new RegExp(`/clients/${hierarchy.clientId}\\?archived=true$`))
     await navigateMain(page, 'Clients')
     await expect(page.getByRole('link', { name: `Open client ${newName}` })).toHaveCount(0)
@@ -299,13 +286,13 @@ test('ticket status and archive writes invalidate the same-tab board cache', asy
   }
 })
 
-test('settings writes refresh cached Agenda preferences through SPA navigation', async ({
+test('Settings modal saves refresh cached Agenda preferences without leaving the route', async ({
   page,
   context,
 }) => {
   const { helpers, user } = await createOwner(context, 'Same-tab settings owner')
   try {
-    await page.setViewportSize({ width: 1600, height: 1000 })
+    await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/agenda')
     await waitForClientMount(page)
     await page.waitForLoadState('networkidle')
@@ -313,12 +300,21 @@ test('settings writes refresh cached Agenda preferences through SPA navigation',
     const progress = page.getByRole('progressbar', { name: /workday progress/ }).first()
     await expect(progress).toHaveAttribute('aria-valuemax', '480')
 
-    await page.getByRole('link', { name: 'Settings' }).click()
-    await page.getByRole('combobox', { name: 'Workday target' }).click()
+    await page.getByRole('button', { name: 'Settings' }).click()
+    const settingsDialog = page.getByRole('dialog', { name: 'Workspace settings' })
+    await settingsDialog.getByRole('combobox', { name: 'Workday target' }).click()
     await page.getByRole('option', { name: '09:00' }).click()
-    await page.getByRole('button', { name: 'Save settings' }).click()
-    await expect(page.getByRole('status')).toContainText('Settings saved.')
-    await navigateMain(page, 'Agenda')
+    await expectModalActionsRightAligned(settingsDialog, ['Save settings'])
+    await expect(settingsDialog.getByRole('button', { name: 'Save settings' })).toHaveAttribute(
+      'aria-keyshortcuts',
+      'Meta+Enter Control+Enter',
+    )
+    await page.keyboard.press('Meta+Enter')
+    await expect(renderedAppToast(page, 'Settings saved.')).toBeVisible()
+    await expect(page.getByRole('listbox')).toHaveCount(0)
+    await expect(page).toHaveURL(/\/agenda$/)
+    await page.keyboard.press('Escape')
+    await expect(settingsDialog).not.toBeVisible()
     await expect(
       page.getByRole('progressbar', { name: /workday progress/ }).first(),
     ).toHaveAttribute('aria-valuemax', '540')
@@ -371,6 +367,7 @@ test('failed writes do not invalidate; successful writes report and retry a fail
     await dialog.getByRole('textbox', { name: 'Title' }).fill('Should not save')
     await dialog.getByRole('button', { name: 'Save title' }).click()
     await expect(dialog).toContainText('The request could not be completed. Please try again.')
+    await expect(appToasts(page)).toHaveCount(0)
     expect(ticketReads).toBe(readsBeforeFailedWrite)
 
     failRead = true
@@ -379,11 +376,14 @@ test('failed writes do not invalidate; successful writes report and retry a fail
     await expect(
       page.getByRole('alert').filter({ hasText: 'Ticket updated; refresh failed' }),
     ).toBeVisible()
+    await expect(appToast(page, 'Ticket title saved; refresh failed')).toBeVisible()
     await expect(page.getByText('private read failure')).toHaveCount(0)
     failRead = false
     await page.getByRole('button', { name: 'Retry loading ticket details' }).click()
     await expect(page.getByRole('heading', { name: 'Successfully updated title' })).toBeVisible()
-    await expect(page.getByRole('status')).toContainText('Ticket details refreshed.')
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Ticket details refreshed.' }),
+    ).toBeVisible()
   } finally {
     await cleanupOwner(user.id, () => helpers.deleteUser(user.id))
   }

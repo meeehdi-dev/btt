@@ -37,8 +37,8 @@ async function cleanup(userId: string) {
   if (clientIds.length) await db.delete(client).where(inArray(client.id, clientIds))
 }
 
-async function expectCompactReleaseCard(card: Locator, name: string, count: string) {
-  await expect(card).toHaveClass(/p-1/)
+async function expectStandardReleaseCard(card: Locator, name: string, count: string) {
+  await expect(card).toHaveClass(/p-2/)
   const heading = card.locator('[data-release-card-heading]')
   const title = heading.getByRole('heading', { name })
   await expect(card.getByRole('button', { name: 'Mark release as done' })).toHaveCount(0)
@@ -247,7 +247,8 @@ test('hierarchy cards show active counts and accessible release completion progr
 
     await page.goto('/clients')
     const clientCard = page.locator(`[data-client-card-id="${clientRecord.id}"]`)
-    await expect(clientCard).toHaveClass(/p-1/)
+    await expect(clientCard).toHaveClass(/p-2/)
+    expect(await clientCard.evaluate((card) => getComputedStyle(card).padding)).toBe('8px')
     const clientTitle = clientCard.locator('[data-client-card-title]')
     const clientCounts = clientCard.getByRole('list', { name: 'Active client contents' })
     await expect(clientTitle.getByRole('heading', { name: 'Metrics client' })).toBeVisible()
@@ -267,7 +268,7 @@ test('hierarchy cards show active counts and accessible release completion progr
 
     await page.goto(`/clients/${clientRecord.id}`)
     const projectCard = page.locator(`[data-project-card-id="${projectRecord.id}"]`)
-    await expect(projectCard).toHaveClass(/p-1/)
+    await expect(projectCard).toHaveClass(/p-2/)
     const projectSummary = projectCard.locator('[data-project-card-summary]')
     await expect
       .poll(() => projectSummary.evaluate((element) => element.scrollWidth <= element.clientWidth))
@@ -287,7 +288,7 @@ test('hierarchy cards show active counts and accessible release completion progr
     await page.goto(`/projects/${projectRecord.id}`)
     const activeReleaseCard = page.locator(`[data-release-card-id="${activeRelease.id}"]`)
     const releaseHierarchy = activeReleaseCard.getByLabel('Release hierarchy')
-    await expectCompactReleaseCard(activeReleaseCard, 'Metrics release', '1 / 2')
+    await expectStandardReleaseCard(activeReleaseCard, 'Metrics release', '1 / 2')
     await expect(releaseHierarchy.getByRole('link', { name: 'Metrics client' })).toHaveAttribute(
       'href',
       `/clients/${clientRecord.id}`,
@@ -310,7 +311,7 @@ test('hierarchy cards show active counts and accessible release completion progr
     const emptyProgress = emptyReleaseCard.getByRole('progressbar', {
       name: 'Empty release completion',
     })
-    await expectCompactReleaseCard(emptyReleaseCard, 'Empty release', '0 / 0')
+    await expectStandardReleaseCard(emptyReleaseCard, 'Empty release', '0 / 0')
     await expect(emptyProgress).toHaveAttribute('aria-valuenow', '0')
     await expect(emptyProgress).toHaveAttribute('aria-valuemax', '1')
     await expect(emptyProgress).toHaveAttribute(

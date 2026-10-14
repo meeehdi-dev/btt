@@ -86,12 +86,16 @@ test('release ticket status selector changes status and handles failures', async
     await status.click()
     await option('Develop').click()
     await patchStarted
-    await expect(page.getByRole('status')).toHaveText(`Changing ${title} to Develop.`)
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText(
+      `Changing ${title} to Develop.`,
+    )
     await expect(status).toBeDisabled()
     await expect(status.locator('[data-slot="trailingIcon"]')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Mark release as done' })).toBeDisabled()
     releasePatch()
-    await expect(page.getByRole('status')).toHaveText(`Changed ${title} to Develop.`)
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText(
+      `Changed ${title} to Develop.`,
+    )
     await expect(status).toContainText('Develop')
     await expect(page).toHaveURL(`/releases/${releaseId}`)
     await page.unroute(ticketEndpoint)
@@ -136,7 +140,9 @@ test('release ticket status selector changes status and handles failures', async
     await page.getByRole('button', { name: 'Retry release ticket refresh' }).click()
     await expect(status).toBeEnabled()
     await expect(status).toContainText('Done')
-    await expect(page.getByRole('status')).toHaveText('Release ticket data refreshed.')
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText(
+      'Release ticket data refreshed.',
+    )
 
     await status.click()
     await option('On hold').click()

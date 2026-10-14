@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import { useAppToast } from '~/composables/useAppToast'
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
 import { usageColor } from '#shared/time-entry'
@@ -18,6 +19,7 @@ const { data, error } = await trackAppApiFetch(
   { key: timeEntriesKey, resources: ['time-entries', 'tickets'] },
 )
 const { invalidateMutation } = useAppDataInvalidation()
+const { reportWrite } = useAppToast()
 const date = shallowRef<CalendarDate | null>(null)
 const datePickerOpen = ref(false)
 onMounted(() => {
@@ -89,6 +91,7 @@ async function save() {
     actionError.value = 'Choose a work date.'
     return
   }
+  const correcting = Boolean(editingId.value)
   busy.value = true
   actionError.value = ''
   actionErrorTitle.value = 'Could not save time entry'
@@ -116,6 +119,7 @@ async function save() {
     }
     reset()
     const refreshed = await invalidateMutation('time-entry')
+    reportWrite(refreshed, { title: correcting ? 'Time entry corrected.' : 'Time entry created.' })
     if (refreshed._tag === 'Failure') {
       actionNeedsRefresh.value = true
       actionErrorTitle.value = 'Time entry saved; refresh failed'
@@ -141,6 +145,7 @@ async function remove(id: string) {
     }
     if (editingId.value === id) reset()
     const refreshed = await invalidateMutation('time-entry')
+    reportWrite(refreshed, { title: 'Time entry deleted.' })
     if (refreshed._tag === 'Failure') {
       actionNeedsRefresh.value = true
       actionErrorTitle.value = 'Time entry deleted; refresh failed'

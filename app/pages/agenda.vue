@@ -14,7 +14,12 @@ import {
 } from '~/composables/useHierarchyFilters'
 import { validDate } from '#shared/time-entry'
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import { useAppToast } from '~/composables/useAppToast'
 import { patchTicket } from '~/utils/ticket-patch'
+import {
+  modalFormShortcutContent,
+  submitModalFormOnShortcut,
+} from '~/composables/modal-form-shortcuts'
 
 type TicketStatus = (typeof ticketStatuses)[number]
 
@@ -97,6 +102,7 @@ const {
   resources: ['tickets', 'hierarchy', 'time-entries', 'search'],
 })
 const { invalidateMutation } = useAppDataInvalidation()
+const { reportWrite } = useAppToast()
 const tickets = computed(() => ticketsData.value?.tickets ?? [])
 const eligibleTickets = computed(() =>
   tickets.value.filter(({ ticket }) => ticket.status !== 'Done'),
@@ -273,6 +279,7 @@ async function saveEdit() {
     }
     editingOpen.value = false
     const refreshed = await invalidateMutation('time-entry')
+    reportWrite(refreshed, { title: 'Time entry corrected.' })
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Time entry corrected; refresh failed'
@@ -306,6 +313,7 @@ async function deleteEdit() {
     editingOpen.value = false
     editingId.value = null
     const refreshed = await invalidateMutation('time-entry')
+    reportWrite(refreshed, { title: 'Time entry deleted.' })
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Time entry deleted; refresh failed'
@@ -431,6 +439,7 @@ async function changeTicketStatus(id: string, destination: TicketStatus) {
       return
     }
     const refreshed = await invalidateMutation('ticket')
+    reportWrite(refreshed, { title: `Ticket status changed to ${destination}.` })
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       statusWriteNeedsRefresh.value = true
@@ -468,6 +477,9 @@ async function changeTicketPriority(id: string, destination: TicketPriorityValue
       return
     }
     const refreshed = await invalidateMutation('ticket')
+    reportWrite(refreshed, {
+      title: `Ticket priority changed to ${ticketPriorityLabel(destination)}.`,
+    })
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       priorityWriteNeedsRefresh.value = true
@@ -511,6 +523,7 @@ async function add() {
     description.value = ''
     addOpen.value = false
     const refreshed = await invalidateMutation('time-entry')
+    reportWrite(refreshed, { title: 'Time entry created.' })
     if (refreshed._tag === 'Failure') {
       pageActionNeedsRefresh.value = true
       pageActionErrorTitle.value = 'Work added; agenda refresh failed'
@@ -648,10 +661,11 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
       v-model:open="addOpen"
       title="Add completed work"
       description="Record completed work in 30-minute slots without overlapping other entries."
+      :content="modalFormShortcutContent()"
       scrollable
     >
       <template #body>
-        <form class="space-y-3" @submit.prevent="add">
+        <form class="space-y-3" @keydown.capture="submitModalFormOnShortcut" @submit.prevent="add">
           <p class="text-sm text-muted">
             Work date: {{ addDate ? formatAgendaDate(addDate.toString(), locale) : 'Not selected' }}
           </p>
@@ -712,26 +726,28 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
               :title="actionErrorTitle"
               :description="actionError"
             />
-            <div class="flex items-center gap-2">
+            <div class="flex justify-end gap-2">
               <UButton
-                type="submit"
-                icon="lucide:save"
-                label="Save time entry"
-                :loading="busy"
-                :disabled="!addDate || !ticketId || pageActionNeedsRefresh"
-              /><UButton
+                type="button"
                 color="neutral"
                 variant="ghost"
                 icon="lucide:x"
                 label="Cancel"
                 @click="addOpen = false"
               />
+              <UButton
+                type="submit"
+                icon="lucide:save"
+                label="Save time entry"
+                :loading="busy"
+                :disabled="!addDate || !ticketId || pageActionNeedsRefresh"
+                aria-keyshortcuts="Meta+Enter Control+Enter"
+              />
             </div>
           </template>
           <p v-else class="text-sm text-muted">
-            No active tickets.
-            <NuxtLink to="/tickets/new" class="text-primary underline">Create a ticket</NuxtLink>
-            before logging work.
+            No active tickets. Create one from the Ticket Board or Release detail before logging
+            work.
           </p>
         </form>
       </template>
@@ -740,10 +756,15 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
       v-model:open="editingOpen"
       title="Correct time entry"
       description="Correct the work date, time, duration, or description without dragging."
+      :content="modalFormShortcutContent()"
       scrollable
     >
       <template #body>
-        <form class="space-y-3" @submit.prevent="saveEdit">
+        <form
+          class="space-y-3"
+          @keydown.capture="submitModalFormOnShortcut"
+          @submit.prevent="saveEdit"
+        >
           <div class="grid grid-cols-3 gap-2">
             <UFormField label="Work date" required>
               <UPopover v-model:open="editDatePickerOpen">
@@ -791,13 +812,16 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
             :title="editingErrorTitle"
             :description="editingError"
           />
-          <div class="flex items-center gap-2">
+          <div class="flex justify-end gap-2">
             <UButton
-              type="submit"
-              icon="lucide:save"
-              label="Save correction"
-              :loading="busy && !deletingEdit"
+              type="button"
+              color="error"
+              variant="soft"
+              icon="lucide:trash-2"
+              label="Delete time entry"
+              :loading="deletingEdit"
               :disabled="busy"
+              @click="deleteEdit"
             />
             <UButton
               type="button"
@@ -809,15 +833,12 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
               @click="editingOpen = false"
             />
             <UButton
-              type="button"
-              color="error"
-              variant="soft"
-              icon="lucide:trash-2"
-              label="Delete time entry"
-              :loading="deletingEdit"
+              type="submit"
+              icon="lucide:save"
+              label="Save correction"
+              :loading="busy && !deletingEdit"
               :disabled="busy"
-              class="ml-auto"
-              @click="deleteEdit"
+              aria-keyshortcuts="Meta+Enter Control+Enter"
             />
           </div>
         </form>

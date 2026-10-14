@@ -1,5 +1,9 @@
 <script setup lang="ts">
 const model = defineModel<string>({ required: true })
+const props = withDefaults(defineProps<{ disabled?: boolean; fullWidth?: boolean }>(), {
+  disabled: false,
+  fullWidth: false,
+})
 
 const presets = [
   '#ef4444',
@@ -27,7 +31,13 @@ function selectPreset(color: string) {
 
 <template>
   <UPopover>
-    <UButton color="neutral" variant="outline" aria-label="Choose color">
+    <UButton
+      color="neutral"
+      variant="outline"
+      aria-label="Choose color"
+      :disabled="props.disabled"
+      :class="props.fullWidth ? 'w-full h-8 justify-start' : undefined"
+    >
       <span class="size-4 rounded-full border border-default" :style="{ backgroundColor: model }" />
       <span class="font-mono text-xs uppercase">{{ model }}</span>
     </UButton>
@@ -45,13 +55,14 @@ function selectPreset(color: string) {
               :style="{ backgroundColor: preset }"
               :aria-label="`Select ${preset}`"
               :aria-pressed="model.toLowerCase() === preset"
+              :disabled="props.disabled"
               @click="selectPreset(preset)"
             />
           </div>
         </div>
         <div>
           <p class="mb-2 text-xs font-medium text-muted">Custom color</p>
-          <UColorPicker v-model="model" format="hex" />
+          <UColorPicker v-model="model" format="hex" :disabled="props.disabled" />
         </div>
       </div>
     </template>

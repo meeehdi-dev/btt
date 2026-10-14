@@ -4,7 +4,7 @@ import { getWeekDates } from '../../shared/agenda-week'
 import { db } from '../../server/db'
 import { client, project, release, ticket, timeEntry, userSettings } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
-import { waitForClientMount } from './wait-for-client-mount'
+import { expectModalActionsRightAligned } from './helpers/modal-actions'
 
 async function createHierarchy(page: import('@playwright/test').Page, name: string) {
   const clientRecord = await (
@@ -265,6 +265,7 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
   context,
   browser,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
     name: 'Week agenda owner',
@@ -562,15 +563,31 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await page.mouse.up()
     const addDialog = page.getByRole('dialog', { name: 'Add completed work' })
     await expect(addDialog).toBeVisible()
-    await expect(addDialog).toContainText(labels[2]!)
+    await expectModalActionsRightAligned(addDialog, ['Cancel', 'Save time entry'])
     const ticketSearch = page.getByPlaceholder('Search tickets…')
     await expect(ticketSearch).toBeFocused()
+    const addCloseButton = addDialog.locator('[data-slot="close"]')
+    await addCloseButton.focus()
+    await page.keyboard.press('Meta+Enter')
+    await expect(addDialog).toBeVisible()
+    await expect(addDialog).toContainText(labels[2]!)
+    await ticketSearch.focus()
     await ticketSearch.fill('Weekly first ticket')
     await expect(page.getByRole('option', { name: 'Weekly second ticket' })).toHaveCount(0)
     await page.getByRole('option', { name: 'Weekly first ticket' }).click()
     await expect(page.getByRole('listbox')).toBeHidden()
     await addDialog.getByRole('textbox', { name: 'Work description' }).fill('Weekly quick add')
-    await addDialog.getByRole('button', { name: 'Save time entry' }).click()
+    await addCloseButton.focus()
+    await expect(addCloseButton).toBeFocused()
+    const [addResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/time-entries') && response.request().method() === 'POST',
+        { timeout: 5000 },
+      ),
+      page.keyboard.press('Meta+Enter'),
+    ])
+    expect(addResponse.ok()).toBe(true)
     await expect(addDialog).toHaveCount(0)
     const tuesday = page.locator(`[data-week-date="${dates[2]}"]`)
     const quickAdd = tuesday.locator('[data-agenda-entry]').filter({ hasText: 'Weekly quick add' })
@@ -581,13 +598,29 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await quickAdd.dblclick()
     const correction = page.getByRole('dialog', { name: 'Correct time entry' })
     await expect(correction).toBeVisible()
+    await expectModalActionsRightAligned(correction, [
+      'Delete time entry',
+      'Cancel',
+      'Save correction',
+    ])
     await correction.getByRole('button', { name: `Work date: ${dates[2]}` }).click()
     const calendar = page.getByRole('dialog', { name: /Work date:/ })
     await expect(calendar.getByRole('gridcell')).toHaveCount(42)
     await calendar.getByRole('gridcell').nth(17).getByRole('button').click()
     await expect(calendar).toHaveCount(0)
     await expect(correction.getByRole('button', { name: `Work date: ${dates[3]}` })).toBeVisible()
-    await correction.getByRole('button', { name: 'Save correction' }).click()
+    const correctionCloseButton = correction.locator('[data-slot="close"]')
+    await correctionCloseButton.focus()
+    await expect(correctionCloseButton).toBeFocused()
+    const [correctionResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/time-entries/') && response.request().method() === 'PATCH',
+        { timeout: 5000 },
+      ),
+      page.keyboard.press('Meta+Enter'),
+    ])
+    expect(correctionResponse.ok()).toBe(true)
     await expect(correction).toHaveCount(0)
     await expect(page.locator(`[data-week-date="${dates[2]}"]`)).not.toContainText(
       'Weekly quick add',
@@ -787,9 +820,9 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
           (germanProgressBox.y + germanProgressBox.height / 2),
       ),
     ).toBeLessThan(3)
-    await localizedPage.goto('/settings')
-    await waitForClientMount(localizedPage)
-    await localizedPage.getByRole('combobox', { name: 'Week starts on' }).click()
+    await localizedPage.getByRole('button', { name: 'Settings' }).click()
+    const settingsDialog = localizedPage.getByRole('dialog', { name: 'Workspace settings' })
+    await settingsDialog.getByRole('combobox', { name: 'Week starts on' }).click()
     await expect(localizedPage.getByRole('option', { name: 'Sonntag', exact: true })).toBeVisible()
   } finally {
     await localeContext?.close()

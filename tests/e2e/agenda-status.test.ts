@@ -116,10 +116,14 @@ test('Agenda status selector changes active tickets directly and respects archiv
     })
     await page.getByRole('menuitem', { name: 'Develop', exact: true }).click()
     await patchStarted
-    await expect(page.getByRole('status')).toHaveText('Changing Status ticket to Develop.')
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText(
+      'Changing Status ticket to Develop.',
+    )
     await expect(statusTrigger).toBeDisabled()
     releasePatch()
-    await expect(page.getByRole('status')).toHaveText('Changed Status ticket to Develop.')
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText(
+      'Changed Status ticket to Develop.',
+    )
     await page.unroute(route)
     expect((await (await page.request.get(`/api/tickets/${ticketId}`)).json()).ticket.status).toBe(
       'Develop',
@@ -143,7 +147,7 @@ test('Agenda status selector changes active tickets directly and respects archiv
       .click()
     await page.getByRole('menuitem', { name: 'Review', exact: true }).click()
     await expect(page.getByRole('alert')).toContainText('Could not change ticket status')
-    await expect(page.getByRole('status')).toHaveText('')
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText('')
     expect((await (await page.request.get(`/api/tickets/${ticketId}`)).json()).ticket.status).toBe(
       'Develop',
     )
@@ -153,7 +157,9 @@ test('Agenda status selector changes active tickets directly and respects archiv
       .getByRole('button', { name: 'Change status for Status ticket from Develop' })
       .click()
     await page.getByRole('menuitem', { name: 'On hold', exact: true }).click()
-    await expect(page.getByRole('status')).toHaveText('Changed Status ticket to On hold.')
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText(
+      'Changed Status ticket to On hold.',
+    )
     expect((await (await page.request.get(`/api/tickets/${ticketId}`)).json()).ticket.status).toBe(
       'On hold',
     )

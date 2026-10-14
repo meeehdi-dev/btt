@@ -11,7 +11,7 @@ function boardToolbarControls(toolbar: Locator) {
     ),
     toolbar.getByRole('button', { name: 'Clear filters' }),
     toolbar.getByRole('button', { name: 'Filter archived tickets' }),
-    toolbar.getByRole('link', { name: 'New ticket', exact: true }),
+    toolbar.getByRole('button', { name: 'New ticket', exact: true }),
   ]
 }
 
@@ -140,10 +140,10 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
     await expect(filterGroup.locator('.grid-cols-5')).toHaveCSS('column-gap', '4px')
     await expect(filterGroup).toHaveCSS('border-width', '0px')
     await expect(filterGroup).toHaveCSS('box-shadow', 'none')
-    await expect(filterGroup.getByRole('link', { name: 'New ticket' })).toHaveCount(0)
+    await expect(filterGroup.getByRole('button', { name: 'New ticket' })).toHaveCount(0)
     await expectSameToolbarRow(toolbar)
-    const newTicket = toolbar.getByRole('link', { name: 'New ticket' })
-    await expect(newTicket).toHaveAttribute('href', '/tickets/new')
+    const newTicket = toolbar.getByRole('button', { name: 'New ticket' })
+    await expect(newTicket).toBeVisible()
     const board = page.getByRole('region', { name: 'Ticket board' })
     const archivedCard = board.locator(`[data-board-ticket-id="${archivedTicket.id}"]`)
     await expect(archivedCard).toHaveCount(0)
@@ -251,11 +251,16 @@ test('Agenda and ticket-board filters accept typed searches', async ({ page, con
     await expect(page.getByRole('button', { name: 'Filter client' })).toContainText('All clients')
     await page.goto(`/tickets?release=${searchableRelease.id}`)
     await page.waitForLoadState('networkidle')
-    await expect(
-      page
-        .getByRole('group', { name: 'Ticket board controls' })
-        .getByRole('link', { name: 'New ticket' }),
-    ).toHaveAttribute('href', `/tickets/new?release=${searchableRelease.id}`)
+    await page
+      .getByRole('group', { name: 'Ticket board controls' })
+      .getByRole('button', { name: 'New ticket' })
+      .click()
+    const ticketDialog = page.getByRole('dialog', { name: 'New ticket' })
+    await expect(ticketDialog.getByRole('button', { name: 'Release' })).toContainText(
+      `Searchable release ${suffix}`,
+    )
+    await ticketDialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page).toHaveURL(`/tickets?release=${searchableRelease.id}`)
 
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/agenda')

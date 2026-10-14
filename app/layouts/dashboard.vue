@@ -13,6 +13,8 @@ const sessionErrorMessage = computed(() =>
   sessionError.value ? toClientApiFailure(sessionError.value).userMessage : '',
 )
 const search = ref<{ focus: () => void } | null>(null)
+const settingsModalMounted = ref(false)
+const settingsModalOpen = ref(false)
 let navigationPrefix = false
 let prefixTimeout: ReturnType<typeof setTimeout> | undefined
 function shortcuts(event: KeyboardEvent) {
@@ -47,6 +49,10 @@ function shortcuts(event: KeyboardEvent) {
     }, 1000)
   }
 }
+function openSettings() {
+  settingsModalMounted.value = true
+  settingsModalOpen.value = true
+}
 onMounted(() => window.addEventListener('keydown', shortcuts))
 onBeforeUnmount(() => {
   if (import.meta.client) window.removeEventListener('keydown', shortcuts)
@@ -78,7 +84,11 @@ onBeforeUnmount(() => {
           <GlobalSearch ref="search" />
         </div>
         <div data-header-block="account" class="min-w-0">
-          <AccountControls :name="session?.user.name" :image="session?.user.image" />
+          <AccountControls
+            :name="session?.user.name"
+            :image="session?.user.image"
+            @open-settings="openSettings"
+          />
         </div>
       </div>
     </header>
@@ -101,5 +111,6 @@ onBeforeUnmount(() => {
       </div>
       <slot v-else />
     </main>
+    <SettingsModal v-if="settingsModalMounted" v-model:open="settingsModalOpen" />
   </div>
 </template>

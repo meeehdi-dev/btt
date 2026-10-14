@@ -329,14 +329,18 @@ test('board status moves work across lanes, without reordering or changing card 
     await expect(lane('Review').getByText('Idea source')).toBeVisible()
     await page.getByRole('button', { name: 'Retry status change' }).click()
     await expect(lane('Deploy').getByText('Idea source')).toBeVisible()
-    await expect(page.getByRole('status')).toHaveText('Moved Idea source to Deploy.')
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText(
+      'Moved Idea source to Deploy.',
+    )
     await card(idea.id)
       .getByRole('button', { name: 'Change status for Idea source from Deploy' })
       .click()
     await page.getByRole('menuitem', { name: 'On hold', exact: true }).click()
     await expect(lane('On hold').getByText('Idea source')).toBeVisible()
     await expect(card(idea.id).locator('[data-ticket-status-icon="On hold"]')).toBeVisible()
-    await expect(page.getByRole('status')).toHaveText('Moved Idea source to On hold.')
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText(
+      'Moved Idea source to On hold.',
+    )
     await page.goto(`/tickets/${idea.id}`)
     await expect(page).toHaveURL(`/tickets/${idea.id}`)
     const ticketStatus = page.getByRole('combobox', { name: 'Ticket status for Idea source' })

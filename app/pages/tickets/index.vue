@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import { useAppToast } from '~/composables/useAppToast'
 import {
   ticketPriorityLabel,
   ticketPrioritySortRank,
@@ -12,6 +13,7 @@ import { patchTicket } from '~/utils/ticket-patch'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 const { invalidateMutation } = useAppDataInvalidation()
+const { reportWrite } = useAppToast()
 const route = useRoute()
 const showArchived = ref(false)
 const archiveFilterOptions = [
@@ -304,6 +306,7 @@ async function moveStatus(id: string, destination: TicketStatus, restoreFocus = 
       return
     }
     const refreshResult = await invalidateMutation('ticket')
+    reportWrite(refreshResult, { title: `Ticket status changed to ${destination}.` })
     if (refreshResult._tag === 'Failure') {
       actionNeedsRefresh.value = true
       actionErrorTitle.value = 'Ticket updated; board refresh failed'
@@ -338,6 +341,9 @@ async function changePriority(id: string, destination: TicketPriorityValue, rest
       return
     }
     const refreshResult = await invalidateMutation('ticket')
+    reportWrite(refreshResult, {
+      title: `Ticket priority changed to ${ticketPriorityLabel(destination)}.`,
+    })
     if (refreshResult._tag === 'Failure') {
       actionNeedsRefresh.value = true
       actionErrorTitle.value = 'Ticket priority updated; board refresh failed'
@@ -423,11 +429,7 @@ async function changePriority(id: string, destination: TicketPriorityValue, rest
         decorative
         class="h-6 shrink-0"
       />
-      <UButton
-        :to="`/tickets/new${releaseId ? `?release=${releaseId}` : ''}`"
-        icon="lucide:plus"
-        label="New ticket"
-      />
+      <TicketCreateModal :initial-release-id="releaseId" />
     </div>
     <UAlert
       v-if="error || actionError"

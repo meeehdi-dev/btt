@@ -3,6 +3,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { db } from '../../server/db'
 import { client, project, release, ticket, timeEntry } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+import { openToastAction } from './helpers/toasts'
 import type { TicketPriorityValue } from '../../shared/ticket-priority'
 import { ticketPrioritySortRank } from '../../shared/ticket-priority'
 
@@ -196,16 +197,20 @@ test('ticket priorities persist, sort, and edit across ticket and Agenda surface
       .map((item: { ticket: { id: string } }) => item.ticket.id)
     expect(boardIds.filter((id) => highGroupApiOrder.includes(id))).toEqual(highGroupApiOrder)
 
-    await page.goto(`/tickets/new?release=${releaseId}`)
+    await page.goto(`/tickets?release=${releaseId}`)
     await page.waitForLoadState('networkidle')
-    const createPriority = page.getByRole('combobox', { name: 'Ticket priority' })
+    await page.getByRole('button', { name: 'New ticket' }).click()
+    const ticketDialog = page.getByRole('dialog', { name: 'New ticket' })
+    const createPriority = ticketDialog.getByRole('combobox', { name: 'Ticket priority' })
     await createPriority.focus()
     await page.keyboard.press('Enter')
     const highOption = page.getByRole('option', { name: 'High', exact: true })
     await expect(highOption.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(1)
     await highOption.click()
-    await page.getByRole('textbox', { name: 'Title' }).fill('Created high priority ticket')
-    await page.getByRole('button', { name: 'Create ticket' }).click()
+    await ticketDialog.getByRole('textbox', { name: 'Title' }).fill('Created high priority ticket')
+    await ticketDialog.getByRole('button', { name: 'Create ticket' }).click()
+    await expect(page).toHaveURL(`/tickets?release=${releaseId}`)
+    await openToastAction(page, 'Ticket created.', 'Open ticket')
     await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]+$/)
     const createdId = page.url().split('/').at(-1)!
     ticketIds.push(createdId)

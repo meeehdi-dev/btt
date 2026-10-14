@@ -44,6 +44,7 @@ If a conflict cannot be resolved safely, stop and ask the human before changing 
 - Keep milestones small enough for a human to review end-to-end.
 - Prefer vertical slices that leave the app working over broad unfinished layers.
 - Treat schema/auth/security/dependency/tooling changes as high-impact: they require explicit human-approved planning.
+- For UI changes on analogous routes/components, inspect sibling surfaces and relevant tests before implementation. When rendering should match, prefer shared presentation components and add parity coverage; preserve and test intentional density or interaction differences.
 - Record any approved deviation in the milestone file and, if durable, an ADR.
 
 ### Evidence standards

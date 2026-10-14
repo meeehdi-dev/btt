@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import { useAppToast } from '~/composables/useAppToast'
 import {
   ticketPriorityFromOption,
   ticketPriorityIcon,
@@ -12,6 +13,10 @@ import {
 import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { ticketLinkLabel } from '~/utils/ticket-link-label'
 import { formatTicketEstimate, parseTicketEstimate } from '~/utils/ticket-estimate'
+import {
+  modalFormShortcutContent,
+  submitModalFormOnShortcut,
+} from '~/composables/modal-form-shortcuts'
 
 type TicketStatus = (typeof ticketStatuses)[number]
 type MutationOutcome = 'saved' | 'partial' | 'failed' | null
@@ -169,6 +174,7 @@ const label = ref('')
 const url = ref('')
 
 const { invalidateMutation } = useAppDataInvalidation()
+const { reportWrite } = useAppToast()
 const pending = ref(false)
 const refreshBusy = ref(false)
 const actionNeedsRefresh = ref(false)
@@ -222,6 +228,7 @@ async function mutateTicket(
     const refreshed = await invalidateMutation('ticket', {
       refreshActive: options.refresh !== false,
     })
+    reportWrite(refreshed, { title: options.successMessage })
     if (refreshed._tag === 'Failure' && options.refresh !== false) {
       actionNeedsRefresh.value = true
       actionErrorTitle.value = 'Ticket updated; refresh failed'
@@ -874,11 +881,16 @@ async function removeRelation(relationId: string) {
       v-model:open="titleModalOpen"
       title="Edit ticket title"
       description="Change only the title of this ticket."
+      :content="modalFormShortcutContent()"
       :dismissible="!pending"
       :ui="{ footer: 'justify-end' }"
     >
       <template #body>
-        <form class="space-y-3" @submit.prevent="saveTitle">
+        <form
+          class="space-y-3"
+          @keydown.capture="submitModalFormOnShortcut"
+          @submit.prevent="saveTitle"
+        >
           <UFormField label="Title" required :error="titleError || undefined">
             <UInput v-model="titleDraft" class="w-full" maxlength="200" autofocus />
           </UFormField>
@@ -898,6 +910,7 @@ async function removeRelation(relationId: string) {
               label="Save title"
               :loading="pending && actionErrorTitle === 'Could not update ticket title'"
               :disabled="controlsDisabled"
+              aria-keyshortcuts="Meta+Enter Control+Enter"
             />
           </div>
         </form>
@@ -908,10 +921,15 @@ async function removeRelation(relationId: string) {
       v-model:open="linkModalOpen"
       title="Add external link"
       description="Add a web link related to this ticket."
+      :content="modalFormShortcutContent()"
       :dismissible="!pending"
     >
       <template #body>
-        <form class="space-y-3" @submit.prevent="addLink">
+        <form
+          class="space-y-3"
+          @keydown.capture="submitModalFormOnShortcut"
+          @submit.prevent="addLink"
+        >
           <UAlert
             v-if="linkError"
             role="alert"
@@ -947,6 +965,7 @@ async function removeRelation(relationId: string) {
               label="Add link"
               :loading="pending && actionErrorTitle === 'Could not add external link'"
               :disabled="controlsDisabled || !url.trim()"
+              aria-keyshortcuts="Meta+Enter Control+Enter"
             />
           </div>
         </form>
@@ -957,10 +976,15 @@ async function removeRelation(relationId: string) {
       v-model:open="relationModalOpen"
       title="Link a related ticket"
       description="Choose another ticket to relate to this one."
+      :content="modalFormShortcutContent()"
       :dismissible="!pending"
     >
       <template #body>
-        <form class="space-y-3" @submit.prevent="addRelation">
+        <form
+          class="space-y-3"
+          @keydown.capture="submitModalFormOnShortcut"
+          @submit.prevent="addRelation"
+        >
           <UAlert
             v-if="choicesError"
             role="alert"
@@ -1014,6 +1038,7 @@ async function removeRelation(relationId: string) {
               label="Link ticket"
               :loading="pending && actionErrorTitle === 'Could not link ticket'"
               :disabled="controlsDisabled || !relatedId || !!choicesError"
+              aria-keyshortcuts="Meta+Enter Control+Enter"
             />
           </div>
         </form>

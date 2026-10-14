@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { trackAppApiFetch } from '~/composables/useAppDataInvalidation'
+import { modalFormShortcutContent } from '~/composables/modal-form-shortcuts'
+import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
+import { useAppToast } from '~/composables/useAppToast'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
+const { invalidateMutation } = useAppDataInvalidation()
+const { reportWrite } = useAppToast()
 const showArchived = ref(false)
+const createOpen = ref(false)
 const clientsKey = computed(
   () => `app-api:clients:list:${showArchived.value ? 'archived' : 'active'}`,
 )
@@ -15,6 +20,16 @@ const { data, pending, error, refresh } = await trackAppApiFetch(
   { key: clientsKey, resources: ['clients', 'hierarchy', 'search'] },
 )
 const clients = computed(() => data.value?.clients ?? [])
+
+async function clientCreated(id: string) {
+  createOpen.value = false
+  const refreshed = await invalidateMutation('client')
+  reportWrite(refreshed, {
+    title: 'Client created.',
+    duration: 10_000,
+    open: { label: 'Open client', to: `/clients/${id}` },
+  })
+}
 </script>
 
 <template>
@@ -23,7 +38,17 @@ const clients = computed(() => data.value?.clients ?? [])
       <h1 class="text-2xl font-semibold text-highlighted">Clients</h1>
       <div class="flex items-center gap-2">
         <ArchiveFilterButton v-model="showArchived" />
-        <UButton to="/clients/new" icon="lucide:plus" label="New client" />
+        <UModal
+          v-model:open="createOpen"
+          title="New client"
+          description="Create a client without leaving this page."
+          :content="modalFormShortcutContent()"
+        >
+          <UButton icon="lucide:plus" label="New client" />
+          <template #body>
+            <ClientCreateForm @created="clientCreated" @cancel="createOpen = false" />
+          </template>
+        </UModal>
       </div>
     </div>
     <UAlert

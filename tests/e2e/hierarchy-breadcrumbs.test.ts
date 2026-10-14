@@ -187,99 +187,65 @@ test('hierarchy detail pages show their contextual breadcrumbs', async ({ page, 
   ).toHaveCount(0)
 })
 
-test('hierarchy-aware create and edit forms keep breadcrumbs in sync', async ({
+test('creation and edit routes are retired and modal parent selectors remain changeable', async ({
   page,
   hierarchy,
 }) => {
   const { clientA, clientB, projectA, projectB, releaseA, releaseB, ticketA } = hierarchy
   await page.setViewportSize({ width: 1440, height: 900 })
 
-  await page.goto(`/projects/${projectA.id}/edit`)
-  await expectTrail(
-    page,
-    [
-      { label: clientA.name, href: `/clients/${clientA.id}` },
-      { label: projectA.name, href: `/projects/${projectA.id}` },
-    ],
-    'Edit project',
-  )
-  await page.goto(`/releases/${releaseA.id}/edit`)
-  await expectTrail(
-    page,
-    [
-      { label: clientA.name, href: `/clients/${clientA.id}` },
-      { label: projectA.name, href: `/projects/${projectA.id}` },
-      { label: releaseA.name, href: `/releases/${releaseA.id}` },
-    ],
-    'Edit release',
-  )
-  const removedTicketEditor = await page.goto(`/tickets/${ticketA.id}/edit`)
-  expect(removedTicketEditor?.status()).toBe(404)
+  for (const route of [
+    '/clients/new',
+    '/projects/new',
+    '/releases/new',
+    '/tickets/new',
+    `/clients/${clientA.id}/edit`,
+    `/projects/${projectA.id}/edit`,
+    `/releases/${releaseA.id}/edit`,
+    `/tickets/${ticketA.id}/edit`,
+  ]) {
+    const response = await page.goto(route)
+    expect(response?.status(), `Expected ${route} to return 404`).toBe(404)
+  }
 
-  await page.goto('/projects/new')
+  await page.goto(`/clients/${clientA.id}`)
   await waitForClientMount(page)
-  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveCount(0)
-  await page.goto(`/projects/new?client=${clientA.id}`)
-  await waitForClientMount(page)
-  await expectTrail(page, [{ label: clientA.name, href: `/clients/${clientA.id}` }], 'New project')
-  await page.getByRole('button', { name: 'Client' }).click()
-  const clientSearch = page.getByPlaceholder('Search clients…')
-  await clientSearch.fill('Breadcrumb Client B')
-  await expect(page.getByRole('option', { name: clientA.name, exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'New project' }).click()
+  const projectDialog = page.getByRole('dialog', { name: 'New project' })
+  const clientSelector = projectDialog.getByRole('button', { name: 'Client' })
+  await expect(clientSelector).toContainText(clientA.name)
+  await clientSelector.click()
+  await page.getByPlaceholder('Search clients…').fill(clientB.name)
   await page.getByRole('option', { name: clientB.name, exact: true }).click()
-  await expectTrail(page, [{ label: clientB.name, href: `/clients/${clientB.id}` }], 'New project')
+  await expect(projectDialog.getByRole('button', { name: 'Client' })).toContainText(clientB.name)
+  await projectDialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page).toHaveURL(`/clients/${clientA.id}`)
 
-  await page.goto(`/releases/new?project=${projectA.id}`)
+  await page.goto(`/projects/${projectA.id}`)
   await waitForClientMount(page)
-  await expectTrail(
-    page,
-    [
-      { label: clientA.name, href: `/clients/${clientA.id}` },
-      { label: projectA.name, href: `/projects/${projectA.id}` },
-    ],
-    'New release',
-  )
-  await page.getByRole('button', { name: 'Project' }).click()
-  await page.getByPlaceholder('Search projects…').fill('Breadcrumb Project B')
-  await expect(
-    page.getByRole('option', { name: `${clientA.name} · ${projectA.name}` }),
-  ).toHaveCount(0)
+  await page.getByRole('button', { name: 'New release' }).click()
+  const releaseDialog = page.getByRole('dialog', { name: 'New release' })
+  const projectSelector = releaseDialog.getByRole('button', { name: 'Project' })
+  await expect(projectSelector).toContainText(projectA.name)
+  await projectSelector.click()
+  await page.getByPlaceholder('Search projects…').fill(projectB.name)
   await page.getByRole('option', { name: `${clientB.name} · ${projectB.name}` }).click()
-  await expectTrail(
-    page,
-    [
-      { label: clientB.name, href: `/clients/${clientB.id}` },
-      { label: projectB.name, href: `/projects/${projectB.id}` },
-    ],
-    'New release',
-  )
+  await expect(releaseDialog.getByRole('button', { name: 'Project' })).toContainText(projectB.name)
+  await releaseDialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page).toHaveURL(`/projects/${projectA.id}`)
 
-  await page.goto(`/tickets/new?release=${releaseA.id}`)
+  await page.goto(`/releases/${releaseA.id}`)
   await waitForClientMount(page)
-  await expectTrail(
-    page,
-    [
-      { label: clientA.name, href: `/clients/${clientA.id}` },
-      { label: projectA.name, href: `/projects/${projectA.id}` },
-      { label: releaseA.name, href: `/releases/${releaseA.id}` },
-    ],
-    'New ticket',
-  )
-  await page.getByRole('button', { name: 'Release' }).click()
-  await page.getByPlaceholder('Search releases…').fill('Breadcrumb Release B')
-  await expect(
-    page.getByRole('option', { name: `${projectA.name} · ${releaseA.name}` }),
-  ).toHaveCount(0)
+  await page.getByRole('button', { name: 'New ticket' }).click()
+  const ticketDialog = page.getByRole('dialog', { name: 'New ticket' })
+  const releaseSelector = ticketDialog.getByRole('button', { name: 'Release' })
+  await expect(releaseSelector).toContainText(releaseA.name)
+  await releaseSelector.click()
+  await page.getByPlaceholder('Search releases…').fill(releaseB.name)
   await page.getByRole('option', { name: `${projectB.name} · ${releaseB.name}` }).click()
-  await expectTrail(
-    page,
-    [
-      { label: clientB.name, href: `/clients/${clientB.id}` },
-      { label: projectB.name, href: `/projects/${projectB.id}` },
-      { label: releaseB.name, href: `/releases/${releaseB.id}` },
-    ],
-    'New ticket',
-  )
+  await expect(ticketDialog.getByRole('button', { name: 'Release' })).toContainText(releaseB.name)
+  await ticketDialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page).toHaveURL(`/releases/${releaseA.id}`)
 })
 
 test('archived hierarchy breadcrumbs preserve context', async ({ page, hierarchy }) => {
@@ -298,9 +264,12 @@ test('archived hierarchy breadcrumbs preserve context', async ({ page, hierarchy
   expect(
     (await page.request.patch(`/api/clients/${clientA.id}`, { data: { archived: true } })).ok(),
   ).toBeTruthy()
-  await page.goto(`/projects/new?client=${clientB.id}`)
+  await page.goto(`/clients/${clientB.id}`)
   await waitForClientMount(page)
-  await expectTrail(page, [{ label: clientB.name, href: `/clients/${clientB.id}` }], 'New project')
+  await page.getByRole('button', { name: 'New project' }).click()
+  const projectDialog = page.getByRole('dialog', { name: 'New project' })
+  await expect(projectDialog.getByRole('button', { name: 'Client' })).toContainText(clientB.name)
+  await projectDialog.getByRole('button', { name: 'Cancel' }).click()
   const archivedEditorResponse = await page.goto(`/tickets/${ticketA.id}/edit?archived=true`)
   expect(archivedEditorResponse?.status()).toBe(404)
   await page.goto(`/tickets/${ticketA.id}?archived=true`)

@@ -10,6 +10,7 @@ import {
   ticketRelation,
 } from '../../server/db/schema'
 import { testAuth } from '../../server/utils/auth-test'
+import { expectModalActionsRightAligned } from './helpers/modal-actions'
 
 async function cleanup(userId: string) {
   const clients = await db.select({ id: client.id }).from(client).where(eq(client.userId, userId))
@@ -194,13 +195,14 @@ test('ticket detail edits fields in place and creates links and relations in mod
 
     await page.getByRole('button', { name: 'Add external link' }).click()
     const linkDialog = page.getByRole('dialog', { name: 'Add external link' })
+    await expectModalActionsRightAligned(linkDialog, ['Cancel', 'Add link'])
     await linkDialog.getByRole('button', { name: 'Cancel' }).click()
     await expect(linkDialog).toHaveCount(0)
     await page.getByRole('button', { name: 'Add external link' }).click()
     await linkDialog
       .getByRole('textbox', { name: 'URL*', exact: true })
       .fill('https://jira.atlassian.com/browse/DETAIL-1')
-    await linkDialog.getByRole('button', { name: 'Add link' }).click()
+    await page.keyboard.press('Meta+Enter')
     await expect(page.getByRole('link', { name: 'jira.atlassian.com', exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Link ticket', exact: true }).click()
@@ -315,7 +317,7 @@ test('ticket detail reports safe write and refresh failures', async ({ page, con
     await page.unroute(`**/api/tickets/${ticketId}`)
     await page.getByRole('button', { name: 'Retry loading ticket details' }).click()
     await expect(status).toContainText('Review')
-    await expect(page.getByRole('status')).toHaveText('Ticket details refreshed.')
+    await expect(page.locator('p.sr-only[role="status"]')).toHaveText('Ticket details refreshed.')
   } finally {
     await cleanup(owner.id)
     await helpers.deleteUser(owner.id)

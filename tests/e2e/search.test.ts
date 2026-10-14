@@ -147,8 +147,12 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     await expect(page).toHaveURL(new RegExp(`/projects/${own.p.id}$`))
     await header.getByRole('link', { name: 'Tickets' }).click()
     await expect(page).toHaveURL(/\/tickets$/)
-    await header.getByRole('link', { name: 'Settings' }).click()
-    await expect(page).toHaveURL(/\/settings$/)
+    await header.getByRole('button', { name: 'Settings' }).click()
+    await expect(page).toHaveURL(/\/tickets$/)
+    const settingsDialog = page.getByRole('dialog', { name: 'Workspace settings' })
+    await expect(settingsDialog).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(settingsDialog).not.toBeVisible()
     await page.goto('/agenda?date=2030-02-10')
     const dateLabel = await page.evaluate(() =>
       new Intl.DateTimeFormat(navigator.language, {

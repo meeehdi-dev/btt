@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { testAuth } from '../../server/utils/auth-test'
+import { renderedAppToast } from './helpers/toasts'
 
 async function createUser() {
   const helpers = (await testAuth.$context).test
@@ -86,7 +87,7 @@ test('successful settings save followed by failed refresh is explicit and read-r
   context,
 }) => {
   const { helpers, user } = await createUser()
-  let failRefresh = true
+  let failRefresh = false
   let refreshFailures = 0
   try {
     await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
@@ -102,21 +103,47 @@ test('successful settings save followed by failed refresh is explicit and read-r
         await route.continue()
       }
     })
-    await page.goto('/settings')
+    await page.goto('/agenda')
     await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: 'Settings' }).click()
+    const settingsDialog = page.getByRole('dialog', { name: 'Workspace settings' })
+    await expect(settingsDialog.getByRole('combobox', { name: 'Visible start' })).toBeVisible()
+    failRefresh = true
 
-    await page.getByRole('button', { name: 'Save settings' }).click()
+    await settingsDialog.getByRole('button', { name: 'Save settings' }).click()
     await expect.poll(() => refreshFailures).toBeGreaterThan(0)
     await expect(
-      page.getByRole('alert').filter({ hasText: 'Settings saved; refresh failed' }),
+      settingsDialog.getByRole('alert').filter({ hasText: 'Settings saved; refresh failed' }),
     ).toBeVisible()
+    await expect(renderedAppToast(page, 'Settings saved; refresh failed')).toBeVisible()
     await expect(page.getByText('private settings detail')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Save settings' })).toHaveCount(0)
+    await expect(settingsDialog.getByRole('button', { name: 'Save settings' })).toHaveCount(0)
+    const retryButton = settingsDialog.getByRole('button', { name: 'Retry loading settings' })
+    const refreshAlert = settingsDialog.getByRole('alert').filter({
+      hasText: 'Settings saved; refresh failed',
+    })
+    const [retryBox, alertBox] = await Promise.all([
+      retryButton.boundingBox(),
+      refreshAlert.boundingBox(),
+    ])
+    if (!retryBox || !alertBox) throw new Error('Settings refresh feedback must be visible')
+    expect(Math.abs(retryBox.x + retryBox.width - alertBox.x - alertBox.width)).toBeLessThanOrEqual(
+      4,
+    )
+
+    await page.keyboard.press('Escape')
+    await expect(settingsDialog).not.toBeVisible()
+    await page.getByRole('link', { name: 'Tickets' }).click()
+    await expect(page).toHaveURL(/\/tickets$/)
+    await page.getByRole('button', { name: 'Settings' }).click()
+    await expect(settingsDialog).toBeVisible()
 
     failRefresh = false
-    await page.getByRole('button', { name: 'Retry loading settings' }).click()
-    await expect(page.getByRole('status')).toContainText('Settings saved.')
-    await expect(page.getByRole('button', { name: 'Save settings' })).toBeVisible()
+    await settingsDialog.getByRole('button', { name: 'Retry loading settings' }).click()
+    await expect(
+      settingsDialog.getByRole('status').filter({ hasText: 'Settings saved.' }),
+    ).toBeVisible()
+    await expect(settingsDialog.getByRole('button', { name: 'Save settings' })).toBeVisible()
   } finally {
     await helpers.deleteUser(user.id)
   }
