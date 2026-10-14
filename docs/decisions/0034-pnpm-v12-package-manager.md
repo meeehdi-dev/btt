@@ -1,9 +1,9 @@
 # ADR 0034: pnpm v12 package-manager baseline
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-29
 - Supersedes: The pnpm 10 version pin in ADR 0002 only
-- Superseded by: None
+- Superseded by: ADR 0060 (exact-version build-script allowlist only)
 
 ## Context
 

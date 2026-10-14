@@ -68,7 +68,7 @@ NNNN-short-descriptive-slug.md
 | [0031](0031-hierarchy-badge-wrapping.md)                               | Accepted   | Wrap hierarchy badge groups in cards                       |
 | [0032](0032-client-led-project-navigation.md)                          | Superseded | Client-led project navigation                              |
 | [0033](0033-no-compatibility-route-for-project-collection.md)          | Accepted   | No compatibility route for the removed Projects collection |
-| [0034](0034-pnpm-v12-package-manager.md)                               | Accepted   | pnpm v12 package-manager baseline                          |
+| [0034](0034-pnpm-v12-package-manager.md)                               | Superseded | pnpm v12 package-manager baseline                          |
 | [0035](0035-three-block-header-navigation.md)                          | Accepted   | Three-block header navigation                              |
 | [0036](0036-coolify-source-build-deployment.md)                        | Accepted   | Coolify source-build deployment                            |
 | [0037](0037-searchable-data-backed-selectors.md)                       | Accepted   | Searchable selectors for user-managed data                 |
@@ -94,3 +94,4 @@ NNNN-short-descriptive-slug.md
 | [0057](0057-sibling-ui-consistency-and-shared-presentation.md)         | Accepted   | Sibling UI consistency and shared presentation             |
 | [0058](0058-settings-in-shell-modal.md)                                | Accepted   | Settings in a shell-level modal                            |
 | [0059](0059-modal-action-placement-and-keyboard-shortcuts.md)          | Accepted   | Modal action placement and form keyboard shortcuts         |
+| [0060](0060-pnpm-dependabot-tracking.md)                               | Accepted   | Track pnpm as a Dependabot dependency                      |
