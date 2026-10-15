@@ -102,7 +102,7 @@ No server, database, migration, auth, or dependency changes are expected.
 - [x] Add/update regression coverage for field-scoped writes, modals, archive lifecycle, write/refresh failures, keyboard/touch behavior, and absence of page-level overflow.
 - [x] Update `PLAN.md`; add/index ADR 0040 as Proposed. ADR acceptance remains pending human code review.
 - [x] Run automated checks and record all outcomes/deviations below.
-- [ ] Perform the planned manual desktop and 390px mobile checks.
+- [x] Planned manual desktop and 390px mobile checks explicitly deferred at the user's request on 2026-10-15; these checks were not run.
 - [ ] Submit the complete diff for separate human code review; record review feedback and wait for the human completion declaration before closing M25.
 
 ## Journal
@@ -161,6 +161,13 @@ No server, database, migration, auth, or dependency changes are expected.
 - Evidence: the full Playwright suite passed (30 tests); focused M25 browser coverage passed (6 tests), and the ticket-detail cases passed again after adding explicit standard-control-size assertions (2 tests). Automated checks and build passed as recorded above.
 - Status: this records approval of the requested visual clarification. Formal code-review acceptance and the M25 completion declaration remain pending.
 
+### 2026-10-15 — User-requested closeout
+
+- Fact: the user instructed that the milestones still open be marked complete.
+- Decision: record the user's instruction as approval to defer M25's remaining manual desktop/390px checks; those checks were not run and are not claimed as passing.
+- Constraint: human code review is still required before M25 can be accepted as complete. No code-review acceptance for M25 is recorded in this conversation, so M25 remains open pending that review. The user's completion request is recorded, but does not replace the required review gate.
+- Evidence: the implementation and 30-test Playwright results are recorded above. No tests or application code were changed or rerun for this documentation closeout.
+
 ## Verification
 
 Planning artifact checks before plan review:
@@ -175,14 +182,14 @@ Implementation verification (after approval):
 
 - [x] M25 browser coverage (ticket-detail overhaul, ticket CRUD, hierarchy breadcrumbs, time entries, and ticket status moves) passes in the full Playwright run.
 - [x] `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test`, `pnpm exec playwright test --workers=1`, `pnpm build`, `pnpm check:workflow`, and `git diff --check` — all pass. The full browser suite has 30 passing tests; the dev server logs a non-failing ResizeObserver warning and the expected no-match warning when testing retired `/edit` paths.
-- [ ] Manual desktop and 390px mobile check — compact title/status/estimate/release layout; title and create modals open/close and submit by keyboard/touch; description saves on blur; invalid estimate feedback; archive/restore route context; no page-level horizontal overflow; `/edit` returns 404; no add-time form on ticket detail; compact tracked entries and existing correction/deletion remain available.
+- [x] Manual desktop and 390px mobile check — explicitly deferred at the user's request on 2026-10-15; not run. The checklist covers compact title/status/estimate/release layout; modal keyboard/touch flows; description blur-save; estimate validation; archive/restore route context; overflow; `/edit` 404; no detail-page add-time form; and compact tracked entries/correction/deletion.
 
 ## Review status
 
 - Plan review: Approved via Plannotator on 2026-10-03, after two annotated rounds of feedback/answers.
 - Layout clarification: User confirmed the revised sizing, spacing, and Archive placement look good on 2026-10-03.
-- Code review: Pending
-- Milestone completion declaration: Pending
+- Code review: Pending; human code-review acceptance is still required before closing M25.
+- Milestone completion request: Received from the user on 2026-10-15. M25 remains open pending human code review.
 
 ## Follow-ups
 
@@ -190,7 +197,7 @@ Implementation verification (after approval):
 
 ## Closeout checklist
 
-- [ ] Approved checklist complete or explicitly deferred.
-- [ ] Verification evidence recorded.
-- [ ] Human code review accepted.
-- [ ] Human completion declaration recorded in the journal and review status.
+- [x] Approved checklist complete or explicitly deferred; the remaining manual checks were deferred at the user's request on 2026-10-15.
+- [x] Verification evidence recorded, including the checks not run.
+- [ ] Human code review accepted; this remains the blocker to closing M25.
+- [x] Human completion request recorded in the journal and review status; it does not replace required code review.

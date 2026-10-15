@@ -70,7 +70,7 @@ No change to `.github/workflows/check.yml`, `playwright.config.ts`, dependencies
 - Direct user instruction (2026-10-08): all tests/checks must pass before stopping the agent's local server; stop it after success so the user can review and run the app. The previous request not to start the server for browser testing is superseded.
 - Existing ADR 0041 remains authoritative: first-attempt CI failures stay red and diagnosable; no automatic retries or timeout increases to hide failures.
 - Accepted ADR 0050 documents the local full-verification/server-handoff rule and evidence required for a targeted per-test timeout without changing global defaults or superseding ADR 0041. Plannotator code review pn-5cfb1d accepted the local changes with no changes requested.
-- The approved M36 plan authorized implementation within this scope. The durable workflow, agent instructions, roadmap summary, and ADR 0050 are updated; test/application fixes and all approved local verification are complete. Human code review is accepted; the completion declaration remains pending.
+- The approved M36 plan authorized implementation within this scope. The durable workflow, agent instructions, roadmap summary, and ADR 0050 are updated; test/application fixes and all approved local verification are complete. Human code review is accepted, and the user recorded the completion declaration on 2026-10-15.
 
 ## Implementation checklist
 
@@ -85,7 +85,7 @@ No change to `.github/workflows/check.yml`, `playwright.config.ts`, dependencies
 - [x] Run all CI-equivalent local quality/documentation gates successfully.
 - [x] Keep the agent-owned server running on failure; stop it only after all required checks pass and verify it is stopped before handoff.
 - [x] Human code review accepted via Plannotator pn-5cfb1d on 2026-10-08; no changes requested.
-- [ ] Record the human completion declaration before closing M36.
+- [x] Record the human completion declaration before closing M36; the user requested completion on 2026-10-15.
 
 ## Journal
 
@@ -145,7 +145,13 @@ No change to `.github/workflows/check.yml`, `playwright.config.ts`, dependencies
 ### 2026-10-08 — Plannotator code review
 
 - Decision: Plannotator local changes `pn-5cfb1d` for `/Users/mehdi/code/btt` were approved. Code review completed with no changes requested.
-- Status: code review is accepted. No implementation change was requested; the human completion declaration remains pending.
+- Status: code review is accepted. No implementation change was requested; the human completion declaration remained pending until the user instruction recorded below.
+
+### 2026-10-15 — User completion declaration
+
+- Fact: the user instructed that the milestones still open be marked complete.
+- Decision: record M36 complete. Its approved implementation, full local verification, server handoff, and accepted code review were already documented; this instruction supplies the remaining completion declaration.
+- Evidence: direct user instruction in this conversation. No implementation or verification claims changed.
 
 ## Verification
 
@@ -164,13 +170,13 @@ Implementation checks (after approval):
 - [x] Focused six-file Playwright run — 15/15 passed in 54.5s. Complete Playwright run: 43/43 passed in 2.7m using the isolated database and external agent-owned server, `--workers=1 --retries=0`; no skips or timeout changes.
 - [x] Manual lifecycle check: agent-owned server stayed available during diagnosis and verification, then was stopped after all checks passed; port 3000 was verified released. The isolated database container was also stopped and port 55432 released. No user-owned/unknown process was stopped.
 - [x] Human code review accepted via Plannotator pn-5cfb1d; no changes requested.
-- [ ] Human completion declaration recorded.
+- [x] Human completion declaration recorded from the user's 2026-10-15 instruction.
 
 ## Review status
 
 - Plan review: Approved via Plannotator on 2026-10-08 after the test-duration feedback was incorporated.
 - Code review: Accepted via Plannotator pn-5cfb1d on 2026-10-08; no changes requested.
-- Milestone completion declaration: Pending.
+- Milestone completion declaration: Complete — the user requested completion on 2026-10-15.
 
 ## Follow-ups
 
@@ -178,7 +184,7 @@ Implementation checks (after approval):
 
 ## Closeout checklist
 
-- [ ] Approved checklist complete or explicitly deferred with human approval.
+- [x] Approved checklist complete or explicitly deferred with human approval.
 - [x] Verification evidence recorded.
 - [x] Human code review accepted via Plannotator pn-5cfb1d.
-- [ ] Human completion declaration recorded in the journal and review status.
+- [x] Human completion declaration recorded in the journal and review status.

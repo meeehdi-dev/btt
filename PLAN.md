@@ -528,7 +528,7 @@ Status: Complete — implementation, local verification, code review, and human 
 
 ### M25 — Ticket detail page overhaul
 
-Status: Implementation in progress after plan approval on 2026-10-03. See [`docs/milestones/m25-ticket-detail-overhaul.md`](docs/milestones/m25-ticket-detail-overhaul.md).
+Status: Implementation and automated verification are recorded complete; the human requested deferring the remaining manual checks on 2026-10-15. Human code review is still pending, so M25 remains open. See [`docs/milestones/m25-ticket-detail-overhaul.md`](docs/milestones/m25-ticket-detail-overhaul.md).
 
 Goal: make ticket detail the compact, normal surface for ticket edits while keeping Today as the only time-entry creation surface.
 
@@ -658,7 +658,7 @@ Acceptance: primary/neutral/secondary mappings match the approved choices; palet
 
 ### M36 — E2E verification and server handoff
 
-Status: Implementation and local verification complete on 2026-10-08: all approved local gates passed, including 43/43 E2E tests, and the agent-owned server/database ports were released. Code review was accepted via Plannotator pn-5cfb1d on 2026-10-08; the human completion declaration remains pending. See [`docs/milestones/m36-e2e-verification-and-server-handoff.md`](docs/milestones/m36-e2e-verification-and-server-handoff.md); accepted [ADR 0050](docs/decisions/0050-e2e-verification-and-server-handoff.md) records the local verification/server handoff policy.
+Status: Complete — implementation, local verification, and code review were accepted; the user declared M36 complete on 2026-10-15. All approved local gates passed, including 43/43 E2E tests, and the agent-owned server/database ports were released. See [`docs/milestones/m36-e2e-verification-and-server-handoff.md`](docs/milestones/m36-e2e-verification-and-server-handoff.md); accepted [ADR 0050](docs/decisions/0050-e2e-verification-and-server-handoff.md) records the local verification/server handoff policy.
 
 - Require all approved local quality gates and the complete E2E suite to pass on the final worktree before handoff. Keep an agent-owned app server available during failure diagnosis; stop it only after all checks pass, then release it for human review.
 - Diagnose the current E2E failures without automatic retries or global timeout increases. Allow a narrowly scoped per-test timeout only when repeated runtime/trace evidence shows legitimate progress needs bounded headroom. Preserve the existing CI workflow and its strict first-attempt policy.
@@ -793,7 +793,7 @@ Acceptance: retired routes return 404; entity modal creation stays on the initia
 - [x] Ticket board grouped by the original fixed statuses: Idea, Estimate, Develop, Review, Test, Deploy, Done.
 - [x] Add On hold as the first/leftmost fixed Ticket Board status (M43 complete).
 - [x] Change ticket status through the initial edit form, Today status action, Release detail selector, or desktop board drag-and-drop (the initial ticket-detail policy is superseded by M25).
-- [ ] Ticket detail becomes the normal edit surface: title-only modal, live status/description/estimate/release fields, and no `/tickets/:id/edit` route (M25 in progress).
+- [ ] Ticket detail becomes the normal edit surface: title-only modal, live status/description/estimate/release fields, and no `/tickets/:id/edit` route (implementation recorded in M25; human code review pending).
 - [x] Ticket title/description, required release association (with client/project context), status, estimate, external links, and related tickets.
 - [x] External links require a URL, allow an optional custom label, and display the hostname when unlabeled.
 - [x] Ticket time estimates only; no complexity or ticket-level target date.
@@ -812,7 +812,7 @@ Acceptance: retired routes return 404; entity modal creation stays on the initia
 - [ ] Project-wide ticket/time summaries; ticket and tracked-usage details are available through the associated release/ticket views instead.
 - [x] Release detail for tickets, target date, completion progress, status changes, and ticket-linked tracked-time/estimate usage.
 - [x] Ticket detail for status, required release, estimate, linked time, estimate usage, external links, and related tickets.
-- [ ] Compact ticket-detail time history with correction/deletion retained and new-entry creation disabled (M25 in progress).
+- [ ] Compact ticket-detail time history with correction/deletion retained and new-entry creation disabled (implementation recorded in M25; human code review pending).
 - [x] Ticket board grouped by status, with related-ticket/external-link popovers, no duplicate card status, and highlight/locate behavior.
 - [x] Weekly planning view with per-day progress and cross-day moves.
 - [x] Current-day and current-time indicators on Today.
