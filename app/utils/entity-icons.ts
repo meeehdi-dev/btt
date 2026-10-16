@@ -4,6 +4,7 @@ export const entityIcons = {
   projects: 'lucide:folder-kanban',
   releases: 'lucide:flag',
   tickets: 'lucide:ticket',
+  reports: 'lucide:chart-pie',
   settings: 'lucide:settings-2',
   related: 'lucide:link-2',
 } as const

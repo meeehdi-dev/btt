@@ -95,3 +95,4 @@ NNNN-short-descriptive-slug.md
 | [0058](0058-settings-in-shell-modal.md)                                | Accepted   | Settings in a shell-level modal                            |
 | [0059](0059-modal-action-placement-and-keyboard-shortcuts.md)          | Accepted   | Modal action placement and form keyboard shortcuts         |
 | [0060](0060-pnpm-dependabot-tracking.md)                               | Accepted   | Track pnpm as a Dependabot dependency                      |
+| [0061](0061-reports-time-allocation.md)                                | Proposed   | Reports time allocation and period semantics               |

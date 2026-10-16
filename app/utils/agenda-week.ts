@@ -1,17 +1,11 @@
-function localDate(value: string): Date {
-  const [year, month, day] = value.split('-').map(Number)
-  const date = new Date(0)
-  date.setFullYear(year!, month! - 1, day!)
-  date.setHours(12, 0, 0, 0)
-  return date
-}
+import { localCalendarDate } from './calendar-date'
 
 export function formatAgendaDate(value: string, locale?: string): string {
   return new Intl.DateTimeFormat(locale, {
     weekday: 'long',
     month: 'numeric',
     day: 'numeric',
-  }).format(localDate(value))
+  }).format(localCalendarDate(value))
 }
 
 export function formatAgendaWeekRange(start: string, end: string, locale?: string): string {
@@ -19,13 +13,13 @@ export function formatAgendaWeekRange(start: string, end: string, locale?: strin
     month: 'numeric',
     day: 'numeric',
     year: 'numeric',
-  }).formatRange(localDate(start), localDate(end))
+  }).formatRange(localCalendarDate(start), localCalendarDate(end))
 }
 
 export function formatAgendaWeekRangeShort(start: string, end: string, locale?: string): string {
   return new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric' }).formatRange(
-    localDate(start),
-    localDate(end),
+    localCalendarDate(start),
+    localCalendarDate(end),
   )
 }
 

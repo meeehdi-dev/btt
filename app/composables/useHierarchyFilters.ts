@@ -10,8 +10,8 @@ export type HierarchyFilterSource = {
   projectName: string
   releaseId: string
   releaseName: string
-  ticketId: string
-  ticketName: string
+  ticketId?: string
+  ticketName?: string
 }
 export type FilterSearchInput = {
   placeholder: string

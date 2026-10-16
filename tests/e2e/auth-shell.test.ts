@@ -179,6 +179,7 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
   try {
     await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
     await page.goto('/agenda')
+    await waitForClientMount(page)
     await expect(page).toHaveURL(/\/agenda$/)
     const header = page.getByRole('banner')
     const account = header.getByRole('group', { name: 'Signed in as E2E Nxmr User' })
@@ -199,8 +200,7 @@ test('redirects unauthenticated users and supports an authenticated shell sessio
     )
     expect(
       (await mainNavigation.getByRole('link').allTextContents()).map((label) => label.trim()),
-    ).toEqual(['Agenda', 'Tickets', 'Clients'])
-
+    ).toEqual(['Agenda', 'Tickets', 'Clients', 'Reports'])
     const headerSearch = header.getByRole('searchbox', { name: 'Search workspace' })
     expect(
       await headerSearch.evaluate((input) => {

@@ -6,6 +6,7 @@
 - Superseded by: None
 - Partial supersession by ADR 0042: narrow-screen stacking and responsive overflow commitments are retired; the single three-block header, visible navigation/account actions, destinations, search, and keyboard shortcuts remain authoritative.
 - Partial supersession by ADR 0045: omit the left-block wordmark so navigation is its first content; all other header decisions remain authoritative.
+- Pending partial supersession by proposed ADR 0061: append Reports after Agenda/Tickets/Clients and map `g` then `r` to `/reports`; other navigation destinations and shortcuts remain unchanged.
 
 ## Context
 

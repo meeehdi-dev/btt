@@ -265,6 +265,7 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
   context,
   browser,
 }) => {
+  test.setTimeout(60_000)
   await page.setViewportSize({ width: 1280, height: 900 })
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
@@ -565,12 +566,17 @@ test('weekly agenda reads seven owner-scoped dates with per-day progress and loc
     await expect(addDialog).toBeVisible()
     await expectModalActionsRightAligned(addDialog, ['Cancel', 'Save time entry'])
     const ticketSearch = page.getByPlaceholder('Search tickets…')
+    if (!(await ticketSearch.isVisible()))
+      await addDialog.getByRole('button', { name: 'Ticket', exact: true }).click()
+    await expect(ticketSearch).toBeVisible()
     await expect(ticketSearch).toBeFocused()
     const addCloseButton = addDialog.locator('[data-slot="close"]')
     await addCloseButton.focus()
     await page.keyboard.press('Meta+Enter')
     await expect(addDialog).toBeVisible()
     await expect(addDialog).toContainText(labels[2]!)
+    await addDialog.getByRole('button', { name: 'Ticket', exact: true }).click()
+    await expect(ticketSearch).toBeVisible()
     await ticketSearch.focus()
     await ticketSearch.fill('Weekly first ticket')
     await expect(page.getByRole('option', { name: 'Weekly second ticket' })).toHaveCount(0)

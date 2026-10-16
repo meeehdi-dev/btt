@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { eq, inArray, or } from 'drizzle-orm'
 import { db } from '../../server/db'
 import {
@@ -11,22 +11,13 @@ import {
   timeEntry,
   userSettings,
 } from '../../server/db/schema'
-import { testAuth } from '../../server/utils/auth-test'
 import { openAgendaAddDialog } from './helpers/agenda'
 import { expectModalActionsRightAligned } from './helpers/modal-actions'
 import { appToast, appToasts, renderedAppToast } from './helpers/toasts'
 import { waitForClientMount } from './wait-for-client-mount'
-
-async function createOwner(context: BrowserContext, label: string) {
-  const helpers = (await testAuth.$context).test
-  const user = helpers.createUser({
-    name: label,
-    email: `same-tab-${crypto.randomUUID()}@example.com`,
-  })
-  await helpers.saveUser(user)
-  await context.addCookies(await helpers.getCookies({ userId: user.id, domain: '127.0.0.1' }))
-  return { helpers, user }
-}
+import { createApiHierarchy, createApiRecord as createRecord } from './helpers/api-records'
+import { localCurrentDate } from './helpers/current-date'
+import { createTestOwner } from './helpers/test-owner'
 
 async function cleanupOwner(userId: string, deleteUser: () => Promise<unknown>) {
   const clients = await db.select({ id: client.id }).from(client).where(eq(client.userId, userId))
@@ -66,33 +57,12 @@ async function cleanupOwner(userId: string, deleteUser: () => Promise<unknown>) 
   await deleteUser()
 }
 
-async function createRecord<Data>(page: Page, path: string, data: unknown): Promise<Data> {
-  const response = await page.request.post(path, { data })
-  expect(response.ok(), `POST ${path} should succeed: ${await response.text()}`).toBe(true)
-  return response.json() as Promise<Data>
-}
-
 async function createHierarchy(page: Page, label: string) {
-  const clientRecord = await createRecord<{ id: string }>(page, '/api/clients', {
-    name: `${label} client`,
-  })
-  const projectRecord = await createRecord<{ id: string }>(page, '/api/projects', {
-    clientId: clientRecord.id,
-    name: `${label} project`,
-    color: '#abcdef',
-  })
-  const releaseRecord = await createRecord<{ id: string }>(page, '/api/releases', {
-    projectId: projectRecord.id,
-    name: `${label} release`,
-  })
-  return {
-    clientId: clientRecord.id,
+  return createApiHierarchy(page, {
     clientName: `${label} client`,
-    projectId: projectRecord.id,
     projectName: `${label} project`,
-    releaseId: releaseRecord.id,
     releaseName: `${label} release`,
-  }
+  })
 }
 
 async function navigateMain(page: Page, label: string) {
@@ -105,13 +75,6 @@ async function navigateMain(page: Page, label: string) {
     .click()
 }
 
-async function currentDate(page: Page) {
-  return page.evaluate(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  })
-}
-
 async function documentTimeOrigin(page: Page) {
   return page.evaluate(() => performance.timeOrigin)
 }
@@ -122,11 +85,11 @@ test('ticket and time-entry writes update the Agenda picker and inactive board w
 }) => {
   // Measured 46.5s locally; 60s leaves bounded headroom for this multi-route flow.
   test.setTimeout(60_000)
-  const { helpers, user } = await createOwner(context, 'Same-tab ticket owner')
+  const { helpers, user } = await createTestOwner(context, 'Same-tab ticket owner', 'same-tab')
   try {
     const hierarchy = await createHierarchy(page, 'Same-tab')
     await page.setViewportSize({ width: 1600, height: 1200 })
-    const date = await currentDate(page)
+    const date = await localCurrentDate(page)
     await page.goto(`/agenda?date=${date}`)
     await waitForClientMount(page)
     await page.waitForLoadState('networkidle')
@@ -183,7 +146,7 @@ test('hierarchy rename/archive refreshes inactive lists and clears retained sear
   page,
   context,
 }) => {
-  const { helpers, user } = await createOwner(context, 'Same-tab hierarchy owner')
+  const { helpers, user } = await createTestOwner(context, 'Same-tab hierarchy owner', 'same-tab')
   try {
     const hierarchy = await createHierarchy(page, 'Searchable')
     await page.setViewportSize({ width: 1600, height: 1000 })
@@ -232,7 +195,11 @@ test('ticket status and archive writes invalidate the same-tab board cache', asy
   page,
   context,
 }) => {
-  const { helpers, user } = await createOwner(context, 'Same-tab ticket status owner')
+  const { helpers, user } = await createTestOwner(
+    context,
+    'Same-tab ticket status owner',
+    'same-tab',
+  )
   try {
     const hierarchy = await createHierarchy(page, 'Board invalidation')
     const ticketRecord = await createRecord<{ id: string }>(page, '/api/tickets', {
@@ -290,7 +257,7 @@ test('Settings modal saves refresh cached Agenda preferences without leaving the
   page,
   context,
 }) => {
-  const { helpers, user } = await createOwner(context, 'Same-tab settings owner')
+  const { helpers, user } = await createTestOwner(context, 'Same-tab settings owner', 'same-tab')
   try {
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/agenda')
@@ -328,7 +295,7 @@ test('failed writes do not invalidate; successful writes report and retry a fail
   page,
   context,
 }) => {
-  const { helpers, user } = await createOwner(context, 'Same-tab failure owner')
+  const { helpers, user } = await createTestOwner(context, 'Same-tab failure owner', 'same-tab')
   try {
     const hierarchy = await createHierarchy(page, 'Failure handling')
     const ticketRecord = await createRecord<{ id: string }>(page, '/api/tickets', {

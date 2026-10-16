@@ -129,6 +129,9 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     await page.keyboard.press('c')
     await expect(page).toHaveURL(/\/clients$/)
     await page.keyboard.press('g')
+    await page.keyboard.press('r')
+    await expect(page).toHaveURL(/\/reports$/)
+    await page.keyboard.press('g')
     await page.keyboard.press('a')
     await expect(page).toHaveURL(/\/agenda$/)
 
@@ -136,7 +139,7 @@ test('search is bounded, owner-scoped and excludes archived descendants', async 
     const mainNavigation = header.getByRole('navigation', { name: 'Main navigation' })
     expect(
       (await mainNavigation.getByRole('link').allTextContents()).map((label) => label.trim()),
-    ).toEqual(['Agenda', 'Tickets', 'Clients'])
+    ).toEqual(['Agenda', 'Tickets', 'Clients', 'Reports'])
     await expect(page.getByRole('button', { name: 'Open menu' })).toHaveCount(0)
     await expect(page.getByRole('dialog', { name: 'Menu' })).toHaveCount(0)
     await expect(search).toHaveCount(1)

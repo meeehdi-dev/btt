@@ -746,10 +746,22 @@ Goal: keep entity creation and hierarchy editing in context while providing clea
 
 Acceptance: retired routes return 404; entity modal creation stays on the initiating page and preserves changeable hierarchy context; Settings opens over the current page and direct `/settings` returns an authenticated 404; detail fields and lifecycle actions retain existing API and ownership behavior; approved notifications distinguish successful and partial-success writes; full local checks, including Playwright, and supported-width interaction review pass before code review.
 
+### M45 — Reports and time allocation
+
+Status: In progress. The human approved the milestone plan in Plannotator session `pn-edefcf`; implementation scope and evidence are recorded in [`docs/milestones/m45-reports-time-allocation.md`](docs/milestones/m45-reports-time-allocation.md).
+
+Goal: show where logged time went for one selected week, month, or year, with an equivalent prior-period comparison.
+
+- Add `/reports` and an authenticated header entry with the `g` then `r` shortcut.
+- Use Clients/Projects/Releases grouping tabs with shared client/project/release filters; include archived history and mark archived entities.
+- Aggregate period totals and ranked proportional allocation on the server, with exact duration/share/change and in-place row-to-filter selection.
+- Show the all-time estimate comparison only for currently Done estimated tickets whose `updatedAt` falls in the selected period; no separate trend chart or chart dependency.
+
+Acceptance: the owner-scoped aggregate API and accessible Reports page match the approved M45 formulas and filters; period boundaries, archived work, estimate cohort, row interactions, and same-tab invalidation are covered; full local checks and E2E pass before separate human code review.
+
 ### Later, post-MVP
 
-- Weekly/monthly summaries by client/project/release/ticket.
-- Time summaries and review pages.
+- Per-ticket period reports and entry-level review/drill-down (M45 covers client/project/release allocation, not a ticket grouping or detailed entry report).
 - Templates for recurring project/client workflows.
 - Notes/journal entries connected to projects/tickets.
 - Command palette / quick switcher.
@@ -819,7 +831,7 @@ Acceptance: retired routes return 404; entity modal creation stays on the initia
 
 ### Later ideas, not MVP
 
-- [ ] Weekly/monthly summaries and review pages by client/project/release/ticket.
+- [ ] Per-ticket period reports and entry-level review/drill-down; M45 adds client/project/release allocation without a ticket grouping or matched-entry view.
 - [ ] Templates for recurring client/project workflows.
 - [ ] Notes/journal entries connected to projects/tickets.
 - [ ] Command palette / quick switcher.

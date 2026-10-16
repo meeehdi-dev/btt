@@ -7,6 +7,7 @@ const navigation = [
   { label: 'Agenda', to: '/agenda', icon: entityIcons.agenda, shortcut: 'a' },
   { label: 'Tickets', to: '/tickets', icon: entityIcons.tickets, shortcut: 'b' },
   { label: 'Clients', to: '/clients', icon: entityIcons.clients, shortcut: 'c' },
+  { label: 'Reports', to: '/reports', icon: entityIcons.reports, shortcut: 'r' },
 ]
 const { data: session, error: sessionError } = await authClient.useSession(useApiFetch)
 const sessionErrorMessage = computed(() =>

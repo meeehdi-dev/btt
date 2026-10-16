@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { testAuth } from '../../server/utils/auth-test'
 import { renderedAppToast } from './helpers/toasts'
+import { waitForClientMount } from './wait-for-client-mount'
 
 async function createUser() {
   const helpers = (await testAuth.$context).test
@@ -105,7 +106,7 @@ test('successful settings save followed by failed refresh is explicit and read-r
     })
     await page.goto('/agenda')
     await page.waitForLoadState('networkidle')
-    await page.getByRole('button', { name: 'Settings' }).click()
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
     const settingsDialog = page.getByRole('dialog', { name: 'Workspace settings' })
     await expect(settingsDialog.getByRole('combobox', { name: 'Visible start' })).toBeVisible()
     failRefresh = true
@@ -135,7 +136,7 @@ test('successful settings save followed by failed refresh is explicit and read-r
     await expect(settingsDialog).not.toBeVisible()
     await page.getByRole('link', { name: 'Tickets' }).click()
     await expect(page).toHaveURL(/\/tickets$/)
-    await page.getByRole('button', { name: 'Settings' }).click()
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
     await expect(settingsDialog).toBeVisible()
 
     failRefresh = false
@@ -172,6 +173,7 @@ test('search failures are distinct from no matches and editing the query retries
     })
     await page.goto('/agenda')
     await page.waitForLoadState('networkidle')
+    await waitForClientMount(page)
     const search = page.getByRole('searchbox', { name: 'Search workspace' })
     await search.fill('retry search')
     await expect.poll(() => searchFailures).toBeGreaterThan(0)
