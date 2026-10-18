@@ -2,7 +2,9 @@
 
 ## Purpose and approval boundary
 
-This is a focused corrective amendment to M45, not a new milestone. It addresses the findings in `.pi/reviews/m45-reports-response-range-20261015T193923Z.md`: the incompatible retained-label race test, newly duplicated browser-test sequences, and the protected-input formatting blocker. The response-authoritative Reports implementation is to remain unchanged.
+> M46 navigation repair: repository artifact references below use their relocated homes. Historical diagnoses, commands, hashes, and approvals still describe their original observation; no historical check was rerun by this repair.
+
+This is a focused corrective amendment to M45, not a new milestone. It addresses the findings in `reviews/m45-reports-response-range-20261015T193923Z.md`: the incompatible retained-label race test, newly duplicated browser-test sequences, and the protected-input formatting blocker. The response-authoritative Reports implementation is to remain unchanged.
 
 The desired outcome is meaningful regression coverage and a complete, passing final verification sequence. Users must retain accurate response-derived dates, disabled adjacent navigation while results are unavailable, readable selections, mounted grouping controls, and independent Settings recovery.
 
@@ -14,11 +16,11 @@ Implementation and verification happen only in a fresh Build session after autho
 
 ### Governing inputs
 
-- Current review, read completely: `.pi/reviews/m45-reports-response-range-20261015T193923Z.md`.
+- Current review, read completely: `reviews/m45-reports-response-range-20261015T193923Z.md`.
 - Response-range amendment, read completely: `plans/m45-reports-response-range-fix.md`. Its authorization and incomplete final gates are recorded in the M45 journal.
 - Earlier approved amendment, read completely: `plans/m45-reports-review-fixes.md`, Plannotator session `pn-f60bf4`.
 - Original approved scope and execution log, read completely: `docs/milestones/m45-reports-time-allocation.md`, original approval `pn-edefcf`.
-- Earlier review and discovery, read completely: `.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md` and `plans/reports-discovery.md`.
+- Earlier review and discovery, read completely: `reviews/m45-reports-time-allocation-20261015T151738Z.md` and `plans/reports-discovery.md`.
 - `AGENTS.md`, `docs/llm-workflow.md`, `PLAN.md`, milestone/ADR conventions, and relevant ADRs 0001, 0024, 0041, 0042, 0050, 0051, 0052, 0057, 0058, and Proposed 0061.
 
 ### Verified facts from this investigation
@@ -30,7 +32,7 @@ Implementation and verification happen only in a fresh Build session after autho
 - The three reported clone pairs are present in the current source: clearing the client filter and checking all descendants; opening Settings and selecting Sunday; and selecting the Releases breakdown/row and checking its filter. The repeated code is in `reports-period-state.test.ts` and `reports-interactions.test.ts`.
 - `tests/e2e/helpers/reports.ts` already owns Reports fixtures, cleanup, API reads, and shell navigation. Small Reports-specific UI workflow helpers belong there; no general test framework is needed.
 - `package.json` runs duplication detection against `.jscpd-baseline.json` with zero new clones allowed. `.jscpd.json` scans application, server, shared, script, and test sources with the existing 50-token/5-line minimums. ADR 0052 requires retaining that strict gate.
-- The saved formatter log independently confirms the two historical failures: `plans/m45-reports-response-range-fix.md` and `.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md`. The formatter command and `.oxfmtrc.json` are unchanged. This session has not rerun formatting or duplication detection.
+- The saved formatter log independently confirms the two historical failures: `plans/m45-reports-response-range-fix.md` and `reviews/m45-reports-time-allocation-20261015T151738Z.md`. The formatter command and `.oxfmtrc.json` are unchanged. This session has not rerun formatting or duplication detection.
 - Package scripts and Playwright/Vitest configurations were inspected. Playwright supports an externally managed server, uses retained failure traces with `CI=1`, and requires the fixture process to receive a database connection. A base URL alone does not isolate fixture writes.
 - Read-only process inspection still found the historical Nuxt listener, PID 8926, on loopback port 3004, launched from `/tmp/btt-m45-range-nJjwGo/source`. That scratch directory has a real dependency-cache parent and an explicit real-path Nuxt build directory. Database/container availability and current source equivalence were not established in Plan. Historical ownership details are leads to revalidate, not permission to control arbitrary processes.
 
@@ -84,7 +86,7 @@ Use these helpers in the two affected browser files where those workflows recur.
 During Build, preserve byte-for-byte originals and SHA-256 hashes for exactly these two files in an agent-created archive outside the repository and all formatter scan roots:
 
 - `plans/m45-reports-response-range-fix.md`.
-- `.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md`.
+- `reviews/m45-reports-time-allocation-20261015T151738Z.md`.
 
 Then apply the installed formatter only to these named historical inputs. Approval of this plan authorizes presentation-only normalization, such as Markdown table alignment and whitespace, without changing wording, decisions, identifiers, links, commands, findings, or recorded outcomes. Inspect the before/after differences against the preserved originals. Historical approval references continue to identify the original approved content; do not rewrite receipts or claim a new approval of changed semantics.
 

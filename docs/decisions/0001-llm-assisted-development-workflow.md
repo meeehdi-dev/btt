@@ -1,9 +1,9 @@
 # ADR 0001: LLM-assisted development workflow
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-21
 - Supersedes: None
-- Superseded by: None
+- Superseded by: [ADR 0062](0062-pi-workflow-modes-and-artifact-locations.md)
 
 ## Context
 

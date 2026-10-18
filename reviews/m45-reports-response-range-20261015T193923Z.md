@@ -1,5 +1,7 @@
 # Workflow review report
 
+> M46 relocation: `.pi/reviews/m45-reports-response-range-20261015T193923Z.md` → `reviews/m45-reports-response-range-20261015T193923Z.md`. Repository references (including historical inventories) now use relocated homes; observations, commands, verdicts, timestamps, and approvals retain their historical meaning. Any embedded hashes describe pre-relocation bytes, not current checksums. No historical checks were rerun.
+
 - Created: 2026-10-15T19:40:51.034Z
 - Project: /Users/mehdi/code/btt
 - Plan reference: See the plan references identified in the report below
@@ -23,7 +25,7 @@ The protected-input formatting conflict is also independently reproduced and sti
 - Branch: `main`; HEAD: `57a8f7f10bf1ded6cc694af1d280a5b825fa75bc`.
 - Scope: **14 unstaged tracked files, no staged changes, and 26 untracked files/inputs**, before this report. Both tracked and staged diffs were inspected; all new files were read. No branch comparison substituted for the worktree review.
 - Primary plan: `plans/m45-reports-response-range-fix.md`, read completely.
-- Other complete inputs: `docs/milestones/m45-reports-time-allocation.md`, `plans/m45-reports-review-fixes.md`, `plans/reports-discovery.md`, and `.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md`.
+- Other complete inputs: `docs/milestones/m45-reports-time-allocation.md`, `plans/m45-reports-review-fixes.md`, `plans/reports-discovery.md`, and `reviews/m45-reports-time-allocation-20261015T151738Z.md`.
 - Governance/context: `AGENTS.md`, `docs/llm-workflow.md`, `PLAN.md`, milestone/ADR conventions, relevant ADRs, and Proposed ADR 0061. The milestone records authorization for the response-range amendment; its protected plan/input report were not edited.
 
 ### Reviewed file set
@@ -50,7 +52,7 @@ tests/e2e/search.test.ts
 Untracked files/inputs:
 
 ```text
-.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md
+reviews/m45-reports-time-allocation-20261015T151738Z.md
 app/pages/reports.vue
 app/utils/calendar-date.ts
 app/utils/reports.ts
@@ -136,7 +138,7 @@ The reported pairs are:
 
 ## Separate blockers, concerns, and open questions
 
-- **Protected-input formatting conflict:** independent `pnpm format:check` reports only `plans/m45-reports-response-range-fix.md` and `.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md`. The selected plan explicitly forbids changing these inputs during Build. This is a human scope/workflow decision, not an additional application defect or permission to bypass the gate. No inputs or formatter configuration were changed here.
+- **Protected-input formatting conflict:** independent `pnpm format:check` reports only `plans/m45-reports-response-range-fix.md` and `reviews/m45-reports-time-allocation-20261015T151738Z.md`. The selected plan explicitly forbids changing these inputs during Build. This is a human scope/workflow decision, not an additional application defect or permission to bypass the gate. No inputs or formatter configuration were changed here.
 - **Initial browser timeouts:** the first combined run also timed out before client mount in the keyboard test and during the Sunday-clock Settings click. Both scenarios subsequently passed unchanged in deliberate diagnostic runs. Their initial failures remain evidence; no root cause was established, and no timeout/retry adjustment is proposed on this evidence alone.
 - **Pre-existing/out-of-scope:** lint's two `consistent-function-scoping` warnings in `tests/e2e/ticket-context-popovers.test.ts:254,257` are unchanged warnings, not M45 findings. The accepted `updatedAt` completion-proxy limitation is not reopened.
 

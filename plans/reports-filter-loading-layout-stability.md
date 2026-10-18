@@ -1,5 +1,7 @@
 # M45 Focused Amendment — Reports filter-loading layout stability
 
+> Relocated in M46 from `.pi/plans/reports-filter-loading-layout-stability.md` → `plans/reports-filter-loading-layout-stability.md`. Historical status, approvals, and verification below are unchanged; this relocation does not reopen the amendment.
+
 **Status: Proposed for Plannotator approval.** This is a focused presentation amendment to the active M45 Reports work, not a new product milestone. It authorizes no implementation until approved. The original M45 scope and its approved amendments remain in force except for this narrowly described loading-layout behavior.
 
 ## Purpose and desired behavior
@@ -93,7 +95,7 @@ This is a production-template change on top of a worktree with extensive M45 edi
 - `app/pages/reports.vue` — separate, temporary geometry reservations for summary and results while the current read is pending; preserve all response-authoritative display and error behavior.
 - `tests/e2e/reports-interactions.test.ts` — real held-filter-request geometry and stale-value regression.
 - `docs/milestones/m45-reports-time-allocation.md` — approval, journal, validation, and handoff evidence.
-- This plan is saved under `.pi/plans/` and must remain unchanged during Build.
+- This plan is saved under `plans/` and must remain unchanged during Build.
 
 Reuse `trackAppApiFetch`, the public `pending`/`status`/`error` state, `displayedReport`, the existing report-key watcher, `createTestOwner`, `createReportFixture`, `createReportTicket`, `createReportEntry`, the existing route interception pattern, and the current report error/retry and loading text. No shared composable or fixture-helper change is planned unless implementation discovers a directly necessary, narrowly scoped reuse.
 

@@ -6,7 +6,8 @@ This document is the canonical workflow for human/LLM collaboration in this repo
 
 - `AGENTS.md` — concise root entry point for agents. It lists mandatory reading and non-negotiable operating rules.
 - `PLAN.md` — product and milestone roadmap. It explains what the app is and the intended order of product implementation.
-- `plans/*.md` — temporary or focused planning documents reviewed before implementation.
+- `plans/*.md` — focused plans and Plan-produced feedback reports reviewed before implementation; preserve earlier inputs.
+- `reviews/*.md` — standalone independent Review reports and Review/UI human-feedback reports; conventions in [`reviews/README.md`](../reviews/README.md).
 - `docs/llm-workflow.md` — canonical collaboration workflow, governance rules, roles, lifecycle, and evidence standards.
 - `docs/decisions/README.md` — ADR index and conventions.
 - `docs/decisions/NNNN-descriptive-slug.md` — durable decision records. Use four-digit sequential numbers.
@@ -20,7 +21,10 @@ This document is the canonical workflow for human/LLM collaboration in this repo
 - ADRs: `docs/decisions/0001-short-slug.md`, `0002-short-slug.md`, etc.
 - Milestones: `docs/milestones/m0-project-bootstrap.md`, `m1-authentication-shell.md`, etc.
 - Templates: `docs/templates/<artifact>-template.md`.
-- Plan files: `plans/<short-topic>.md` for focused plans; reserve root `PLAN.md` for the product roadmap.
+- Plans and Plan-produced feedback: `plans/<short-topic>.md`; reserve root `PLAN.md` for the product roadmap.
+- Review reports and Review/UI human feedback: `reviews/<short-topic>-<UTC timestamp>.md`, for example `reviews/filter-loading-20261018T104016Z.md`.
+- Explicit task paths override defaults per artifact type, not for all artifacts. Milestone plan/log/evidence remains in `docs/milestones/`; do not copy plans or require a separate Build report. Existing directories alone are not routing instructions.
+- Never overwrite an input report with its corrective plan or overwrite earlier reports. Make fresh-session references self-contained and navigable.
 
 ## Constitution
 
@@ -90,7 +94,7 @@ Keep first-failure evidence visible. Do not add automatic retries or raise globa
 
 ## Agent roles and handoffs
 
-Agents may perform multiple roles in one session, but they must make the active role clear in their artifacts.
+These roles are harness-neutral. Make the active role clear in artifacts; agents outside Pi may combine roles in a session. The optional Pi adapter below uses fresh sessions to separate their context.
 
 ### Planner / researcher
 
@@ -103,7 +107,8 @@ Required inputs:
 
 Required outputs:
 
-- A plan file in `plans/` or `docs/milestones/` with context, approach, files to modify, reuse, steps, and verification.
+- A focused plan in `plans/` or a milestone plan in `docs/milestones/`, with source references, requirements/acceptance criteria, non-goals, approach, files/reuse, ordered steps, risks/stop conditions, and verification.
+- When planning from findings, revalidate them against current code, preserve the input report, and account for each finding as confirmed, disproved, deferred with human approval, or out of scope.
 - Explicit open questions and tradeoffs that require human judgment.
 
 Handoff: implementation may begin only after human approval of the plan.
@@ -123,7 +128,7 @@ Required outputs:
 - Updated milestone log with deviations and verification evidence.
 - Any needed ADR updates.
 
-Handoff: reviewer/tester receives the diff, milestone file, and verification notes.
+Handoff: after all approved final-worktree checks pass, reviewer/tester receives the approved plan, diff, milestone file, and verification notes. Build records evidence in the active milestone, not a duplicate Build report; human acceptance/completion entries belong to later closeout.
 
 ### Reviewer / tester
 
@@ -137,11 +142,11 @@ Required inputs:
 
 Required outputs:
 
-- Review findings with severity and file references.
-- Verification gaps or additional checks.
-- Approval recommendation or required changes.
+- A standalone report in `reviews/` with exact comparison scope (HEAD/base, staged/unstaged/untracked files or branch range), stable finding IDs, severity, locations, evidence, and remediation/revalidation context.
+- Independently executed checks separated from historical Build evidence, plus verification gaps and limitations.
+- Approval recommendation or required changes, never inferred human acceptance.
 
-Handoff: human reviews code and findings before merge/acceptance.
+Review does not fix code or maintain the implementation journal. With findings, ask whether the human wants a corrective Plan or explicitly chooses to proceed; preserve unresolved findings and approved deferrals. Without findings, open human diff review, not automatic acceptance. Human review remains required before merge/acceptance.
 
 ### Documentation keeper
 
@@ -156,6 +161,8 @@ Required outputs:
 - Updated ADR indexes, milestone closeout, templates, and roadmap links.
 - Clear notes for future agents.
 
+Finalize maps to this bookkeeping role: record actual human decisions, instructed ADR/index/roadmap updates, and milestone closeout. Selecting Finalize or suggesting a commit does not accept code or declare a milestone complete. Leave Git writes to the human.
+
 ### Human approval gates
 
 Human approval is mandatory for:
@@ -165,15 +172,45 @@ Human approval is mandatory for:
 - Architecture, data model, auth/security, dependency, deployment, and workflow changes.
 - Any deviation from an approved plan that changes scope, risk, or user-visible behavior.
 
+## Pi workflow modes integration
+
+Pi is an optional execution adapter, not a project requirement. The installed personal `workflow-modes` extension supplies `/plan`, `/build`, `/review`, `/ui`, `/finalize`, and `/workflow` (mode selection/status). Its prompts and routing helper do not replace this repository's governance; do not copy the extension into the project or require external-home files for checks.
+
+| Mode     | Role and required reference                                                  | Boundary / next step                                                                                                                     |
+| -------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Plan     | Planner/researcher; request or saved plan/report                             | Research first, save a self-contained plan/feedback in `plans/`, obtain human approval before Build.                                     |
+| Build    | Implementer; approved plan                                                   | Implement and verify; append milestone evidence; hand the same plan path to fresh Review.                                                |
+| Review   | Independent reviewer; approved plan or explicit review report/task           | Establish actual Git scope, save findings in `reviews/`; ask about corrective Plan or proceed, or open human diff review on no findings. |
+| UI       | Optional visual/interaction review; plan/report plus already-running app URL | Use a separately user-managed server; save feedback in `reviews/`. Do not start/stop servers or alter application code.                  |
+| Finalize | Documentation keeper; plan/report and actual human decisions                 | Perform instructed bookkeeping; leave acceptance/completion pending when not explicitly supplied.                                        |
+
+Each mode starts a fresh session. Read the complete selected reference and applicable instructions; follow relevant code/docs, and ask for missing consequential inputs before dependent changes. Saved handoffs must stand alone: original plan/report, current state, findings/deferrals, exact evidence/limitations, next mode, and absolute input path. Resolve repository paths to absolute paths at handoff time; do not rely on the preceding transcript or stale temporary resources.
+
+When the next phase is known and authorized, call `workflow_handoff` once with its mode, absolute saved plan/report path (or a new task for Plan), and concise context. The helper only routes: it does not save artifacts, approve work, run checks, or enforce phase order. If the next step is unclear, ask the human. Modes guide work, not a second mandatory state machine; direct human changes of direction remain valid within governance.
+
+A deliberate human `/build <plan>` can authorize implementation of that plan; do not demand an extra approval receipt or redundant start confirmation. An automated helper request or mode selection alone cannot invent human plan approval. Review findings do not automatically authorize fixes. After human diff review, ask whether to use UI or Finalize; UI is optional unless the approved task requires it. Skipping UI never waives automated browser tests or mandatory manual acceptance cases.
+
+### Plannotator decisions
+
+Use the installed Plannotator tool (read its applicable skill first), not a private integration or native plan mode. For saved plan review use `annotate` with the plan path and `gate: true`; for human diff review use ordinary `review`. Verify the intended uncommitted or branch/base comparison before opening and confirm the UI scope matches the report; inherited browser preferences are not evidence of scope.
+
+Before opening, explain the next step and tell the human to reply in chat if they close without deciding. End the turn after opening and wait for an explicit decision. Closing, tool failure, dismissal, or silence is not approval: ask in chat whether to approve, retry, stop, or change direction. Preserve actual decisions and outstanding findings without inventing timestamps or receipts.
+
+### UI versus verification server ownership
+
+Build's agent-owned verification server follows the mandatory policy above: keep it through failures, stop it only after every required check passes, and verify its port is released before review handoff. Do not silently retain it for UI. If UI is chosen later, the human separately starts/manages an app and supplies its URL; UI must not stop that user-owned server. Recheck ownership if more implementation or verification is requested. Optional UI is not a substitute for full E2E on application changes. [ADR 0050](decisions/0050-e2e-verification-and-server-handoff.md) remains accepted and unchanged.
+
+The durable adapter/artifact decision is [ADR 0062](decisions/0062-pi-workflow-modes-and-artifact-locations.md), superseding ADR 0001 while carrying its governance forward. Implementation evidence lives in [M46](milestones/m46-workflow-modes-integration.md).
+
 ## Milestone lifecycle
 
 Every product milestone follows the lifecycle in `docs/milestones/README.md`:
 
 1. Orient.
-2. Plan.
-3. Research.
+2. Research.
+3. Plan and obtain human approval.
 4. Implement.
-5. Verify.
+5. Verify during implementation before handoff.
 6. Review.
 7. Close.
 

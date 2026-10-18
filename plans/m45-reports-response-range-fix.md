@@ -12,7 +12,7 @@ The original M45 scope and approved first review-fix amendment remain authoritat
 
 ### Governing inputs
 
-- Review: `.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md`, read completely. It contains one actionable finding, R1.
+- Review: `reviews/m45-reports-time-allocation-20261015T151738Z.md`, read completely. It contains one actionable finding, R1.
 - Original approved scope and execution record: `docs/milestones/m45-reports-time-allocation.md`, Plannotator session `pn-edefcf`.
 - Earlier approved amendment: `plans/m45-reports-review-fixes.md`, session `pn-f60bf4`, read completely.
 - Product discovery: `plans/reports-discovery.md`, read completely; its historical pending-status wording is not a new approval requirement.

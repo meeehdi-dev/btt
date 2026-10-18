@@ -35,7 +35,7 @@ NNNN-short-descriptive-slug.md
 
 | ADR                                                                    | Status     | Title                                                      |
 | ---------------------------------------------------------------------- | ---------- | ---------------------------------------------------------- |
-| [0001](0001-llm-assisted-development-workflow.md)                      | Accepted   | LLM-assisted development workflow                          |
+| [0001](0001-llm-assisted-development-workflow.md)                      | Superseded | LLM-assisted development workflow                          |
 | [0002](0002-m0-bootstrap-baseline.md)                                  | Superseded | M0 bootstrap baseline                                      |
 | [0003](0003-m1-authentication-and-database.md)                         | Accepted   | M1 authentication and Better Auth database baseline        |
 | [0004](0004-m2-core-data-model.md)                                     | Accepted   | M2 work hierarchy and archive lifecycle                    |
@@ -96,3 +96,4 @@ NNNN-short-descriptive-slug.md
 | [0059](0059-modal-action-placement-and-keyboard-shortcuts.md)          | Accepted   | Modal action placement and form keyboard shortcuts         |
 | [0060](0060-pnpm-dependabot-tracking.md)                               | Accepted   | Track pnpm as a Dependabot dependency                      |
 | [0061](0061-reports-time-allocation.md)                                | Proposed   | Reports time allocation and period semantics               |
+| [0062](0062-pi-workflow-modes-and-artifact-locations.md)               | Accepted   | Pi workflow modes and artifact locations                   |

@@ -5,12 +5,16 @@ Each milestone must be small, human-readable, and independently reviewable. Use 
 ## Required lifecycle
 
 1. **Orient** — read `AGENTS.md`, `docs/llm-workflow.md`, `PLAN.md`, relevant ADRs, and prior milestone files.
-2. **Plan** — create/update a milestone file with context, approach, files to modify, reuse, steps, and verification. Submit it for human review.
-3. **Research** — inspect existing code/docs and record reusable patterns or constraints in the milestone file.
+2. **Research** — inspect existing code/docs and record reusable patterns or constraints before seeking plan approval.
+3. **Plan** — create/update the milestone and focused plan with references, acceptance criteria, non-goals, approach, files/reuse, steps, risks/stop conditions, and verification. Obtain human approval before implementation.
 4. **Implement** — work in small slices under the approved plan. Record deviations as they happen.
-5. **Verify** — run relevant automated checks and manual checks. Record commands and outcomes.
-6. **Review** — submit the diff for human code review. Address feedback in focused changes.
+5. **Verify** — during Build, run all approved final-worktree automated/manual checks, including full E2E for application changes. Record commands/outcomes and follow canonical server ownership rules before handoff.
+6. **Review** — independently assess the diff, then submit it for human code review. Findings require human direction for corrective planning or proceeding; Review itself does not fix code.
 7. **Close** — update the milestone file with final summary, decisions, verification evidence, known follow-ups, and links to ADRs. A milestone is complete only after the approved checklist is done or explicitly deferred, evidence is recorded, human code review is accepted, and the human’s completion declaration is recorded in the milestone journal/review status. A direct chat statement such as “I hereby declare M1 complete” is sufficient; the agent must transcribe it and update the artifact.
+
+With optional Pi modes, Orient/Research/Plan map to Plan, Implement/Verify to Build, independent assessment and human diff review to Review, optional app inspection to UI, and bookkeeping/Close to Finalize. These activities are not a second mode state machine. See [canonical mode contracts](../llm-workflow.md#pi-workflow-modes-integration).
+
+Focused plans and Plan-produced feedback live in `plans/`; standalone Review and Review/UI human-feedback reports live in `reviews/` with a UTC timestamp. Explicit task paths win per artifact type. This directory remains the milestone plan/log/evidence home; do not duplicate the approved plan or require a separate Build report. Preserve earlier input reports. Finalize selection alone never accepts code or supplies a completion declaration.
 
 ## Required sections in each milestone file
 

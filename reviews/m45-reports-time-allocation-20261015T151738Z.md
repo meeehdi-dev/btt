@@ -1,5 +1,7 @@
 # Workflow review report
 
+> M46 relocation: `.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md` → `reviews/m45-reports-time-allocation-20261015T151738Z.md`. Observations, commands, verdicts, timestamps, and approvals retain their historical meaning. Any embedded hashes describe pre-relocation bytes, not current checksums. No historical checks were rerun.
+
 - Created: 2026-10-15T15:19:34.063Z
 - Project: /Users/mehdi/code/btt
 - Plan reference: /Users/mehdi/code/btt/docs/milestones/m45-reports-time-allocation.md

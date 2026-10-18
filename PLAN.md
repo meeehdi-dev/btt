@@ -759,6 +759,12 @@ Goal: show where logged time went for one selected week, month, or year, with an
 
 Acceptance: the owner-scoped aggregate API and accessible Reports page match the approved M45 formulas and filters; period boundaries, archived work, estimate cohort, row interactions, and same-tab invalidation are covered; full local checks and E2E pass before separate human code review.
 
+### M46 — Pi workflow modes integration (maintenance)
+
+Status: Complete — implementation and documentation verification are recorded; human code review was accepted in Plannotator `pn-837fdb`, and the human declared M46 complete on 2026-10-18. See [M46](docs/milestones/m46-workflow-modes-integration.md) and [the focused plan](plans/workflow-modes-integration.md).
+
+- Integrate optional Pi modes with project approval/verification governance and consolidate focused plans and reviews without changing application behavior or M45 status.
+
 ### Later, post-MVP
 
 - Per-ticket period reports and entry-level review/drill-down (M45 covers client/project/release allocation, not a ticket grouping or detailed entry report).

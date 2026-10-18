@@ -7,6 +7,8 @@ const requiredFiles = [
   'docs/llm-workflow.md',
   'docs/decisions/README.md',
   'docs/decisions/0001-llm-assisted-development-workflow.md',
+  'docs/decisions/0062-pi-workflow-modes-and-artifact-locations.md',
+  'reviews/README.md',
   'docs/milestones/README.md',
   'docs/templates/adr-template.md',
   'docs/templates/milestone-template.md',
@@ -20,6 +22,7 @@ const requiredHeadings = {
     '## Documentation layout',
     '## Constitution',
     '## Agent roles and handoffs',
+    '## Pi workflow modes integration',
     '## Milestone lifecycle',
     '## Decision records and journals',
   ],
@@ -30,6 +33,7 @@ const requiredHeadings = {
     '## Review status',
   ],
   'docs/templates/adr-template.md': ['## Context', '## Decision', '## Consequences'],
+  'reviews/README.md': ['## Artifact convention', '## Evidence and handoff'],
 }
 
 const failures = []

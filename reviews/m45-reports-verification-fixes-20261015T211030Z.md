@@ -1,5 +1,7 @@
 # Workflow review report
 
+> M46 relocation: `.pi/reviews/m45-reports-verification-fixes-20261015T211030Z.md` → `reviews/m45-reports-verification-fixes-20261015T211030Z.md`. Repository references (including historical inventories) now use relocated homes; observations, commands, verdicts, timestamps, and approvals retain their historical meaning. Embedded hashes describe pre-relocation bytes, not current checksums. No historical checks were rerun.
+
 - Created: 2026-10-15T21:12:23.702Z
 - Project: /Users/mehdi/code/btt
 - Plan reference: /Users/mehdi/code/btt/plans/m45-reports-verification-fixes.md
@@ -26,7 +28,7 @@ This is a bounded review, not human code acceptance or an assertion that all beh
 - Branch: `main`; observed HEAD: `57a8f7f10bf1ded6cc694af1d280a5b825fa75bc`.
 - Default worktree scope: **14 unstaged tracked files, no staged changes, and 28 untracked files/inputs**, before this report. Both tracked and staged diffs were inspected; every listed new file was read. No branch/base comparison replaced the worktree review.
 - Primary reference, read completely: `plans/m45-reports-verification-fixes.md`.
-- Other complete planning/handoff inputs: `plans/m45-reports-response-range-fix.md`, `plans/m45-reports-review-fixes.md`, `plans/reports-discovery.md`, `docs/milestones/m45-reports-time-allocation.md`, `.pi/reviews/m45-reports-response-range-20261015T193923Z.md`, and `.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md`.
+- Other complete planning/handoff inputs: `plans/m45-reports-response-range-fix.md`, `plans/m45-reports-review-fixes.md`, `plans/reports-discovery.md`, `docs/milestones/m45-reports-time-allocation.md`, `reviews/m45-reports-response-range-20261015T193923Z.md`, and `reviews/m45-reports-time-allocation-20261015T151738Z.md`.
 - Context: `AGENTS.md`, `docs/llm-workflow.md`, `PLAN.md`, milestone/ADR conventions, relevant date/history, client-boundary, ordering, navigation, desktop, verification, invalidation, quality-gate, presentation, and Settings ADRs, and Proposed ADR 0061.
 - Expected workload: the repository's solo-user work tracker; this was not a load/performance audit.
 
@@ -52,8 +54,8 @@ tests/e2e/search.test.ts
 ### Untracked files and inputs reviewed
 
 ```text
-.pi/reviews/m45-reports-response-range-20261015T193923Z.md
-.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md
+reviews/m45-reports-response-range-20261015T193923Z.md
+reviews/m45-reports-time-allocation-20261015T151738Z.md
 app/pages/reports.vue
 app/utils/calendar-date.ts
 app/utils/reports.ts
@@ -136,7 +138,7 @@ Archive directory:
 - Archived original SHA-256: `80e6868f826906f945a344cca72a3b93b38d6a2b8a9fae7cfc6ac572074082af`.
 - Current SHA-256: `1ff0d61fca4d1d7826ebdb8b982fff7c1b30132b320d0756192e23a6b03f6d3a`.
 
-`.pi/reviews/m45-reports-time-allocation-20261015T151738Z.md`:
+`reviews/m45-reports-time-allocation-20261015T151738Z.md`:
 
 - Archived original SHA-256: `4ccb42ba7480e0f48b506131e13d7d63fa7356c06f1e94ca54b0773cb6ab3c7e`.
 - Current SHA-256: `5ee0dffcffa2df7c3967b7c192e31e67c8a24b5c35029353b38ace0f23bfe3f7`.

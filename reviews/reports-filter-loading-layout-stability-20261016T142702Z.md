@@ -1,9 +1,11 @@
 # Workflow review report
 
+> M46 relocation: `.pi/reviews/reports-filter-loading-layout-stability-20261016T142702Z.md` → `reviews/reports-filter-loading-layout-stability-20261016T142702Z.md`. Repository references now use relocated homes; observations, commands, verdicts, timestamps, and approvals retain their historical meaning. Any embedded hashes describe pre-relocation bytes, not current checksums. No historical checks were rerun.
+
 - Created: 2026-10-16T14:28:04.141Z
 - Project: /Users/mehdi/code/btt
-- Plan reference: /Users/mehdi/code/btt/.pi/plans/reports-filter-loading-layout-stability.md
-- Scope: All current uncommitted staged, unstaged, and untracked changes on main at HEAD 57a8f7f10bf1ded6cc694af1d280a5b825fa75bc, evaluated primarily against .pi/plans/reports-filter-loading-layout-stability.md and the active M45 approval/amendment records. Observed 14 modified tracked files, no staged changes, and 31 untracked files. No branch/base override.
+- Plan reference: /Users/mehdi/code/btt/plans/reports-filter-loading-layout-stability.md
+- Scope: All current uncommitted staged, unstaged, and untracked changes on main at HEAD 57a8f7f10bf1ded6cc694af1d280a5b825fa75bc, evaluated primarily against plans/reports-filter-loading-layout-stability.md and the active M45 approval/amendment records. Observed 14 modified tracked files, no staged changes, and 31 untracked files. No branch/base override.
 - Verdict: no-findings
 - Comparison: uncommitted
 
@@ -14,7 +16,7 @@ No actionable findings within the reviewed scope.
 - Created: 2026-10-16T14:27:02Z
 - Project: `/Users/mehdi/code/btt`
 - Branch / HEAD: `main` / `57a8f7f10bf1ded6cc694af1d280a5b825fa75bc`
-- Primary plan: `.pi/plans/reports-filter-loading-layout-stability.md`
+- Primary plan: `plans/reports-filter-loading-layout-stability.md`
 - Scope: all current uncommitted staged, unstaged, and untracked changes
 
 ## What this change does
@@ -32,8 +34,8 @@ The layout reservations are captured before filter, period, or grouping changes,
 - Review timestamp: **2026-10-16T14:27:02Z**.
 - Observed branch/HEAD: `main` at `57a8f7f10bf1ded6cc694af1d280a5b825fa75bc`.
 - Worktree: **14 modified tracked files, no staged changes, and 31 untracked files**. Git status, tracked diff, staged diff, and untracked paths were inspected at the start and after checks; the non-ignored scope stayed unchanged. No branch comparison replaced this uncommitted review.
-- Primary reference, read completely: `.pi/plans/reports-filter-loading-layout-stability.md`. The plan describes itself as proposed; the M45 journal records that the user selected it for Build and authorized implementation, without inferring a separate Plannotator approval or human code acceptance.
-- Governing and related inputs read: `AGENTS.md`, `docs/llm-workflow.md`, `PLAN.md`, `docs/milestones/m45-reports-time-allocation.md`, Proposed `docs/decisions/0061-reports-time-allocation.md`, `plans/m45-reports-review-fixes.md`, `plans/m45-reports-response-range-fix.md`, `plans/m45-reports-verification-fixes.md`, `plans/reports-discovery.md`, `plans/dev-server-cache-recovery.md`, and the three prior M45 review reports under `.pi/reviews/`.
+- Primary reference, read completely: `plans/reports-filter-loading-layout-stability.md`. The plan describes itself as proposed; the M45 journal records that the user selected it for Build and authorized implementation, without inferring a separate Plannotator approval or human code acceptance.
+- Governing and related inputs read: `AGENTS.md`, `docs/llm-workflow.md`, `PLAN.md`, `docs/milestones/m45-reports-time-allocation.md`, Proposed `docs/decisions/0061-reports-time-allocation.md`, `plans/m45-reports-review-fixes.md`, `plans/m45-reports-response-range-fix.md`, `plans/m45-reports-verification-fixes.md`, `plans/reports-discovery.md`, `plans/dev-server-cache-recovery.md`, and the three prior M45 review reports under `reviews/`.
 - Reviewed implementation and test files: `app/pages/reports.vue`, `app/utils/reports.ts`, `app/utils/calendar-date.ts`, `app/composables/useHierarchyFilters.ts`, `server/api/reports/index.get.ts`, `server/domain/reports.ts`, `shared/date-only.ts`, `shared/report-period.ts`, `shared/reports.ts`, `shared/agenda-week.ts`, `tests/e2e/reports-loading/interactions/boundary/period-state coverage and helpers`, all four report unit-test files, and the changed Agenda/auth-shell/search/invalidation test sections. Also inspected the relevant dashboard, invalidation resource map, Settings modal callers, and date-only interfaces.
 - The remaining untracked plans/reports are intentional workflow handoff inputs, not application code to ship. The expected workload is the project's solo-user tracker; this was not a load audit.
 - No browser server was listening on the checked local ports during Review. No unrelated committed history, production deployment, live OAuth, or production data was reviewed.
