@@ -765,6 +765,13 @@ Status: Complete — implementation and documentation verification are recorded;
 
 - Integrate optional Pi modes with project approval/verification governance and consolidate focused plans and reviews without changing application behavior or M45 status.
 
+### M47 — Release Done tickets at the bottom
+
+Status: In progress — human approved [the focused plan](plans/release-done-tickets-bottom.md) in Plannotator `pn-d7538f`. Implementation and verification evidence: [M47](docs/milestones/m47-release-done-tickets-bottom.md).
+
+- On Release detail only, keep unfinished tickets first and fully visible Done cards below a labeled separator, preserving API order within each section and existing interactions.
+- Verify edge states, reactive moves, keyboard access with explicit control reacquisition, supported desktop layout, and all local gates before independent Review. The [approved amendment](plans/release-focus-simplification.md) removes automatic Release focus recovery. [ADR 0063](docs/decisions/0063-release-done-ticket-sections.md) remains Proposed pending human code review.
+
 ### Later, post-MVP
 
 - Per-ticket period reports and entry-level review/drill-down (M45 covers client/project/release allocation, not a ticket grouping or detailed entry report).

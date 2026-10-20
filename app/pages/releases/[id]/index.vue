@@ -77,9 +77,14 @@ const {
   },
 )
 const tickets = computed(() => ticketData.value?.tickets ?? [])
-const doneTicketCount = computed(
-  () => tickets.value.filter((item) => item.ticket.status === 'Done').length,
+const doneTickets = computed(() => tickets.value.filter((item) => item.ticket.status === 'Done'))
+const ticketGroups = computed(() =>
+  [
+    { key: 'unfinished', items: tickets.value.filter((item) => item.ticket.status !== 'Done') },
+    { key: 'done', items: doneTickets.value },
+  ].filter((group) => group.items.length),
 )
+const doneTicketCount = computed(() => doneTickets.value.length)
 const doneConfirmationOpen = ref(false)
 const donePending = ref(false)
 const doneError = ref('')
@@ -478,110 +483,121 @@ async function markDone() {
             }}
           </p></UCard
         >
-        <div v-else-if="!ticketsError" class="grid grid-cols-2 gap-2">
-          <EntityCard
-            v-for="item in tickets"
-            :key="item.ticket.id"
-            as="article"
-            class="min-w-0"
-            :data-release-ticket-id="item.ticket.id"
-          >
-            <template #navigation>
-              <NuxtLink
-                :to="`/tickets/${item.ticket.id}`"
-                :aria-label="`Open ticket ${item.ticket.title}`"
-                class="absolute inset-0 z-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
-              />
-            </template>
-            <template #heading>
-              <div data-release-ticket-header class="min-w-0">
-                <TicketWorkItem
-                  mode="ticket-summary"
-                  :title="item.ticket.title"
-                  :status="item.ticket.status"
-                  :title-hint="item.ticket.title"
-                  :tracked-minutes="item.trackedMinutes"
-                  :estimate-minutes="item.ticket.estimateMinutes"
-                  heading-tag="h2"
-                  usage-placement="header"
-                  :show-percentage="false"
-                  header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
-                  title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted"
-                  title-text-class="truncate"
-                  header-usage-class="shrink-0"
-                />
-              </div>
-            </template>
-            <template #context>
-              <div
-                data-release-ticket-context
-                class="pointer-events-auto relative z-10 flex min-w-0 flex-wrap items-center gap-1"
-                aria-label="Ticket context"
+        <div v-else-if="!ticketsError" class="space-y-2">
+          <div v-for="group in ticketGroups" :key="group.key" class="space-y-2">
+            <USeparator
+              v-if="group.key === 'done'"
+              label="Done"
+              :decorative="false"
+              aria-label="Done"
+              :ui="{ container: 'text-muted' }"
+            />
+            <div :data-release-ticket-group="group.key" class="grid grid-cols-2 gap-2">
+              <EntityCard
+                v-for="item in group.items"
+                :key="item.ticket.id"
+                as="article"
+                class="min-w-0"
+                :data-release-ticket-id="item.ticket.id"
               >
-                <TicketHierarchyBadges
-                  mode="links"
-                  truncate-labels
-                  class="min-w-0 max-w-full"
-                  :items="[
-                    {
-                      kind: 'client',
-                      id: item.clientId,
-                      name: item.clientName,
-                      to: `/clients/${item.clientId}`,
-                    },
-                    {
-                      kind: 'project',
-                      id: item.projectId,
-                      name: item.projectName,
-                      to: `/projects/${item.projectId}`,
-                    },
-                    {
-                      kind: 'release',
-                      id: item.ticket.releaseId,
-                      name: item.releaseName,
-                      to: `/releases/${item.ticket.releaseId}`,
-                    },
-                  ]"
-                  aria-label="Ticket hierarchy"
-                />
-                <USelect
-                  :model-value="item.ticket.status"
-                  :items="[...ticketStatuses]"
-                  size="xs"
-                  color="neutral"
-                  variant="soft"
-                  :trailing="true"
-                  :trailing-icon="''"
-                  :ui="{ content: 'min-w-28' }"
-                  class="w-max shrink-0 !bg-default !text-muted !text-xs"
-                  :aria-label="`Ticket status for ${item.ticket.title}`"
-                  :aria-busy="ticketStatusChangingId === item.ticket.id || undefined"
-                  :disabled="
-                    !!ticketStatusChangingId ||
-                    donePending ||
-                    ticketStatusNeedsRefresh ||
-                    !!ticketsError
-                  "
-                  :loading="ticketStatusChangingId === item.ticket.id"
-                  @update:model-value="changeTicketStatus(item.ticket.id, $event)"
-                >
-                  <template #leading>
-                    <UIcon
-                      :name="ticketStatusIcon(item.ticket.status)"
-                      class="size-4 text-muted"
-                      :data-ticket-status-icon="item.ticket.status"
-                      aria-hidden="true"
+                <template #navigation>
+                  <NuxtLink
+                    :to="`/tickets/${item.ticket.id}`"
+                    :aria-label="`Open ticket ${item.ticket.title}`"
+                    class="absolute inset-0 z-0 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
+                  />
+                </template>
+                <template #heading>
+                  <div data-release-ticket-header class="min-w-0">
+                    <TicketWorkItem
+                      mode="ticket-summary"
+                      :title="item.ticket.title"
+                      :status="item.ticket.status"
+                      :title-hint="item.ticket.title"
+                      :tracked-minutes="item.trackedMinutes"
+                      :estimate-minutes="item.ticket.estimateMinutes"
+                      heading-tag="h2"
+                      usage-placement="header"
+                      :show-percentage="false"
+                      header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
+                      title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted"
+                      title-text-class="truncate"
+                      header-usage-class="shrink-0"
                     />
-                  </template>
-                </USelect>
-                <TicketContextPopovers
-                  class="shrink-0"
-                  :related-tickets="item.relatedTickets"
-                  :external-links="item.externalLinks"
-                />
-              </div>
-            </template>
-          </EntityCard>
+                  </div>
+                </template>
+                <template #context>
+                  <div
+                    data-release-ticket-context
+                    class="pointer-events-auto relative z-10 flex min-w-0 flex-wrap items-center gap-1"
+                    aria-label="Ticket context"
+                  >
+                    <TicketHierarchyBadges
+                      mode="links"
+                      truncate-labels
+                      class="min-w-0 max-w-full"
+                      :items="[
+                        {
+                          kind: 'client',
+                          id: item.clientId,
+                          name: item.clientName,
+                          to: `/clients/${item.clientId}`,
+                        },
+                        {
+                          kind: 'project',
+                          id: item.projectId,
+                          name: item.projectName,
+                          to: `/projects/${item.projectId}`,
+                        },
+                        {
+                          kind: 'release',
+                          id: item.ticket.releaseId,
+                          name: item.releaseName,
+                          to: `/releases/${item.ticket.releaseId}`,
+                        },
+                      ]"
+                      aria-label="Ticket hierarchy"
+                    />
+                    <USelect
+                      :model-value="item.ticket.status"
+                      :items="[...ticketStatuses]"
+                      size="xs"
+                      color="neutral"
+                      variant="soft"
+                      :trailing="true"
+                      :trailing-icon="''"
+                      :ui="{ content: 'min-w-28' }"
+                      class="w-max shrink-0 !bg-default !text-muted !text-xs"
+                      :aria-label="`Ticket status for ${item.ticket.title}`"
+                      :aria-busy="ticketStatusChangingId === item.ticket.id || undefined"
+                      :disabled="
+                        !!ticketStatusChangingId ||
+                        donePending ||
+                        ticketStatusNeedsRefresh ||
+                        !!ticketsError
+                      "
+                      :loading="ticketStatusChangingId === item.ticket.id"
+                      @update:model-value="changeTicketStatus(item.ticket.id, $event)"
+                    >
+                      <template #leading>
+                        <UIcon
+                          :name="ticketStatusIcon(item.ticket.status)"
+                          class="size-4 text-muted"
+                          :data-ticket-status-icon="item.ticket.status"
+                          aria-hidden="true"
+                        />
+                      </template>
+                    </USelect>
+                    <TicketContextPopovers
+                      class="shrink-0"
+                      :related-tickets="item.relatedTickets"
+                      :external-links="item.externalLinks"
+                    />
+                  </div>
+                </template>
+              </EntityCard>
+            </div>
+          </div>
         </div>
       </template>
     </HierarchyDetailSections>

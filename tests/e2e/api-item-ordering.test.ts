@@ -211,6 +211,7 @@ test('collection APIs keep their approved order when records are edited', async 
           await create('/api/tickets', {
             releaseId: releases.soon!.id,
             title,
+            status: key === 'estimateNew' || key === 'plainOld' ? 'Done' : 'Idea',
             ...(estimateMinutes === undefined ? {} : { estimateMinutes }),
           }),
         ]),
@@ -239,6 +240,11 @@ test('collection APIs keep their approved order when records are edited', async 
       tickets.plainNew!.id,
       tickets.plainOld!.id,
     ]
+    const doneIds = [tickets.estimateNew!.id, tickets.plainOld!.id]
+    const releaseOrder = (ids: string[]) => [
+      ...ids.filter((id) => !doneIds.includes(id)),
+      ...ids.filter((id) => doneIds.includes(id)),
+    ]
     const orderedTickets = async () =>
       (
         await (
@@ -266,7 +272,7 @@ test('collection APIs keep their approved order when records are edited', async 
       await page
         .locator('[data-release-ticket-id]')
         .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-release-ticket-id'))),
-    ).toEqual(expectedTicketIds)
+    ).toEqual(releaseOrder(expectedTicketIds))
 
     await page.goto(`/tickets?release=${releases.soon!.id}`)
     const ideaLane = page.getByRole('region', { name: 'Idea tickets' })
@@ -274,12 +280,10 @@ test('collection APIs keep their approved order when records are edited', async 
       .locator('[data-board-ticket-id]')
       .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-board-ticket-id')))
     expect(ideaIds).toEqual([
-      tickets.estimateNew!.id,
       ...[tickets.estimateTieA!.id, tickets.estimateTieB!.id].toSorted((a, b) =>
         b.localeCompare(a),
       ),
       tickets.plainNew!.id,
-      tickets.plainOld!.id,
     ])
 
     await page.goto(`/projects/${newerProject.id}`)
@@ -293,7 +297,7 @@ test('collection APIs keep their approved order when records are edited', async 
       await page
         .locator('[data-release-ticket-id]')
         .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-release-ticket-id'))),
-    ).toEqual(expectedTicketIds)
+    ).toEqual(releaseOrder(expectedTicketIds))
 
     const movedToEstimated = await page.request.patch(`/api/tickets/${tickets.plainNew!.id}`, {
       data: { estimateMinutes: 45 },
@@ -309,6 +313,13 @@ test('collection APIs keep their approved order when records are edited', async 
       tickets.plainOld!.id,
     ]
     expect(await orderedTickets()).toEqual(expectedAfterEstimate)
+    await page.reload()
+    await expect(page.locator('[data-release-ticket-id]')).toHaveCount(expectedAfterEstimate.length)
+    expect(
+      await page
+        .locator('[data-release-ticket-id]')
+        .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-release-ticket-id'))),
+    ).toEqual(releaseOrder(expectedAfterEstimate))
     const searchAfterEstimate = await (
       await page.request.get('/api/search', { params: { q: 'Ordering ticket' } })
     ).json()

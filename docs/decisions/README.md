@@ -97,3 +97,4 @@ NNNN-short-descriptive-slug.md
 | [0060](0060-pnpm-dependabot-tracking.md)                               | Accepted   | Track pnpm as a Dependabot dependency                      |
 | [0061](0061-reports-time-allocation.md)                                | Proposed   | Reports time allocation and period semantics               |
 | [0062](0062-pi-workflow-modes-and-artifact-locations.md)               | Accepted   | Pi workflow modes and artifact locations                   |
+| [0063](0063-release-done-ticket-sections.md)                           | Proposed   | Release Done ticket sections                               |

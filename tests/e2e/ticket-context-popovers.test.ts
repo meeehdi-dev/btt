@@ -106,7 +106,7 @@ async function measureCompactBadgeContrast(label: Locator) {
   })
 }
 
-async function expectTwoRowReleaseTicketCard(card: Locator, title: string) {
+async function expectTwoRowReleaseTicketCard(card: Locator, title: string, value = 'Idea') {
   const header = card.locator('[data-release-ticket-header]')
   const context = card.locator('[data-release-ticket-context]')
   const hierarchy = context.getByLabel('Ticket hierarchy')
@@ -121,8 +121,8 @@ async function expectTwoRowReleaseTicketCard(card: Locator, title: string) {
   await expect(context.getByLabel('Ticket usage')).toHaveCount(0)
   await expect(usage.getByLabel(/Estimate usage:/)).toHaveCount(0)
   await expect(context.getByRole('link')).toHaveCount(3)
-  await expect(status).toContainText('Idea')
-  await expect(status.locator('[data-ticket-status-icon="Idea"]')).toBeVisible()
+  await expect(status).toContainText(value)
+  await expect(status.locator(`[data-ticket-status-icon="${value}"]`)).toBeVisible()
   await expect(status.locator('[aria-hidden="true"]').first()).toBeVisible()
   await expect(status).toHaveClass(/bg-default/)
   await expect(status).toHaveClass(/text-muted/)
@@ -617,6 +617,24 @@ test('ticket board and release cards expose relation and external-link popovers'
     await page.goto(`/releases/${releaseRecord.id}`)
     await waitForClientMount(page)
   }
+
+  await releaseCard.getByRole('combobox').click()
+  await page.getByRole('option', { name: 'Done', exact: true }).click()
+  await expect(
+    page
+      .locator('[data-release-ticket-group="done"]')
+      .locator(`[data-release-ticket-id="${many.id}"]`),
+  ).toBeVisible()
+  await expectTwoRowReleaseTicketCard(releaseCard, manyTitle, 'Done')
+  await releaseRelations.focus()
+  await expect(page.locator(`[data-related-ticket-id="${two.id}"]`)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await releaseLinks.hover()
+  await expect(releaseFallback).toBeVisible()
+  await page.keyboard.press('Escape')
+  await releaseCard.getByRole('combobox').click()
+  await page.getByRole('option', { name: 'Idea', exact: true }).click()
+  await expect(releaseCard.getByRole('combobox')).toContainText('Idea')
 
   await page.goto(`/agenda?date=${date}`)
   await waitForClientMount(page)
