@@ -50,7 +50,8 @@ async function cleanup(userId: string) {
 test('ticket detail edits fields in place and creates links and relations in modals', async ({
   page,
   context,
-}) => {
+}, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
   const helpers = (await testAuth.$context).test
   const owner = helpers.createUser({
     name: 'Ticket detail owner',
@@ -113,6 +114,32 @@ test('ticket detail edits fields in place and creates links and relations in mod
     await expect(archiveAction).toHaveClass(/text-sm/)
     await expect(page.getByRole('textbox', { name: 'Link label' })).toHaveCount(0)
     await expect(page.getByPlaceholder('Search tickets…')).toHaveCount(0)
+
+    const expectSectionLayout = async () => {
+      await expect(page.getByRole('heading', { name: 'Tracked time', exact: true })).toBeVisible()
+      const cards = [
+        page.getByRole('textbox', { name: /^Description for / }),
+        page.getByRole('heading', { name: 'External links', exact: true }),
+        page.getByRole('heading', { name: 'Related tickets', exact: true }),
+        page.getByRole('heading', { name: 'Tracked time', exact: true }),
+      ].map((content) => content.locator('xpath=ancestor::div[@data-slot="body"][1]/..'))
+      await expect(async () => {
+        const [description, links, related, tracked] = await Promise.all(
+          cards.map((card) => card.boundingBox()),
+        )
+        if (!description || !links || !related || !tracked)
+          throw new Error('All ticket section cards must be visible')
+        expect(description.y + description.height).toBeLessThanOrEqual(links.y)
+        expect(description.y + description.height).toBeLessThanOrEqual(related.y)
+        expect(links.y).toBeCloseTo(related.y, 0)
+        expect(links.x + links.width).toBeLessThanOrEqual(related.x)
+        expect(tracked.y).toBeGreaterThanOrEqual(links.y + links.height)
+        expect(tracked.y).toBeGreaterThanOrEqual(related.y + related.height)
+        expect(tracked.x).toBeCloseTo(description.x, 0)
+        expect(tracked.width).toBeCloseTo(description.width, 0)
+      }).toPass()
+    }
+    await expectSectionLayout()
 
     const titleAction = page.getByRole('button', { name: 'Edit ticket title' })
     await titleAction.focus()
@@ -215,6 +242,15 @@ test('ticket detail edits fields in place and creates links and relations in mod
     expect((await (await page.request.get(`/api/tickets/${ticketId}`)).json()).related).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: relatedTicketId })]),
     )
+
+    await expect(linkDialog).toHaveCount(0)
+    await expect(relationDialog).toHaveCount(0)
+    await expectSectionLayout()
+    await page.screenshot({
+      path: testInfo.outputPath('ticket-detail-1280.png'),
+      fullPage: true,
+      animations: 'disabled',
+    })
 
     await page.getByRole('button', { name: 'Archive ticket' }).click()
     await expect(page).toHaveURL(`/tickets/${ticketId}?archived=true`)

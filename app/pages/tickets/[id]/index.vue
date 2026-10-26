@@ -766,12 +766,6 @@ async function removeRelation(relationId: string) {
       </UFormField>
     </UCard>
 
-    <TicketTimeEntries
-      :ticket-id="id"
-      :estimate-minutes="data.ticket.estimateMinutes"
-      :can-create="false"
-    />
-
     <div class="grid grid-cols-2 gap-2">
       <UCard :ui="{ body: 'p-2' }">
         <div class="flex items-center justify-between gap-2">
@@ -876,6 +870,12 @@ async function removeRelation(relationId: string) {
         <p v-else-if="!choicesError" class="mt-2 text-sm text-muted">No related tickets yet.</p>
       </UCard>
     </div>
+
+    <TicketTimeEntries
+      :ticket-id="id"
+      :estimate-minutes="data.ticket.estimateMinutes"
+      :can-create="false"
+    />
 
     <UModal
       v-model:open="titleModalOpen"

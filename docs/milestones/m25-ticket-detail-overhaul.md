@@ -168,6 +168,30 @@ No server, database, migration, auth, or dependency changes are expected.
 - Constraint: human code review is still required before M25 can be accepted as complete. No code-review acceptance for M25 is recorded in this conversation, so M25 remains open pending that review. The user's completion request is recorded, but does not replace the required review gate.
 - Evidence: the implementation and 30-test Playwright results are recorded above. No tests or application code were changed or rerun for this documentation closeout.
 
+### 2026-10-26 — Tracked-time ordering follow-up Build (verification blocked)
+
+- Authority: the human approved [the focused plan](../../plans/ticket-detail-tracked-time-order.md) in Plannotator `pn-403d02` and explicitly instructed Build to begin. Initial Git state contained only that untracked plan. Historical M25 acceptance/completion status is unchanged.
+- Implementation: moved the unchanged `TicketTimeEntries` invocation below the two-column External links/Related tickets grid. Extended the existing field/link/relation E2E test at 1280 × 900 with retrying actual-card geometry assertions before and after adding a link/relation, explicit modal closure checks, and a desktop screenshot for inspection. No other behavior, styling, fixtures, dependencies, or APIs changed.
+- Isolation: created agent-owned PostgreSQL 18 container `btt-tracked-order-verification` (ID `c47e291fe41d0bcdee3f12adb0ca485c939cf387c74bc2bf0cadde32c87bd145`), database `btt_tracked_order`, loopback port 55439. Verification environment is saved outside the repository in `/tmp/btt-tracked-order-verify/env.sh`; app/auth/browser origin is `http://127.0.0.1:3018`. User-owned databases/services were untouched.
+- Passed: `pnpm db:migrate`, `pnpm format:check`, `pnpm lint`, `pnpm check:duplicates`, `pnpm check:unused`, `pnpm typecheck`, `pnpm typecheck:tsgo`, `pnpm test` (20 files, 109 tests), `pnpm build`, `pnpm check:workflow`, and `git diff --check`. Exact output logs are in `/tmp/btt-tracked-order-verify/` (`pnpm-*.log`, `git-diff---check.log`).
+- First browser failure: `pnpm test:e2e tests/e2e/ticket-detail-overhaul.test.ts tests/e2e/time-entries.test.ts` failed all three tests at browser launch (0ms): installed Playwright requires `chromium_headless_shell-1243`, but `/Users/mehdi/Library/Caches/ms-playwright` does not exist. No test body ran; this is an environment blocker, not evidence of a layout failure. Full output: `focused.log` in the evidence directory. Full E2E and desktop image inspection remain unrun.
+- Server lifecycle: agent-owned `pnpm dev --host 127.0.0.1 --port 3018` remains running through this failure (launcher PID 81634, listener PID 81655; `server.pid`/`server.log` in the evidence directory). Disposable database remains running. Do not stop either until all required checks pass; no review-ready handoff is claimed. Browser installation requires human authorization under the Build rules.
+
+### 2026-10-26 — Human-directed browser verification deferral
+
+- Direct human instruction: “skip browser tests, just do the changes and trust.” Browser installation was not authorized and was not performed. Treat this as a task-specific deviation from the approved verification plan, not a passing browser result or a standing workflow-policy change.
+- Focused browser test bodies, full E2E, and desktop visual inspection remain unverified. The initial launch failure above is preserved. The implementation and added assertions are unchanged; human code review and M25 historical acceptance status remain pending.
+- After this explicit deferral, stopped only the tracked agent-owned app (`kill -TERM 81655 81634`) and disposable database (`docker stop btt-tracked-order-verification`, container retained). `lsof -nP -iTCP:3018 -sTCP:LISTEN` and the equivalent check on 55439 confirm both ports released. User services were untouched.
+- Final diff inspection confirmed only the component relocation, existing-test extension, and this journal changed (plus the pre-existing untracked plan). Final `pnpm format:check`, `pnpm check:workflow`, and `git diff --check` passed. No Git writes were performed.
+
+### 2026-10-26 — Ordering follow-up accepted and completion declared
+
+- Recorded at 2026-10-26T14:25:13Z. Human code review `pn-067e88` approved the tracked-time ordering follow-up with no changes requested; the human then selected Finalize and skipped optional UI. This approval covers the focused follow-up, not the earlier M25 implementation.
+- Independent [Review report](../../reviews/ticket-detail-tracked-time-order-20261026T141856Z.md) found no actionable findings. Independently passed format, lint (two unrelated warnings), both typechecks, unit tests (20 files / 109 tests), workflow, and diff checks. These are Review results, not checks rerun during Finalize.
+- The human explicitly declared: “i declare this milestone complete”. Record this as the M25 completion declaration. Earlier M25 code-review acceptance remains unrecorded; this declaration does not invent that separate approval. Historical review remains the only outstanding closeout gate.
+- Preserve the task-specific human deferral of focused/full browser tests and desktop visual inspection: Chromium was absent, no browser test bodies or screenshot ran, and runtime layout remains unverified. Optional UI was skipped, not passed. The agent-owned app/database were stopped and ports released as recorded above.
+- Finalize changed only this journal/review status. No tests, services, source changes, or Git writes were performed.
+
 ## Verification
 
 Planning artifact checks before plan review:
@@ -188,16 +212,19 @@ Implementation verification (after approval):
 
 - Plan review: Approved via Plannotator on 2026-10-03, after two annotated rounds of feedback/answers.
 - Layout clarification: User confirmed the revised sizing, spacing, and Archive placement look good on 2026-10-03.
-- Code review: Pending; human code-review acceptance is still required before closing M25.
-- Milestone completion request: Received from the user on 2026-10-15. M25 remains open pending human code review.
+- Code review: Tracked-time ordering follow-up approved in `pn-067e88` with no changes requested on 2026-10-26; independent Review found no actionable findings. Earlier M25 implementation review remains unrecorded; the focused approval does not establish broader historical acceptance.
+- Milestone completion declaration: The user explicitly declared “i declare this milestone complete” on 2026-10-26, following the earlier 2026-10-15 completion request. Declaration recorded; formal M25 closeout remains pending the earlier implementation's human code-review acceptance.
+- Optional UI: Skipped by human choice. Follow-up browser execution and visual inspection remain explicitly deferred, not passing.
 
 ## Follow-ups
 
-- No follow-up is approved yet. Any changes to schema/API rules, time-entry correction/deletion policy, or other ticket-status surfaces require a separate scope review.
+- Earlier M25 implementation still needs recorded human code-review acceptance before formal closeout; the completion declaration and focused follow-up approval are recorded separately.
+- Follow-up browser geometry and visual appearance remain unverified under the explicit human deferral; no additional implementation is authorized.
+- Any changes to schema/API rules, time-entry correction/deletion policy, or other ticket-status surfaces require a separate scope review.
 
 ## Closeout checklist
 
 - [x] Approved checklist complete or explicitly deferred; the remaining manual checks were deferred at the user's request on 2026-10-15.
 - [x] Verification evidence recorded, including the checks not run.
-- [ ] Human code review accepted; this remains the blocker to closing M25.
-- [x] Human completion request recorded in the journal and review status; it does not replace required code review.
+- [ ] Earlier M25 human code review accepted; this remains unrecorded and blocks formal closeout. The ordering follow-up's human code review was accepted on 2026-10-26.
+- [x] Human completion declaration recorded in the journal and review status on 2026-10-26; it does not replace the separate historical code-review gate.
