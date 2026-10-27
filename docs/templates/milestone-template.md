@@ -65,7 +65,7 @@ Append entries during implementation.
 ## Verification
 
 - [ ] Exact command/manual case: expected outcome; record actual result, first failures, fixes, and limitations.
-- Separate independently executed checks from historical evidence. Run all approved final-worktree checks, including full E2E for application changes; follow canonical agent-owned server ownership/failure/cleanup rules. Optional UI never replaces mandatory checks/manual cases.
+- Separate independently executed checks from historical evidence and human-reported manual results. Run all approved retained automated checks on the final worktree; application testing is human-owned and manual (ADR 0064), with no E2E suite or verification app server required. Leave unperformed manual cases pending and follow canonical resource ownership/cleanup rules. Optional UI never replaces retained checks or human manual acceptance.
 
 ## Review status
 

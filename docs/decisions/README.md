@@ -75,7 +75,7 @@ NNNN-short-descriptive-slug.md
 | [0038](0038-today-agenda-status-badge-flow.md)                         | Superseded | Ordered status badge flow in Today agenda entries          |
 | [0039](0039-today-agenda-context-control-flow.md)                      | Accepted   | Keep Today agenda context controls in one flow             |
 | [0040](0040-ticket-detail-inline-editing.md)                           | Proposed   | Make ticket detail the normal edit surface                 |
-| [0041](0041-ci-e2e-failure-diagnostics.md)                             | Accepted   | Keep CI E2E failures visible and diagnosable               |
+| [0041](0041-ci-e2e-failure-diagnostics.md)                             | Superseded | Keep CI E2E failures visible and diagnosable               |
 | [0042](0042-desktop-only-ui-and-spacing.md)                            | Accepted   | Desktop-only UI and compact spacing system                 |
 | [0043](0043-release-completion-action-location.md)                     | Accepted   | Keep release completion on release detail                  |
 | [0044](0044-week-only-agenda-and-status-selector.md)                   | Accepted   | Week-only Agenda route and direct status selector          |
@@ -84,7 +84,7 @@ NNNN-short-descriptive-slug.md
 | [0047](0047-muted-tracked-time-without-estimate.md)                    | Accepted   | Muted tracked time without an estimate                     |
 | [0048](0048-agenda-and-board-status-icon-menus.md)                     | Accepted   | Agenda and Ticket Board status icon menus                  |
 | [0049](0049-nuxt-ui-semantic-color-theme.md)                           | Accepted   | Nuxt UI semantic colors and contrast                       |
-| [0050](0050-e2e-verification-and-server-handoff.md)                    | Accepted   | Complete local verification before server handoff          |
+| [0050](0050-e2e-verification-and-server-handoff.md)                    | Superseded | Complete local verification before server handoff          |
 | [0051](0051-same-tab-api-data-invalidation.md)                         | Accepted   | Same-tab API data invalidation                             |
 | [0052](0052-jscpd-knip-quality-gates.md)                               | Accepted   | jscpd and Knip code-quality gates                          |
 | [0053](0053-ticket-priorities.md)                                      | Superseded | Ticket priorities and Board ordering                       |
@@ -98,3 +98,6 @@ NNNN-short-descriptive-slug.md
 | [0061](0061-reports-time-allocation.md)                                | Proposed   | Reports time allocation and period semantics               |
 | [0062](0062-pi-workflow-modes-and-artifact-locations.md)               | Accepted   | Pi workflow modes and artifact locations                   |
 | [0063](0063-release-done-ticket-sections.md)                           | Proposed   | Release Done ticket sections                               |
+| [0064](0064-manual-application-testing.md)                             | Accepted   | Human manual application testing instead of E2E            |
+
+ADR 0064 supersedes only the browser-verification and verification-server clauses of ADR 0062; its remaining workflow decisions stay accepted.

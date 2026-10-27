@@ -7,11 +7,5 @@
   "rules": {
     "no-underscore-dangle": ["warn", { "allow": ["_tag"] }]
   },
-  "ignorePatterns": [
-    ".nuxt/**",
-    ".output/**",
-    "node_modules/**",
-    "playwright-report/**",
-    "test-results/**"
-  ]
+  "ignorePatterns": [".nuxt/**", ".output/**", "node_modules/**"]
 }

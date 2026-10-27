@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-18
 - Supersedes: [ADR 0001](0001-llm-assisted-development-workflow.md)
-- Superseded by: None
+- Superseded by: [ADR 0064](0064-manual-application-testing.md) for browser-verification and verification-server clauses only; all other decisions remain accepted.
 
 ## Context
 

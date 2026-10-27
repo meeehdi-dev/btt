@@ -1,9 +1,9 @@
 # ADR 0041: Keep CI E2E failures visible and diagnosable
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-10-06
 - Supersedes: None
-- Superseded by: None
+- Superseded by: [ADR 0064](0064-manual-application-testing.md)
 
 ## Context
 

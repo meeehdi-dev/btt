@@ -1,9 +1,9 @@
 # ADR 0050: Require complete local verification before server handoff
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-10-08
 - Supersedes: None
-- Superseded by: None
+- Superseded by: [ADR 0064](0064-manual-application-testing.md)
 
 ## Context
 

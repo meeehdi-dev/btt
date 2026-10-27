@@ -8,7 +8,7 @@ Each milestone must be small, human-readable, and independently reviewable. Use 
 2. **Research** — inspect existing code/docs and record reusable patterns or constraints before seeking plan approval.
 3. **Plan** — create/update the milestone and focused plan with references, acceptance criteria, non-goals, approach, files/reuse, steps, risks/stop conditions, and verification. Obtain human approval before implementation.
 4. **Implement** — work in small slices under the approved plan. Record deviations as they happen.
-5. **Verify** — during Build, run all approved final-worktree automated/manual checks, including full E2E for application changes. Record commands/outcomes and follow canonical server ownership rules before handoff.
+5. **Verify** — during Build, run all approved retained automated checks on the final worktree and record commands/outcomes. Application testing is human-owned and manual (ADR 0064); record only actual human results and leave other manual cases pending. Follow canonical resource ownership/cleanup rules before handoff.
 6. **Review** — independently assess the diff, then submit it for human code review. Findings require human direction for corrective planning or proceeding; Review itself does not fix code.
 7. **Close** — update the milestone file with final summary, decisions, verification evidence, known follow-ups, and links to ADRs. A milestone is complete only after the approved checklist is done or explicitly deferred, evidence is recorded, human code review is accepted, and the human’s completion declaration is recorded in the milestone journal/review status. A direct chat statement such as “I hereby declare M1 complete” is sufficient; the agent must transcribe it and update the artifact.
 

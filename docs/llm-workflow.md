@@ -81,16 +81,13 @@ A task is done only when:
 
 ### Local verification and server handoff
 
-Before an implementation is handed to a human for code review, run every automated check required by its approved plan against the final worktree. For application changes, this includes the full E2E/browser suite; listing tests, running only focused tests, or skipping browser execution because a server is unavailable does not count as full verification. Record exact commands and outcomes in the active milestone.
+Before an implementation is handed to a human for code review, run every automated check required by its approved plan against the final worktree. Retained gates include database migration on an isolated test database, format, lint, duplication and unused-code analysis, both typechecks, unit/component tests, build, workflow/documentation checks, and diff checks as applicable. Record exact commands, first failures, fixes, outcomes, and limitations in the active milestone; do not hide failures or use retries/timeouts to conceal them.
 
-Run non-browser gates before browser tests (database migration on an isolated test database, format, lint, both typechecks, unit tests, build, workflow/documentation checks, and diff checks as applicable). Then:
+Application behavior is tested manually by the human. There is no automated E2E/browser suite and no mandatory agent-owned verification app server. Agents must distinguish automated results from human-reported manual results, leave unperformed manual cases pending, and never infer acceptance or milestone completion. A pending human manual check is not a claim of verified application behavior.
 
-1. Start and track a local app server owned by the agent. Do not silently attach to or terminate a process whose owner is unknown.
-2. Run focused browser tests as needed, then the full Playwright suite against that already-running server. Use `PLAYWRIGHT_SKIP_DEV_SERVER=1` and `PLAYWRIGHT_BASE_URL` as needed so Playwright does not own and automatically stop the server.
-3. If any check fails, keep the agent-owned server running while investigating and fixing the issue; repeat focused checks and then the full suite. Do not report the work ready for review or stop the server while required checks remain failing.
-4. Only after all required checks pass on the final worktree, stop the server started by the agent and verify it exited/released its port. Then hand off for human code review. Never stop a user-owned server without explicit permission.
+Use only agent-owned disposable resources for automated database verification. Track any agent-started processes, clean them up and verify released ports before handoff; never attach to or stop a user-owned server without explicit permission. Optional UI uses the separately user-managed app described below.
 
-Keep first-failure evidence visible. Do not add automatic retries or raise global assertion/test/job timeouts to make a red check pass. A per-test timeout increase may be used only when recent run durations show that a specific test regularly takes over 20–25 seconds or approaches the default 30-second budget and trace evidence shows its intended work continues to progress. Add only bounded, test-specific headroom, document the before/after budget and evidence in the milestone, and do not use extra time to mask missing state, stale/detached locators, wrong expectations, or fixture defects. Preserve ADR 0041's no-automatic-retry CI policy.
+[ADR 0064](decisions/0064-manual-application-testing.md) supersedes the browser-suite/verification-server policy of ADRs 0041 and 0050 and the corresponding clauses of ADR 0062. Earlier milestones, plans and reports retain their original browser requirements and evidence as history, not current instructions.
 
 ## Agent roles and handoffs
 
@@ -188,7 +185,7 @@ Each mode starts a fresh session. Read the complete selected reference and appli
 
 When the next phase is known and authorized, call `workflow_handoff` once with its mode, absolute saved plan/report path (or a new task for Plan), and concise context. The helper only routes: it does not save artifacts, approve work, run checks, or enforce phase order. If the next step is unclear, ask the human. Modes guide work, not a second mandatory state machine; direct human changes of direction remain valid within governance.
 
-A deliberate human `/build <plan>` can authorize implementation of that plan; do not demand an extra approval receipt or redundant start confirmation. An automated helper request or mode selection alone cannot invent human plan approval. Review findings do not automatically authorize fixes. After human diff review, ask whether to use UI or Finalize; UI is optional unless the approved task requires it. Skipping UI never waives automated browser tests or mandatory manual acceptance cases.
+A deliberate human `/build <plan>` can authorize implementation of that plan; do not demand an extra approval receipt or redundant start confirmation. An automated helper request or mode selection alone cannot invent human plan approval. Review findings do not automatically authorize fixes. After human diff review, ask whether to use UI or Finalize; UI is optional unless the approved task requires it. Skipping UI never waives retained automated checks or mandatory human manual acceptance cases.
 
 ### Plannotator decisions
 
@@ -196,9 +193,9 @@ Use the installed Plannotator tool (read its applicable skill first), not a priv
 
 Before opening, explain the next step and tell the human to reply in chat if they close without deciding. End the turn after opening and wait for an explicit decision. Closing, tool failure, dismissal, or silence is not approval: ask in chat whether to approve, retry, stop, or change direction. Preserve actual decisions and outstanding findings without inventing timestamps or receipts.
 
-### UI versus verification server ownership
+### UI and server ownership
 
-Build's agent-owned verification server follows the mandatory policy above: keep it through failures, stop it only after every required check passes, and verify its port is released before review handoff. Do not silently retain it for UI. If UI is chosen later, the human separately starts/manages an app and supplies its URL; UI must not stop that user-owned server. Recheck ownership if more implementation or verification is requested. Optional UI is not a substitute for full E2E on application changes. [ADR 0050](decisions/0050-e2e-verification-and-server-handoff.md) remains accepted and unchanged.
+Build no longer requires an app server or automated browser verification. If optional UI is chosen, the human starts/manages an app and supplies its URL; UI must not start or stop that user-owned server. Recheck ownership if more implementation is requested. Optional agent UI observations do not substitute for human manual testing or retained automated checks. See [ADR 0064](decisions/0064-manual-application-testing.md).
 
 The durable adapter/artifact decision is [ADR 0062](decisions/0062-pi-workflow-modes-and-artifact-locations.md), superseding ADR 0001 while carrying its governance forward. Implementation evidence lives in [M46](milestones/m46-workflow-modes-integration.md).
 

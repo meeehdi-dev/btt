@@ -2,6 +2,10 @@
 
 **Current project name:** `btt`. The package, README, and sign-in page use this name; the authenticated header starts with navigation and has no wordmark. Existing deployment/repository identifiers and historical `nxmr` references are unchanged. See [M31](docs/milestones/m31-project-name-and-header-navigation.md) and [ADR 0045](docs/decisions/0045-btt-project-name-and-header.md).
 
+## Current testing policy (M48)
+
+The human-approved [M48 plan](plans/remove-e2e-tests.md) removes all E2E/Playwright tooling and makes application testing human-owned and manual. Unit/component tests and all other automated quality gates remain. [ADR 0064](docs/decisions/0064-manual-application-testing.md) supersedes earlier browser-suite requirements; historical milestone scope and verification evidence below remain unchanged. Manual results must be reported separately and never inferred from automated checks or optional UI observations.
+
 ## Context
 
 The product direction has been narrowed to a work-only app: a re-implementation/evolution of `tt` with a lightweight Linear-style ticket system for projects, tickets, estimates, and tracked time.
@@ -771,6 +775,13 @@ Status: In progress — human approved [the focused plan](plans/release-done-tic
 
 - On Release detail only, keep unfinished tickets first and fully visible Done cards below a labeled separator, preserving API order within each section and existing interactions.
 - Verify edge states, reactive moves, keyboard access with explicit control reacquisition, supported desktop layout, and all local gates before independent Review. The [approved amendment](plans/release-focus-simplification.md) removes automatic Release focus recovery. [ADR 0063](docs/decisions/0063-release-done-ticket-sections.md) remains Proposed pending human code review.
+
+### M48 — Remove E2E tests (maintenance)
+
+Status: Implementation and automated verification complete; human code review approved in Plannotator `pn-161b56`. Optional UI was skipped by human direction. Manual application testing and an explicit milestone completion declaration remain pending. Approved [focused plan](plans/remove-e2e-tests.md): `pn-471e98`; evidence: [M48](docs/milestones/m48-remove-e2e-tests.md).
+
+- Remove E2E tests, Playwright dependencies/configuration, browser CI steps and obsolete exclusions. Keep non-browser tests, shared auth fixtures, database support and remaining quality gates.
+- Replace current browser-verification mandates with human-owned manual application testing; preserve historical evidence and separate human review/completion gates. See [ADR 0064](docs/decisions/0064-manual-application-testing.md).
 
 ### Later, post-MVP
 

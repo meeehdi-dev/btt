@@ -32,7 +32,7 @@ Existing functions, utilities, docs, or patterns to reuse.
 
 ## Verification
 
-Exact automated checks and mandatory manual acceptance cases on the final worktree. For application changes include full E2E and canonical agent-owned server failure/cleanup rules; optional UI does not replace these checks.
+Exact retained automated checks on the final worktree and human-owned manual application acceptance cases. No E2E/browser suite or verification app server is required (ADR 0064). Follow canonical resource ownership/cleanup rules; optional UI does not replace retained checks or human manual acceptance. Leave unperformed manual cases pending.
 
 ## Risks and stop conditions
 

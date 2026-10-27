@@ -32,7 +32,7 @@ The first-release deployment builds this repository's Dockerfile directly in Coo
 
 The Dockerfile exposes an HTTP health check at `/api/health`. Database location, production data state, TLS, OAuth, and backup/restore configuration must be verified in the target Coolify environment; they are not provisioned by this repository.
 
-Automated tests use Better Auth Test Utils and do not contact GitHub.
+Database-backed authentication unit tests use Better Auth Test Utils and do not contact GitHub.
 
 ## Quality checks
 
@@ -44,17 +44,12 @@ pnpm check:unused
 pnpm typecheck
 pnpm typecheck:tsgo
 pnpm test
-pnpm test:e2e
 pnpm build
 pnpm check:workflow
 ```
 
 `check:duplicates` uses the committed jscpd fingerprint baseline and fails on new exact clones. To intentionally refresh the baseline, inspect the report and run `pnpm exec jscpd --baseline .jscpd-baseline.json --update-baseline`; include the reviewed baseline diff. `check:unused` runs Knip without requiring a database: it supplies a placeholder `DATABASE_URL` because Knip loads the Drizzle config but does not connect. See `.jscpd.json`, `.jscpd-baseline.json`, and `knip.json` for scan scope and documented exceptions.
 
-Playwright browser setup, when needed:
-
-```sh
-pnpm exec playwright install chromium
-```
+Application behavior is tested manually by the human; there is no automated E2E/browser suite. Unit/component tests and the other automated quality checks remain required. Record manual testing separately from automated results; see [ADR 0064](docs/decisions/0064-manual-application-testing.md).
 
 The canonical Nuxt/Vue typecheck uses TypeScript 6.0.3 because the current vue-tsc release is incompatible with TypeScript 7. The native TypeScript preview remains an experimental plain-TypeScript evaluation and does not replace Nuxt/Vue typechecking.
