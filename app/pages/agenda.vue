@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vModalAutofocus } from '~/utils/modal-autofocus'
 import { Effect } from 'effect'
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
@@ -763,6 +764,7 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
         <form
           class="space-y-3"
           @keydown.capture="submitModalFormOnShortcut"
+          v-modal-autofocus
           @submit.prevent="saveEdit"
         >
           <div class="grid grid-cols-3 gap-2">
@@ -791,6 +793,7 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
             <UFormField label="Start time" required>
               <UInputTime
                 v-model="editingTime"
+                data-modal-autofocus
                 :hour-cycle="24"
                 :step="{ minute: 30 }"
                 step-snapping

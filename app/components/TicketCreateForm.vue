@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vModalAutofocus } from '~/utils/modal-autofocus'
 import { trackAppApiFetch } from '~/composables/useAppDataInvalidation'
 import {
   ticketPriorityFromOption,
@@ -13,10 +14,14 @@ import {
   submitModalFormOnShortcut,
 } from '~/composables/modal-form-shortcuts'
 
-const props = withDefaults(defineProps<{ initialReleaseId?: string; cancelLabel?: string }>(), {
-  initialReleaseId: '',
-  cancelLabel: 'Cancel',
-})
+const props = withDefaults(
+  defineProps<{ initialReleaseId?: string; cancelLabel?: string; active?: boolean }>(),
+  {
+    active: true,
+    initialReleaseId: '',
+    cancelLabel: 'Cancel',
+  },
+)
 const emit = defineEmits<{
   created: [id: string]
   cancel: []
@@ -76,6 +81,12 @@ const relationError = ref('')
 const pending = ref(false)
 const errorMessage = ref('')
 watch(pending, (value) => emit('pendingChange', value))
+watch(
+  () => relationModalOpen.value && !ticketsError.value,
+  (ready) => {
+    relatedTicketPickerOpen.value = ready
+  },
+)
 
 const selectedRelease = computed(() =>
   releases.value.find((item) => item.release.id === releaseId.value),
@@ -184,7 +195,12 @@ async function submit() {
     />
     <UCard v-else-if="releasesPending"><p class="text-muted">Loading releases…</p></UCard>
 
-    <form class="space-y-3" @keydown.capture="submitModalFormOnShortcut" @submit.prevent="submit">
+    <form
+      v-modal-autofocus="props.active"
+      class="space-y-3"
+      @keydown.capture="submitModalFormOnShortcut"
+      @submit.prevent="submit"
+    >
       <UFormField v-if="releases.length" label="Release" required>
         <USelectMenu
           :model-value="releaseId"
@@ -221,6 +237,7 @@ async function submit() {
       <UFormField label="Title" required>
         <UInput
           v-model="title"
+          data-modal-autofocus
           class="w-full"
           maxlength="200"
           placeholder="Implement feature"
@@ -382,6 +399,7 @@ async function submit() {
       <form
         class="space-y-3"
         @keydown.capture="submitModalFormOnShortcut"
+        v-modal-autofocus
         @submit.prevent="saveDraftLink"
       >
         <UAlert
@@ -397,6 +415,7 @@ async function submit() {
         <UFormField label="URL" required>
           <UInput
             v-model="linkDraftUrl"
+            data-modal-autofocus
             type="url"
             class="w-full"
             placeholder="https://example.com"

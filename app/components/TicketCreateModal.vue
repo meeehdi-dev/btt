@@ -228,6 +228,7 @@ function createReleaseParent() {
       <div v-show="step === 'ticket'">
         <TicketCreateForm
           :key="ticketFormKey"
+          :active="open && step === 'ticket'"
           :initial-release-id="releaseId"
           @created="onTicketCreated"
           @cancel="cancelStep"

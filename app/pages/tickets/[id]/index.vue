@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vModalAutofocus } from '~/utils/modal-autofocus'
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { useAppToast } from '~/composables/useAppToast'
 import {
@@ -488,6 +489,13 @@ async function addLink() {
   }
 }
 
+watch(
+  () => relationModalOpen.value && !choicesError.value,
+  (ready) => {
+    relatedTicketPickerOpen.value = ready
+  },
+)
+
 function openRelationModal() {
   relatedId.value = ''
   relationError.value = ''
@@ -889,10 +897,11 @@ async function removeRelation(relationId: string) {
         <form
           class="space-y-3"
           @keydown.capture="submitModalFormOnShortcut"
+          v-modal-autofocus
           @submit.prevent="saveTitle"
         >
           <UFormField label="Title" required :error="titleError || undefined">
-            <UInput v-model="titleDraft" class="w-full" maxlength="200" autofocus />
+            <UInput v-model="titleDraft" class="w-full" maxlength="200" data-modal-autofocus />
           </UFormField>
           <div class="flex justify-end gap-2">
             <UButton
@@ -928,6 +937,7 @@ async function removeRelation(relationId: string) {
         <form
           class="space-y-3"
           @keydown.capture="submitModalFormOnShortcut"
+          v-modal-autofocus
           @submit.prevent="addLink"
         >
           <UAlert
@@ -943,6 +953,7 @@ async function removeRelation(relationId: string) {
           <UFormField label="URL" required>
             <UInput
               v-model="url"
+              data-modal-autofocus
               type="url"
               class="w-full"
               placeholder="https://example.com"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vModalAutofocus } from '~/utils/modal-autofocus'
 import CreateFormFooter from './CreateFormFooter.vue'
 import { submitModalFormOnShortcut } from '~/composables/modal-form-shortcuts'
 import { useEntityCreate } from '~/composables/useEntityCreate'
@@ -21,13 +22,18 @@ watch(pending, (value) => emit('pendingChange', value))
 </script>
 
 <template>
-  <form class="space-y-3" @keydown.capture="submitModalFormOnShortcut" @submit.prevent="submit">
+  <form
+    v-modal-autofocus
+    class="space-y-3"
+    @keydown.capture="submitModalFormOnShortcut"
+    @submit.prevent="submit"
+  >
     <UFormField label="Name" required hint="Up to 200 characters">
       <UInput
         v-model="name"
         class="w-full"
         maxlength="200"
-        autofocus
+        data-modal-autofocus
         placeholder="Acme Inc."
         required
       />

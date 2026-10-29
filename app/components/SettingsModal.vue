@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vModalAutofocus } from '~/utils/modal-autofocus'
 import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDataInvalidation'
 import { useAppToast } from '~/composables/useAppToast'
 import { defaultAgendaSettings, validAgendaSettings } from '#shared/agenda'
@@ -142,12 +143,18 @@ async function save() {
       </div>
       <form
         v-else
+        v-modal-autofocus="open"
         class="space-y-3"
         @keydown.capture="submitModalFormOnShortcut"
         @submit.prevent="save"
       >
         <UFormField label="Visible start">
-          <USelect v-model="start" :items="choices.slice(0, -1)" class="w-full" />
+          <USelect
+            v-model="start"
+            data-modal-autofocus
+            :items="choices.slice(0, -1)"
+            class="w-full"
+          />
         </UFormField>
         <UFormField label="Visible end">
           <USelect v-model="end" :items="choices.slice(1)" class="w-full" />

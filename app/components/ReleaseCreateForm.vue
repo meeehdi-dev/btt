@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vModalAutofocus } from '~/utils/modal-autofocus'
 import CreateEntityPrerequisite from './CreateEntityPrerequisite.vue'
 import CreateFormFooter from './CreateFormFooter.vue'
 import { trackAppApiFetch } from '~/composables/useAppDataInvalidation'
@@ -91,6 +92,7 @@ watch(pending, (value) => emit('pendingChange', value))
   />
   <form
     v-else
+    v-modal-autofocus
     class="space-y-3"
     @keydown.capture="submitModalFormOnShortcut"
     @submit.prevent="submit"
@@ -115,7 +117,14 @@ watch(pending, (value) => emit('pendingChange', value))
       />
     </UFormField>
     <UFormField label="Name" required>
-      <UInput v-model="name" class="w-full" maxlength="200" placeholder="Q4 launch" required />
+      <UInput
+        v-model="name"
+        data-modal-autofocus
+        class="w-full"
+        maxlength="200"
+        placeholder="Q4 launch"
+        required
+      />
     </UFormField>
     <UFormField label="Target date" hint="Optional">
       <UInput v-model="targetDate" type="date" class="w-full" :disabled="pending" />

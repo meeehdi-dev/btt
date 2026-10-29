@@ -783,6 +783,13 @@ Status: Implementation and automated verification complete; human code review ap
 - Remove E2E tests, Playwright dependencies/configuration, browser CI steps and obsolete exclusions. Keep non-browser tests, shared auth fixtures, database support and remaining quality gates.
 - Replace current browser-verification mandates with human-owned manual application testing; preserve historical evidence and separate human review/completion gates. See [ADR 0064](docs/decisions/0064-manual-application-testing.md).
 
+### M49 — Modal primary-field autofocus
+
+Status: Complete — [the focused plan](plans/modal-primary-field-autofocus.md) was approved in `pn-ea7d71`; automated checks passed, human code review approved in `pn-7921f0`, and the human reported successful manual testing and explicitly declared M49 complete. Evidence: [M49](docs/milestones/m49-modal-primary-field-autofocus.md).
+
+- Focus Title/Name immediately in entity create/edit dialogs and the primary editable control in other form modals, preserving nested focus, retained drafts, and existing keyboard behavior.
+- Retained automated checks, human manual application acceptance, code review, and completion are recorded separately in M49.
+
 ### Later, post-MVP
 
 - Per-ticket period reports and entry-level review/drill-down (M45 covers client/project/release allocation, not a ticket grouping or detailed entry report).
