@@ -99,5 +99,6 @@ NNNN-short-descriptive-slug.md
 | [0062](0062-pi-workflow-modes-and-artifact-locations.md)               | Accepted   | Pi workflow modes and artifact locations                   |
 | [0063](0063-release-done-ticket-sections.md)                           | Proposed   | Release Done ticket sections                               |
 | [0064](0064-manual-application-testing.md)                             | Accepted   | Human manual application testing instead of E2E            |
+| [0065](0065-node-26-and-release-cooldown.md)                           | Accepted   | Node 26 baseline and 7-day release cooldown                |
 
 ADR 0064 supersedes only the browser-verification and verification-server clauses of ADR 0062; its remaining workflow decisions stay accepted.

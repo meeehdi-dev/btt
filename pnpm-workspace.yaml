@@ -3,5 +3,7 @@ allowBuilds:
   esbuild@0.25.12: true
   esbuild@0.27.7: true
   esbuild@0.28.2: true
-  pnpm@12.8.1: true
+  pnpm@12.16.1: true
   vue-demi@0.14.10: true
+
+minimumReleaseAge: 10080

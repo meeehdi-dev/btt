@@ -1,8 +1,8 @@
-FROM node:24-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 WORKDIR /app
 
 FROM base AS dependencies
-RUN corepack enable && corepack prepare pnpm@12.8.1 --activate
+RUN npm install -g pnpm@12.16.1
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
@@ -17,7 +17,7 @@ RUN NODE_ENV=production \
     pnpm build
 
 FROM base AS production-dependencies
-RUN corepack enable && corepack prepare pnpm@12.8.1 --activate
+RUN npm install -g pnpm@12.16.1
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 

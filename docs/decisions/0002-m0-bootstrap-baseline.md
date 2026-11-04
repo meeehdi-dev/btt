@@ -3,7 +3,7 @@
 - Status: Superseded
 - Date: 2026-09-21
 - Supersedes: None
-- Superseded by: ADR 0034 (pnpm version pin only)
+- Superseded by: ADR 0034 (pnpm version pin only), ADR 0065 (Node version only)
 
 ## Context
 
