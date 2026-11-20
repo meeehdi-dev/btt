@@ -2,7 +2,7 @@ FROM node:26-bookworm-slim AS base
 WORKDIR /app
 
 FROM base AS dependencies
-RUN npm install -g pnpm@12.16.1
+RUN npm install -g pnpm@12.20.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
@@ -17,7 +17,7 @@ RUN NODE_ENV=production \
     pnpm build
 
 FROM base AS production-dependencies
-RUN npm install -g pnpm@12.16.1
+RUN npm install -g pnpm@12.20.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 

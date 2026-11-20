@@ -790,6 +790,12 @@ Status: Complete — [the focused plan](plans/modal-primary-field-autofocus.md) 
 - Focus Title/Name immediately in entity create/edit dialogs and the primary editable control in other form modals, preserving nested focus, retained drafts, and existing keyboard behavior.
 - Retained automated checks, human manual application acceptance, code review, and completion are recorded separately in M49.
 
+### M50 — Dependency upgrade (November 2026)
+
+Status: Implementation and automated verification complete; human code review, manual testing, and completion declaration pending. [Focused plan](plans/dependency-upgrade-2026-11.md) approved in `pn-bf45c7`; evidence: [M50](docs/milestones/m50-dependency-upgrade.md).
+
+- Upgrade direct and transitive dependencies to the newest versions past the 7-day cooldown (ADR 0065), including pnpm 12.20.0 and Effect 4.1.4; h3 and TypeScript stay held.
+
 ### Later, post-MVP
 
 - Per-ticket period reports and entry-level review/drill-down (M45 covers client/project/release allocation, not a ticket grouping or detailed entry report).
