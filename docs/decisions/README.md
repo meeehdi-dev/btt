@@ -100,5 +100,6 @@ NNNN-short-descriptive-slug.md
 | [0063](0063-release-done-ticket-sections.md)                           | Proposed   | Release Done ticket sections                               |
 | [0064](0064-manual-application-testing.md)                             | Accepted   | Human manual application testing instead of E2E            |
 | [0065](0065-node-26-and-release-cooldown.md)                           | Accepted   | Node 26 baseline and 7-day release cooldown                |
+| [0066](0066-latest-node-lts-with-mise.md)                              | Accepted   | Follow the latest Node LTS with mise                       |
 
 ADR 0064 supersedes only the browser-verification and verification-server clauses of ADR 0062; its remaining workflow decisions stay accepted.

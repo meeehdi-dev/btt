@@ -70,7 +70,7 @@ Define the technical baseline before starting MVP milestones so every milestone 
 
 Checked via npm on 2026-09-20:
 
-- **Node:** 24.18.0 locally; use Node 24+ in CI unless bootstrap chooses newer.
+- **Node:** latest LTS (at least 26) locally via mise, in CI, and in Docker (ADR 0066).
 - **pnpm:** 10.33.2 locally at the snapshot date; M21 later set the exact current package-manager pin to 12.8.1 (ADR 0034). Recheck versions before future implementation.
 - **Nuxt:** 4.5.2.
 - **Nuxt UI:** 4.11.1.
@@ -115,7 +115,7 @@ No local Nuxt, Nuxt UI, or Effect TS skill is currently installed in the scanned
 ### CI, release, and deploy
 
 - Dependabot is intended for npm, Docker, and GitHub Actions with grouped minor/patch updates.
-- GitHub Actions run push/PR quality checks for format, lint, jscpd duplicate detection, Knip unused-code analysis, typechecks, tests, and build on Node 24+.
+- GitHub Actions run push/PR quality checks for format, lint, jscpd duplicate detection, Knip unused-code analysis, typechecks, tests, and build on the latest Node LTS.
 - M0 established quality checks and Dependabot; it deferred release/deployment automation until a separately approved follow-up.
 - For the first production deployment, Coolify connects to the Git repository and builds the repository Dockerfile directly on the Coolify host. No image registry, GHCR publishing, release-please, or Coolify API deployment workflow is required (ADR 0036).
 - Keep GitHub Actions as the quality gate. Prefer required checks on protected `main` before enabling Coolify auto-deploy; otherwise deploy manually in Coolify after checks pass. A CI-success Coolify webhook can be considered later if needed, without adding image publishing.

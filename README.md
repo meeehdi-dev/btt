@@ -4,7 +4,7 @@ A work-only organizer combining ticket-based projects with agenda-first time tra
 
 ## Development
 
-Requirements: Node 26+, pnpm 12.16.1, and a PostgreSQL instance configured through `DATABASE_URL`.
+Requirements: the latest Node LTS (at least 26; `mise install` selects it), pnpm 12.16.1, and a PostgreSQL instance configured through `DATABASE_URL`.
 
 ```sh
 pnpm install
