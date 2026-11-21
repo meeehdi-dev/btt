@@ -1,4 +1,4 @@
-# ADR 0058: Settings in a shell-level modal
+# ADR 0058: Settings in a shell modal
 
 - Status: Accepted
 - Date: 2026-10-14
@@ -7,30 +7,29 @@
 
 ## Context
 
-The Settings editor is a standalone `/settings` page even though its entry point is a persistent control in the authenticated dashboard header. Opening it replaces the current work surface. The Settings action should instead keep the user in context while preserving the existing Agenda preference API and save/retry behavior.
+Settings was a standalone page reached from a persistent header control, so opening it replaced the user's current work surface.
+
+## Goal
+
+Users can adjust Settings from anywhere without losing their place.
 
 ## Decision
 
-- Open Settings in an accessible modal owned by the authenticated dashboard shell. The header control remains directly available and opens the modal without changing the current URL or replacing the underlying page.
-- Load settings on first open, then retain the shell-level modal state so a successful write followed by a failed refresh can still be retried after the modal is dismissed and reopened.
-- Retire direct `/settings` visits with an authenticated 404. The header modal is the only Settings editor entry point.
-- Preserve the existing settings fields, validation, explicit save, API contract, same-tab invalidation, toast policy, and inline failure/retry behavior.
+- Settings opens in an accessible modal owned by the authenticated shell, from the header control, without changing the URL or the page underneath. This is the only Settings entry point.
+- Settings load on first open. Modal state outlives dismissal, so a successful write followed by a failed refresh can still be retried after reopening.
+- `/settings` is removed: an authenticated visit returns 404 (ADR 0033).
+- Fields, validation, explicit save, API contract, same-tab invalidation, toast policy, and inline failure/retry behavior are unchanged.
 
 ## Consequences
 
-- Users can adjust Settings from any authenticated page without losing the current route or page state.
-- `/settings` is no longer a navigable or bookmarked editor route; direct visits receive an authenticated 404.
-- Modal loading must remain lazy so every dashboard page does not fetch settings unnecessarily. The shell owns retryable partial-success state across modal open/close cycles.
-- No server, API, schema, dependency, or Agenda behavior changes are required.
+Settings are reachable from every page with route and page state preserved. Direct and bookmarked `/settings` visits no longer work. Loading stays lazy so other pages do not fetch settings. No server, API, or schema change.
 
 ## Alternatives considered
 
-- Keep Settings as a full page: rejected because it replaces the user's current work surface.
-- Keep a full-page fallback in addition to the modal: rejected because two editor presentations could drift and direct navigation is not required.
-- Redirect direct `/settings` visits to Agenda with the modal open: rejected because it changes the underlying page and does not restore the user's prior context.
+- Keep a full page: rejected; it replaces the work surface.
+- Page plus modal: rejected; two presentations drift.
+- Redirect `/settings` to the Agenda with the modal open: rejected; it changes the underlying page.
 
-## Links
+## Revisions
 
-- Approved amendment plan: [`plans/settings-modal-amendment.md`](../../plans/settings-modal-amendment.md), approved via Plannotator session `pn-e2e142`.
-- M44 implementation evidence: [`docs/milestones/m44-entity-modals-inline-editing-and-action-toasts.md`](../milestones/m44-entity-modals-inline-editing-and-action-toasts.md).
-- Related: [ADR 0035](0035-three-block-header-navigation.md), [ADR 0051](0051-same-tab-api-data-invalidation.md), [ADR 0056](0056-entity-modal-creation-inline-editing-and-action-toasts.md), and [ADR 0057](0057-sibling-ui-consistency-and-shared-presentation.md).
+- 2026-11-21: Rewritten to goal-level form; verified `/settings` throws an authenticated 404.

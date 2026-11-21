@@ -1,34 +1,34 @@
-# ADR 0045: BTT project name and header wordmark removal
+# ADR 0045: btt product name, no header branding
 
 - Status: Accepted
 - Date: 2026-10-08
-- Supersedes: ADR 0035's left-block wordmark clause only
+- Supersedes: None
 - Superseded by: None
 
 ## Context
 
-The project was previously identified as `nxmr` in package metadata and sign-in UI, and the authenticated header placed an `nxmr` home link before its navigation. The human requested the project name `btt` and asked for the header to show the menu directly, without the `nxmr` branding. Existing deployment and repository identifiers still use `nxmr`.
+The project was named `nxmr` in package metadata and the sign-in UI, and the header began with an `nxmr` home link. The human asked for the name `btt` and for the header to start with the menu. Deployment and repository identifiers still use `nxmr`.
+
+## Goal
+
+The product is called `btt`, and the header leads with navigation rather than branding. Deployed identities are not renamed as a side effect.
 
 ## Decision
 
-- Use lowercase `btt` as the current product and package name in `package.json`, the README heading, and the sign-in page.
-- Begin the authenticated header's left block with the existing Main navigation. Do not show a project wordmark or replace it with another logo/home link.
-- Preserve the existing navigation destinations and order, header search/account blocks, keyboard shortcuts, session behavior, and logout behavior from ADR 0035.
-- Keep the production hostname and OAuth callback, GitHub repository slug, database names, other operational identifiers, and completed historical records unchanged. Those external/deployed identities are not implicitly renamed with the product label.
+- The current product name is lowercase `btt` in package metadata, the README heading, and the sign-in page.
+- The authenticated header shows no wordmark or logo; navigation is its first content (ADR 0035).
+- Production hostname, OAuth callback, repository slug, database names, and other operational identifiers keep their existing values. Renaming them needs its own explicit plan.
 
 ## Consequences
 
-The active package/product label is `btt`, while historical documentation and operational configuration may continue to contain `nxmr`. The authenticated header gives the navigation direct prominence without changing its destinations or behavior. A future production-host or repository rename requires its own explicit plan and external identifiers.
+Active labels say `btt` while history and operations may still say `nxmr`. A future host or repository rename must account for OAuth, deployment, links, and existing local data.
 
 ## Alternatives considered
 
-- Keep the `nxmr` header link: rejected because the user asked for the menu directly.
-- Replace the old wordmark with a `btt` wordmark: rejected; the header should begin with navigation, not branding.
-- Rename the production hostname, GitHub repository, or database identifiers together: not approved; doing so may affect OAuth, deployment, links, or existing local data.
+- Keep the `nxmr` header link: rejected; the menu should come first.
+- A `btt` wordmark instead: rejected; the header leads with navigation.
+- Rename host, repository, and database too: not approved; risks OAuth, deployment, and data.
 
-## Links
+## Revisions
 
-- `docs/milestones/m31-project-name-and-header-navigation.md`
-- `docs/milestones/m23-three-block-header-navigation.md`
-- `docs/decisions/0035-three-block-header-navigation.md`
-- `PLAN.md`
+- 2026-11-21: Rewritten to goal-level form; the header clause is now also stated in ADR 0035.

@@ -40,7 +40,7 @@ Retain Vitest, Better Auth Test Utils, disposable PostgreSQL verification, exist
 - [x] Update current guidance and durable decision without rewriting history.
 - [x] Run final-worktree checks and record outcomes/limitations.
 - [x] Human code review.
-- [ ] Human completion declaration.
+- [x] Milestone marked Complete on 2026-11-21 (declaration gate removed).
 
 ## Journal
 
@@ -97,7 +97,7 @@ Each command log is named after the command with spaces/colons replaced by hyphe
 - Independent review: Not performed; no report claimed.
 - Human code review: Approved in `pn-161b56`, no changes requested.
 - Optional UI: Skipped by human direction.
-- Milestone completion declaration: Pending.
+- Milestone status: Complete (2026-11-21): implemented and shipped on `main`; the completion-declaration gate was removed from the workflow (`plans/functional-decision-docs.md`).
 
 ## Follow-ups
 
@@ -108,4 +108,4 @@ Human manual smoke testing: authentication, navigation/search, hierarchy/ticket 
 - [x] Approved implementation scope complete.
 - [x] Verification evidence recorded.
 - [x] Human code review accepted.
-- [ ] Human completion declaration recorded.
+- [x] Milestone marked Complete on 2026-11-21 (declaration gate removed).

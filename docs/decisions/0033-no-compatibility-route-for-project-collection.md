@@ -1,35 +1,36 @@
-# ADR 0033: No compatibility route for the removed Projects collection
+# ADR 0033: Client-led project discovery; removed routes return 404
 
 - Status: Accepted
 - Date: 2026-09-29
-- Supersedes: ADR 0032 — client-led project navigation
-- Superseded by: ADR 0044 (canonical-root landing-target clause only)
+- Supersedes: [ADR 0032](0032-client-led-project-navigation.md)
+- Superseded by: None
 
 ## Context
 
-M19 removed Projects as a top-level collection but initially retained `/projects` as a 302 redirect to Clients for bookmark compatibility. During code review, the human clarified that the application is still in MVP and should not preserve this unused collection URL as a compatibility path.
+Projects were a top-level collection duplicating what Client detail already shows (its projects and the New project action). The collection was removed; a first version kept `/projects` as a redirect to Clients, but the human clarified that the app is still in MVP and legacy URLs need no compatibility.
+
+## Goal
+
+Projects are discovered and created from their Client, and removed routes simply disappear rather than leaving compatibility aliases.
 
 ## Decision
 
-- Remove the `/projects` collection route entirely. A request to `/projects` receives Nuxt's normal 404; do not add a redirect, alias, or legacy fallback.
-- Keep Clients as the only top-level entry point for project discovery/setup. Client detail continues to list project cards and provide **New project**.
-- Retain individual project detail, create, and edit routes (`/projects/:id`, `/projects/new`, `/projects/:id/edit`), plus project search results and hierarchy links.
-- Keep current contextual return/prerequisite paths to Clients or parent client/project pages.
-- Do not change project persistence, APIs, ownership, archive rules, or project form behavior.
+- Clients is the only top-level entry point for project discovery and setup. Client detail lists project cards and offers New project.
+- There is no `/projects` collection route; it returns the normal 404.
+- Individual project detail routes, project search results, and hierarchy links remain. Return and prerequisite actions route to Clients or the relevant parent, preserving archived context.
+- General rule: when a route is removed, it returns 404 with no redirect, alias, or legacy fallback. Active application flows (the root landing redirect, login redirect) are not aliases.
+- Project persistence, APIs, ownership, and archive rules are unchanged.
 
 ## Consequences
 
-Existing bookmarks to the removed collection URL return 404; the product does not promise compatibility for pre-MVP collection navigation. Individual project URLs remain valid and are not confused with the removed index route. The canonical `/` landing redirect to `/today` and authentication return-to-login redirects remain; they are active application flows, not legacy Projects aliases. No schema, API, dependency, or authentication change is introduced.
+Old bookmarks to removed routes break by design. Individual project URLs stay valid. Later route removals (for example `/today`, the standalone create/edit pages, `/settings`) follow the same rule.
 
 ## Alternatives considered
 
-- Keep a 302 redirect from `/projects` to `/clients`: rejected because the project remains in MVP and compatibility for the removed collection URL is unnecessary.
-- Keep the all-projects collection page: rejected because project discovery/setup is client-led.
-- Remove individual project entity routes: rejected because projects remain first-class hierarchy entities.
+- Keep both Clients and Projects collections: rejected; Client detail already provides them.
+- 302 redirect from `/projects`: rejected; unnecessary compatibility in MVP.
+- Remove project detail routes or search results: rejected; projects remain first-class entities.
 
-## Links
+## Revisions
 
-- `docs/milestones/m19-client-led-project-navigation.md`
-- `PLAN.md` — M19 client-led project navigation
-- ADR 0032 — client-led project navigation (superseded)
-- ADR 0004 — M2 work hierarchy and archive lifecycle
+- 2026-11-21: Rewritten to goal-level form; absorbed ADR 0032's intent (client-led discovery) and added the general no-alias rule; dropped the stale partial-supersession by ADR 0044 (root landing now targets the Agenda).

@@ -3,7 +3,9 @@
 - Status: Superseded
 - Date: 2026-09-25
 - Supersedes: None
-- Superseded by: 0010-board-drag-and-compact-ticket-metadata.md
+- Superseded by: [ADR 0010](0010-board-drag-and-compact-ticket-metadata.md) (itself superseded by [ADR 0048](0048-agenda-and-board-status-icon-menus.md))
+
+> History, not a rule. See [ADR 0048](0048-agenda-and-board-status-icon-menus.md) for current intent.
 
 ## Context
 

@@ -7,28 +7,32 @@
 
 ## Context
 
-M8 aligned ticket-board cards visually with Today while retaining direct links on board client/project/release badges. Today hierarchy badges already use a shared action popover with filter and open choices. The board has the same hierarchy filters and can reuse that behavior without moving state into card components.
+Board client/project/release badges were direct links, while agenda hierarchy badges offered a choice of filtering or opening. The board has the same hierarchy filters, so it can offer the same choice.
+
+## Goal
+
+Hierarchy badges behave the same on the Board and the Agenda: one activation offers Filter or Open.
 
 ## Decision
 
-- Ticket-board client, project, and release badges open the shared hierarchy action popover, offering `Filter by <item>` and `Open <item>`.
-- The filter action uses the Tickets page's existing hierarchy filters, including ancestor selection and dependent-filter resets. The open action navigates to the badge's existing entity-detail route.
-- Keep filter state in the Tickets page, badge presentation in `TicketHierarchyBadges`, and board drag/title-navigation behavior in the existing card/page owners.
-- This revises only the M8 board direct-link interaction. Today behavior, Release/Project card links, ticket detail breadcrumbs, board status policy, card data, and persistence rules are unchanged.
+- Board client, project, and release badges open a small action popover with `Filter by <item>` and `Open <item>`.
+- Filter applies the Tickets page's hierarchy filters, including ancestor selection and resetting dependent filters. Open goes to the entity's detail page.
+- Filter state lives in the Tickets page; cards only present badges. Board drag and title navigation are unchanged.
 
 ## Consequences
 
-The first activation of a board hierarchy badge now offers choices rather than navigating immediately. Filtering and navigation are consistent with Today while retaining the existing board filter semantics and card interaction ownership. No API, data, schema, or dependency change is required.
+First activation of a board badge no longer navigates immediately. Filtering and navigation are consistent with the Agenda. No API, data, or schema change.
+
+## Implementation notes (non-binding)
+
+`TicketHierarchyBadges` supports both link and filter-action modes; the Tickets page owns `applyFilter`.
 
 ## Alternatives considered
 
-- Keep direct links on the board: rejected because the approved M12 plan requests the same filter/open choice available on Today.
-- Duplicate the action popover inside `TicketBoardCard`: rejected because `TicketHierarchyBadges` already owns both link and filter-action modes.
-- Move filter state or filtering logic into the card: rejected because the Tickets page already owns the filter state and `applyFilter` behavior.
+- Keep direct links on the board: rejected; Agenda parity was requested.
+- Duplicate the popover inside the board card: rejected; the shared badge component already owns it.
+- Move filter state into the card: rejected; the page owns it.
 
-## Links
+## Revisions
 
-- `docs/milestones/m12-ticket-board-hierarchy-actions.md`
-- `docs/milestones/m8-polish-and-shared-ticket-work-items.md` (historical M8 interaction)
-- [ADR 0013 — board status control removal](0013-board-status-control-removal.md)
-- [ADR 0022 — shared entity-card presentation shell](0022-shared-entity-card-presentation.md)
+- 2026-11-21: Rewritten to goal-level form; component names moved to notes.

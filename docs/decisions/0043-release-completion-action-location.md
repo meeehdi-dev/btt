@@ -1,9 +1,11 @@
 # ADR 0043: Keep release completion on release detail
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-10-06
 - Supersedes: None
-- Superseded by: None
+- Superseded by: [ADR 0027](0027-release-ticket-status-actions.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0027](0027-release-ticket-status-actions.md).
 
 ## Context
 

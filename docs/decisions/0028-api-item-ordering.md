@@ -1,4 +1,4 @@
-# ADR 0028: Stable API item ordering
+# ADR 0028: Stable collection ordering
 
 - Status: Accepted
 - Date: 2026-09-28
@@ -7,30 +7,39 @@
 
 ## Context
 
-Several collection APIs used `updatedAt DESC`. Since normal edits update that timestamp, records could move unexpectedly in client/project lists, ticket lanes, and Release detail. Release collections also had different ordering at the API and project-detail page. Ticket detail returned related tickets and external links without explicit ordering.
+Collections sorted by `updatedAt DESC` moved records on every routine edit. Release ordering also differed between the API and project detail, and ticket-detail links/relations had no explicit order.
+
+## Goal
+
+Ordinary edits never reorder collections, so users can find items where they left them. Search is the one place where recency ranks.
 
 ## Decision
 
-- Order client and project collections by `createdAt DESC`, then ID DESC.
-- Order release collections with the shared `compareReleases` rule: undated first; then target date ASC; then name ASC; then `createdAt DESC`; then ID ASC only when creation timestamps tie.
-- Order ticket collections with estimated tickets first, then `createdAt DESC` and ID DESC within each estimate-presence group. Do not sort by estimate amount.
-- Keep global search recency-ranked by `updatedAt DESC` with its existing ID tie-break. Search is the explicit exception to other entity collection policies.
-- Keep agenda entries chronological by start minute and ID. Keep ticket time history by date DESC, start minute DESC, then ID DESC.
-- Return ticket-detail external links by label ASC/ID ASC and related tickets by title ASC/ID ASC, matching the ticket list response.
-- Continue updating `updatedAt` on edits for its other uses; do not use it for collection ordering except search.
+- Clients and projects: `createdAt` DESC, then ID DESC.
+- Releases (one shared rule everywhere): undated first; then target date ASC; then name ASC; then `createdAt` DESC; then ID ASC only when creation times tie.
+- Tickets: estimated before unestimated, then `createdAt` DESC and ID DESC within each group. Not by estimate amount.
+- Global search ranks by `updatedAt` DESC with an ID tie-break.
+- Agenda entries are chronological by start minute and ID. Ticket time history is date DESC, start minute DESC, ID DESC.
+- Ticket-detail external links by label ASC/ID ASC; related tickets by title ASC/ID ASC.
+- `updatedAt` keeps updating on edits but is not used for ordering except search.
+- Release detail partitions its tickets into unfinished first (including On hold), then a full-width separator labeled Done and a Done section below, keeping API order within each section. Empty sections and the separator are omitted; with no tickets, the single empty state shows. A status change across the Done boundary moves the card after refresh. Done tickets stay visible and fully interactive; there is no filter or collapse. Completion counts use the full list.
 
 ## Consequences
 
-Ordinary edits no longer reorder client, project, ticket, or release collections. Status changes leave a ticket's position stable in Release detail and within its board lane, although a status change still moves it to the correct lane. Changing estimate presence intentionally moves a ticket between the estimated and unestimated groups. Release list APIs and project detail share one order. Existing date/time ordering and search recency behavior remain explicit. No schema migration, dependency, or persisted manual-order field is required.
+Edits do not reorder lists; a status change still moves a ticket to the right Board lane or release section, and changing estimate presence moves it between estimate groups. Release API and project detail agree. Completed work stays visible without burying unfinished work. No schema or stored order field.
+
+## Implementation notes (non-binding)
+
+Release ordering is the shared `compareReleases`. The Done partition lives in the Release detail page; after a card crosses the boundary, focus is not recovered automatically.
 
 ## Alternatives considered
 
-- Continue sorting entity collections by `updatedAt`: rejected because a routine edit changes position.
-- Add a persisted user-controlled position: deferred; this requires separate product approval and a data-model/migration plan.
-- Change search to creation-time order: not selected; the user explicitly chose to retain updated-time search ranking.
+- Keep `updatedAt` ordering: rejected; edits reorder lists.
+- Persisted user-controlled position: deferred; needs separate approval and a migration.
+- Creation-order search: not chosen; recency ranking was kept deliberately.
+- Sort the ticket API by status for the Done grouping: rejected; it is a Release-only presentation choice.
+- Hide or collapse Done tickets: rejected; completed work must stay visible.
 
-## Links
+## Revisions
 
-- `docs/milestones/m15-api-item-ordering.md`
-- `docs/milestones/m14-release-ticket-status-actions.md`
-- [ADR 0027 — Release ticket status badge actions](0027-release-ticket-status-actions.md)
+- 2026-11-21: Rewritten to goal-level form; folded ADR 0063's Done-section ordering clause.

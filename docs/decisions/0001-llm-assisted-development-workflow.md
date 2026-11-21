@@ -5,6 +5,8 @@
 - Supersedes: None
 - Superseded by: [ADR 0062](0062-pi-workflow-modes-and-artifact-locations.md)
 
+> History, not a rule. See [ADR 0062](0062-pi-workflow-modes-and-artifact-locations.md) for current intent.
+
 ## Context
 
 The project is about to start M0 from `PLAN.md`. Before implementation, the team needs a durable workflow that future LLM agents can read to understand why decisions were made, what process to follow, and what evidence to leave for human review.

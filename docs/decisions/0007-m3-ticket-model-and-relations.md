@@ -1,35 +1,42 @@
-# ADR 0007: M3 ticket model and relations
+# ADR 0007: Ticket model and relations
 
-- Status: Superseded (ticket-detail next-status action only; model and relation decisions retained)
+- Status: Accepted
 - Date: 2026-09-25
 - Supersedes: None
-- Superseded by: 0017-release-usage-and-ticket-detail-polish.md (next-status action only)
+- Superseded by: None
 
 ## Context
 
-M3 introduces release-linked tickets, external links and related tickets. The existing work hierarchy uses restrictive foreign keys, UUIDv7 IDs and archive-before-delete semantics (ADRs 0004 and 0006).
+Tickets are release-linked work items with external links and related tickets. The work hierarchy already uses restrictive foreign keys, UUIDv7 IDs and archive-before-delete semantics (ADRs 0004 and 0006).
+
+## Goal
+
+A simple, safe ticket model that follows the existing hierarchy conventions: one release per ticket, a fixed workflow, and non-hierarchical relations between tickets.
 
 ## Decision
 
-- Each ticket belongs to one required release; title and description are plain text, estimate is nullable positive integer minutes, and status is one of Idea, Estimate, Develop, Review, Test, Deploy, Done. Model the status as a PostgreSQL enum through Drizzle `pgEnum`, sharing its ordered values with Effect request validation and the UI rather than duplicating a text-column check. Keep the database check for positive estimates alongside API validation. The UI offers a next-status action, stopping at Done; statuses are not customizable.
-- Tickets follow M2's archive/restore and explicit permanent-delete convention. Archiving a parent hides its tickets without changing them. Releases cannot be permanently deleted while they have tickets; deleting an archived ticket explicitly removes its links and relation edges transactionally, retaining linked peer tickets.
-- Generic external links store only a label and a validated http(s) URL without embedded credentials. Related items in M3 are tickets only, across releases/projects but belonging to the same user; relation edges are undirected, canonicalized by UUID order, unique and prohibit self-linking.
-- New IDs use the shared UUIDv7 generator and native PostgreSQL UUID columns. Link and relation foreign keys are restrictive. Time usage is deferred to M4.
+- Each ticket belongs to exactly one release. Title and description are plain text; the estimate is an optional positive integer number of minutes.
+- Status is one of a fixed, ordered list (currently On hold, Idea, Estimate, Develop, Review, Test, Deploy, Done; ADR 0055 added On hold). The list is shared by the database, API validation and UI, and is not customizable. The ticket detail page has no next-status action; status changes via the edit form, status menus and Board drag (ADR 0048).
+- Tickets follow the archive/restore and explicit permanent-delete convention. Archiving a parent hides its tickets without changing them. A release cannot be permanently deleted while it has tickets. Deleting an archived ticket transactionally removes its links and relation edges and keeps the peer tickets.
+- External links store a label and a validated http(s) URL without embedded credentials (labels are optional, ADR 0020).
+- Related items are tickets only, across releases/projects of the same user. Relations are undirected, unique, and cannot link a ticket to itself.
+- IDs are UUIDv7 in native UUID columns; link and relation foreign keys are restrictive.
 
 ## Consequences
 
-Ticket list/selector reads exclude archived parents and archived tickets by default. Archived ticket detail requires an explicit archived view, and all mutation paths verify ownership. Deleting a ticket unlinks it from peers rather than deleting those peers. A future non-ticket relation type would need a separately designed model.
+Ticket lists and selectors exclude archived tickets and tickets under archived parents by default; archived detail needs an explicit archived view. All mutations verify ownership. Deleting a ticket unlinks it from peers rather than deleting them. A future non-ticket relation type needs its own model.
+
+## Implementation notes (non-binding)
+
+- Status is a PostgreSQL enum via Drizzle `pgEnum` whose values come from `shared/ticket-status.ts`; a database check keeps estimates positive alongside API validation.
+- Relation edges are canonicalized by UUID order.
 
 ## Alternatives considered
 
-- Directional or parent-child ticket relationships: rejected because the roadmap specifies non-hierarchical linked tickets.
-- Cascade-delete ticket descendants from releases: rejected to preserve M2 child-first cleanup.
-- Arbitrary URL schemes: rejected to avoid unsafe links in the UI.
+- Directional or parent-child ticket relationships: rejected; the roadmap specifies non-hierarchical links.
+- Cascade-deleting tickets from releases: rejected to preserve child-first cleanup.
+- Arbitrary URL schemes: rejected to avoid unsafe links.
 
-## Links
+## Revisions
 
-- `plans/m3-tickets-mvp.md`
-- `docs/milestones/m3-tickets-mvp.md`
-- `docs/decisions/0004-m2-core-data-model.md`
-- `docs/decisions/0006-uuidv7-identifiers.md`
-- `docs/decisions/0017-release-usage-and-ticket-detail-polish.md`
+- 2026-11-21: Rewritten to goal-level form; folded in ADR 0017's removal of the ticket-detail next-status action, updated the status list for On hold, and returned to Accepted.

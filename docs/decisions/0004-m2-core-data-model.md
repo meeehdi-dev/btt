@@ -1,4 +1,4 @@
-# ADR 0004: M2 work hierarchy and archive lifecycle
+# ADR 0004: Work hierarchy and archive lifecycle
 
 - Status: Accepted
 - Date: 2026-09-21
@@ -7,24 +7,30 @@
 
 ## Context
 
-M2 introduces the authenticated product hierarchy required by tickets: clients contain projects, and projects contain releases. Records must disappear from normal work views without losing recoverability, while allowing intentional database cleanup.
+Tickets live in a Client → Project → Release hierarchy. Records must leave normal work views without losing recoverability, while still allowing intentional cleanup. Hierarchy pickers and color choices also need predictable states so users never face blank or stale selectors.
+
+## Goal
+
+A user-owned Client → Project → Release hierarchy where archiving is reversible and permanent deletion is explicit, ordered, and never accidental.
 
 ## Decision
 
-- Store `client`, `project`, and `release` rows in PostgreSQL through Drizzle.
-- Scope clients to the Better Auth user; resolve project and release ownership through their parent joins.
-- Use nullable `archived_at` timestamps. Archiving a parent changes only that row; descendants retain their own archive state but are hidden while an ancestor is archived.
-- Archived records remain editable and restorable. Normal lists/selectors show active records; archive filters expose archived records where the parent hierarchy is visible.
-- Permanent deletion is a separate explicit operation allowed only after the record is archived. Parent deletion is child-first and never cascades automatically.
-- Store project colors as validated six-digit hex values; the UI provides 16 presets and a custom hex picker.
-- Use restrictive child foreign keys so accidental parent deletion cannot bypass cleanup.
+- Clients are owned by the user; projects and releases inherit ownership through their parents.
+- Archiving changes only the archived record. Descendants keep their own archive state but are hidden while an ancestor is archived; restoring the parent reveals those not independently archived.
+- Archived records remain editable and restorable. Normal lists and selectors show active records; archive filters expose archived ones where the parent hierarchy is visible.
+- Permanent deletion is a separate operation allowed only after archiving, child-first (releases, then projects, then clients). It never cascades, and the database enforces this with restrictive child foreign keys.
+- Clients and projects have a validated six-digit hex color (default `#64748b`), chosen with one shared selector offering preset swatches and a custom hex value. Presets are accessible buttons.
+- Required client/project selectors distinguish loading, failure, empty, stale-selection, and valid-selection states. Empty states link to the prerequisite creation page.
+- The archive filter is an icon-only toggle with a tooltip and accessible name and pressed state.
 
 ## Consequences
 
-The UI and API must distinguish archive/restore from permanent deletion. Users must delete releases before projects and projects before clients. Parent archival can temporarily hide otherwise active descendants without mutating them; restoring the parent reveals descendants that are not independently archived.
+UI and API must distinguish archive/restore from permanent deletion, and users delete in child-first order. Parent archival can hide active descendants without mutating them. One color selector keeps client and project UI consistent; users get actionable prerequisite states instead of blank selectors.
 
-## Links
+## Implementation notes (non-binding)
 
-- `PLAN.md`
-- `plans/m2-core-data-model.md`
-- `docs/milestones/m2-core-data-model.md`
+- Drizzle tables with nullable `archived_at`; color selector is `app/components/ColorSelector.vue` (16 presets plus Nuxt UI color picker; the picker takes no `swatches` prop, hence the custom preset buttons); archive toggle is `ArchiveFilterButton.vue`.
+
+## Revisions
+
+- 2026-11-21: Rewritten to goal-level form; absorbed ADR 0005 (color and selector-state rules; its validation rules moved to ADR 0023); storage and component details moved to notes.

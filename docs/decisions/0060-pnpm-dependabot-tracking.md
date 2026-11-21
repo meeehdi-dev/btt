@@ -1,9 +1,11 @@
 # ADR 0060: Track pnpm as a Dependabot dependency
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-10-14
 - Supersedes: ADR 0034's exact-version build-script allowlist only
-- Superseded by: None
+- Superseded by: [ADR 0066](0066-latest-node-lts-with-mise.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0066](0066-latest-node-lts-with-mise.md).
 
 ## Context
 

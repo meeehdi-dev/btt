@@ -49,4 +49,4 @@ Account for each input finding by stable ID: confirmed, disproved with evidence,
 - Absolute input: resolve this saved plan's path at handoff time.
 - Context: scope, milestone, constraints, evidence limitations, and pending decisions sufficient without the previous transcript.
 
-Build must not rewrite this approved plan to justify extra work. Implementation approval is not human code acceptance or a milestone completion declaration.
+Build must not rewrite this approved plan to justify extra work. Implementation approval is not human code acceptance.

@@ -1,42 +1,40 @@
-# ADR 0035: Three-block header navigation
+# ADR 0035: Single header navigation
 
 - Status: Accepted
 - Date: 2026-09-29
-- Supersedes: ADR 0015 — compact navigation and mobile control columns
+- Supersedes: [ADR 0015](0015-compact-navigation-and-mobile-columns.md)
 - Superseded by: None
-- Partial supersession by ADR 0042: narrow-screen stacking and responsive overflow commitments are retired; the single three-block header, visible navigation/account actions, destinations, search, and keyboard shortcuts remain authoritative.
-- Partial supersession by ADR 0045: omit the left-block wordmark so navigation is its first content; all other header decisions remain authoritative.
-- Pending partial supersession by proposed ADR 0061: append Reports after Agenda/Tickets/Clients and map `g` then `r` to `/reports`; other navigation destinations and shortcuts remain unchanged.
 
 ## Context
 
-M7's shell uses a persistent desktop sidebar and a full-screen mobile navigation/search menu. The sidebar reduces the page's available width, while the account actions require opening a popover. The human requested a single header with navigation at the left, universal search in the middle, and direct account actions at the right.
+A persistent sidebar consumed page width and kept account actions behind a popover. The human asked for one header: navigation left, universal search center, account actions right.
+
+## Goal
+
+One compact header gives direct access to navigation, search, and account actions without taking page width.
 
 ## Decision
 
-- Use a full-width shell with one responsive header and no sidebar or mobile navigation drawer.
-- At roomy desktop widths, place three blocks in one row: `nxmr` plus Today, Tickets, Clients navigation on the left; the existing owner-scoped universal search centered; and the signed-in user's avatar/name with direct Settings and Sign out controls on the right.
-- At narrow widths, stack the blocks left/search/right in that order. Keep navigation labels and direct account controls available, make search full-width, and prevent page-level horizontal overflow.
-- Keep current destinations, active-route indication and keyboard behavior: `/` and Ctrl/⌘K focus the one search field; `g` then `t`, `c`, or `b` navigate to Today, Clients, or Tickets. The visual navigation order does not change those shortcut mappings.
-- Keep avatar-image/fallback behavior and the POST-only `/api/logout` action. Do not add auth/API/schema changes.
-- Retain ADR 0015's guidance independent of shell placement: compact page introductions while preserving accessible page names and detail context; stack touched spaced controls vertically on mobile; keep Today progress based on the unfiltered day and ordered between date controls and Add; retain existing ticket-board status-control policy.
+- Full-width shell with one header and no sidebar or drawer. Three blocks in one row: navigation on the left, the owner-scoped universal search centered, and the signed-in user's avatar/name with direct Settings and Sign out on the right.
+- The product shows no wordmark or logo; navigation is the first content in the header.
+- Navigation destinations are Agenda, Tickets, Clients, and Reports, in that order, with the active route indicated.
+- Keyboard: `/` and Ctrl/⌘K focus the search field; `g` then a destination letter navigates. Shortcuts are ignored while typing in an input.
+- Settings opens the shell modal (ADR 0058); Sign out is a POST-only logout.
+- Page introductions stay compact: keep accessible page names and detail context, but do not add decorative headings or descriptions to list pages.
 
 ## Consequences
 
-The content area no longer reserves sidebar width, and there is one search/navigation surface at desktop and mobile sizes. Narrow layouts use more vertical header space to keep navigation and account actions visible without a drawer. Browser-local sidebar expansion state is no longer read or written; any old key is inert. Search ownership, session behavior, route destinations, and logout semantics remain unchanged.
+Content gets the full width, with one search/navigation surface. Search ownership, sessions, and logout semantics are unchanged. Old browser-local sidebar state is ignored. The header is desktop-only (ADR 0042).
+
+## Implementation notes (non-binding)
+
+Current shortcuts: `g a` Agenda, `g b` Tickets (board), `g c` Clients, `g r` Reports; mapping is in `app/layouts/dashboard.vue`.
 
 ## Alternatives considered
 
-- Keep the desktop sidebar and mobile drawer: rejected because the sidebar consumes page width and the user requested its removal.
-- Hide mobile navigation or account actions behind a menu: rejected in favor of the same three-block structure and directly available controls.
-- Keep Settings and sign-out inside an account popover: rejected because both actions should be direct controls.
-- Change the search API, keyboard mappings, auth flow, or persist navigation preferences in user settings: not needed for this presentation change.
+- Keep the sidebar: rejected; it consumes width.
+- Put Settings/sign-out in an account popover: rejected; direct controls requested.
 
-## Links
+## Revisions
 
-- `docs/milestones/m23-three-block-header-navigation.md`
-- `0045-btt-project-name-and-header.md`
-- `docs/milestones/m7-search-and-ui-polish.md`
-- `docs/decisions/0003-m1-authentication-and-database.md`
-- `docs/decisions/0015-compact-navigation-and-mobile-columns.md` (superseded)
-- `docs/decisions/0033-no-compatibility-route-for-project-collection.md`
+- 2026-11-21: Rewritten to goal-level form; folded ADR 0044 (Agenda destination), ADR 0045 (no wordmark), and ADR 0061 (Reports entry, `g r`); mobile stacking clauses were already retired by ADR 0042 and are dropped.

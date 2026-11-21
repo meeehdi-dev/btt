@@ -1,4 +1,4 @@
-# ADR 0018: Ticket context and application UI consistency
+# ADR 0018: Consistent ticket context and icon controls
 
 - Status: Accepted
 - Date: 2026-09-26
@@ -7,28 +7,35 @@
 
 ## Context
 
-M7 review requested consistent ticket relations/external links across board, release, and Today cards, clearer estimate usage, and an app-wide icon, tooltip, and contrast pass. Existing board relations used different presentations for one versus multiple items; release and Today cards did not expose the same link context.
+Ticket relations and external links were presented differently on board, release, and agenda cards (one item versus many, missing on some cards). Icon-only controls lacked consistent tooltips.
+
+## Goal
+
+A ticket's related tickets and external links look and behave the same on every card type, and icon-only controls explain themselves.
 
 ## Decision
 
-- Use shared icon-triggered popovers for related tickets and external links in ticket board cards, release ticket cards, and Today entries, even when only one item exists. Overlay a count on the top-right of an icon only when that collection has more than one item.
-- Related tickets are internal application links; board clicks retain the existing highlight/locate behavior when the target is visible. External destinations are native `<a>` elements with safe new-tab attributes so browser context-menu/open-in-new-tab behavior is preserved.
-- Read relation and external-link metadata through the existing owner-scoped ticket and agenda APIs. Do not add persistence or alter ownership/archive policies.
-- Show tracked time and estimate together where an estimate exists. Usage colors are blue below 80%, green from 80% to below 100%, orange from 100% through 120%, and red above 120%.
-- Use matching icons on app action buttons and Nuxt UI tooltips for icon-only controls; retain native `title` only for truncated-content hints, not button tooltips. Use Nuxt UI semantic surfaces and borders for card/list contrast rather than raw palette colors. Keep client/project/release breadcrumbs inline before the current-page heading.
+- Related tickets and external links are shown on ticket board cards, release ticket cards, and agenda entries through the same icon-triggered popover, even when only one item exists. A count appears on the icon only when there is more than one item.
+- Related tickets are in-app links. External links are real links that open in a new tab with safe attributes, so browser open-in-new-tab behavior is preserved.
+- Context metadata comes through existing owner-scoped ticket and agenda reads; no per-card requests.
+- Where an estimate exists, tracked time and estimate are shown together (usage coloring: ADR 0020).
+- Action buttons use matching icons; icon-only controls have tooltips. Native `title` is only for truncated-text hints. Surfaces use semantic theme colors, not raw palette colors.
+- Client/project/release breadcrumbs sit inline before the page heading (ADR 0026).
 
 ## Consequences
 
-The ticket list and agenda responses include the context required to render these popovers without per-card requests. Popovers have consistent hover, keyboard, and touch entry points, while external links retain standard browser semantics. The shared usage palette and combined display are consistent between release cards and ticket time summaries. No schema, dependency, authentication, or stored-domain changes are introduced by this decision.
+List and agenda responses carry the context needed to render popovers. Interaction is the same for one or many items, and external links keep native semantics. No schema or ownership change.
+
+## Implementation notes (non-binding)
+
+Popovers and tooltips use Nuxt UI components; hierarchy/relations popovers are shared components.
 
 ## Alternatives considered
 
-- Show a direct relation link for one item and a count badge for multiple: rejected because the interaction and discoverability differ by count.
-- Replace external anchors with router buttons or click handlers: rejected because native link behavior is required.
-- Use hard-coded Tailwind palette colors for surfaces: rejected in favor of Nuxt UI semantic tokens that adapt to theme.
+- Direct link for one item, count badge for many: rejected; discoverability differs by count.
+- Router buttons instead of anchors for external links: rejected; native link behavior required.
+- Hard-coded palette colors for surfaces: rejected in favor of theme tokens.
 
-## Links
+## Revisions
 
-- `plans/m7-search-and-ui-polish.md`
-- `docs/milestones/m7-search-and-ui-polish.md`
-- `docs/decisions/0017-release-usage-and-ticket-detail-polish.md`
+- 2026-11-21: Rewritten to goal-level form; usage color thresholds moved to ADR 0020's ownership, UI library details moved to notes.

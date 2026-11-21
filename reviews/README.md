@@ -12,6 +12,8 @@ Reports must stand alone: original plan/report reference, exact Git comparison a
 
 Review does not fix code or maintain the implementation journal. Findings require human direction for corrective planning or explicitly proceeding; no-findings opens human diff review, not automatic acceptance. Verify Plannotator comparison scope. Tell the human to reply in chat if closing without deciding; silence/closure/failure is not approval.
 
-After human diff review ask UI or Finalize. Optional UI uses an already-running, separately user-managed app without server lifecycle changes; it does not replace required automated browser tests/manual acceptance. Finalize records only actual human decisions and instructed bookkeeping. Human code acceptance and milestone completion declarations remain separate.
+After human diff review ask UI or Finalize. Optional UI uses an already-running, separately user-managed app without server lifecycle changes; it does not replace retained automated checks or human manual acceptance. Finalize records only actual human decisions and instructed bookkeeping. Once human code review is accepted, Finalize marks the milestone complete.
+
+Past reports are history. Their findings, versions, and requirements describe the code at that time and are not current rules.
 
 See [canonical workflow](../docs/llm-workflow.md#pi-workflow-modes-integration) and [ADR 0062](../docs/decisions/0062-pi-workflow-modes-and-artifact-locations.md).

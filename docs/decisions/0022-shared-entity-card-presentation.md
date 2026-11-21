@@ -1,9 +1,11 @@
 # ADR 0022: Shared entity-card presentation shell
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-27
 - Supersedes: None
-- Superseded by: None
+- Superseded by: [ADR 0057](0057-sibling-ui-consistency-and-shared-presentation.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0057](0057-sibling-ui-consistency-and-shared-presentation.md).
 
 ## Context
 

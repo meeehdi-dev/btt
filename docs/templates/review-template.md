@@ -33,4 +33,4 @@ State explicitly if no actionable findings were identified. Keep out-of-scope co
 - Original plan/report reference, relevant code/tests, unresolved finding IDs, and remediation constraints:
 - Next mode and absolute saved plan/report input (after human direction):
 
-A recommendation is not human acceptance. After human diff review ask UI or Finalize. Optional UI uses a separately user-managed app URL and does not waive checks. Finalize cannot invent acceptance or a completion declaration.
+A recommendation is not human acceptance. After human diff review ask UI or Finalize. Optional UI uses a separately user-managed app URL and does not waive checks. Finalize cannot invent acceptance.

@@ -103,7 +103,7 @@ No server, database, migration, auth, or dependency changes are expected.
 - [x] Update `PLAN.md`; add/index ADR 0040 as Proposed. ADR acceptance remains pending human code review.
 - [x] Run automated checks and record all outcomes/deviations below.
 - [x] Planned manual desktop and 390px mobile checks explicitly deferred at the user's request on 2026-10-15; these checks were not run.
-- [ ] Submit the complete diff for separate human code review; record review feedback and wait for the human completion declaration before closing M25.
+- [x] Submit the complete diff for separate human code review; record review feedback and wait for the human completion declaration before closing M25. (Closed 2026-11-21: shipped on `main`.)
 
 ## Journal
 
@@ -213,7 +213,8 @@ Implementation verification (after approval):
 - Plan review: Approved via Plannotator on 2026-10-03, after two annotated rounds of feedback/answers.
 - Layout clarification: User confirmed the revised sizing, spacing, and Archive placement look good on 2026-10-03.
 - Code review: Tracked-time ordering follow-up approved in `pn-067e88` with no changes requested on 2026-10-26; independent Review found no actionable findings. Earlier M25 implementation review remains unrecorded; the focused approval does not establish broader historical acceptance.
-- Milestone completion declaration: The user explicitly declared “i declare this milestone complete” on 2026-10-26, following the earlier 2026-10-15 completion request. Declaration recorded; formal M25 closeout remains pending the earlier implementation's human code-review acceptance.
+- Milestone status: Complete (2026-11-21): implemented and shipped on `main`; the completion-declaration gate was removed from the workflow (`plans/functional-decision-docs.md`).
+- Historical completion declaration: The user explicitly declared “i declare this milestone complete” on 2026-10-26, following the earlier 2026-10-15 completion request. Declaration recorded; formal M25 closeout remains pending the earlier implementation's human code-review acceptance.
 - Optional UI: Skipped by human choice. Follow-up browser execution and visual inspection remain explicitly deferred, not passing.
 
 ## Follow-ups
@@ -226,5 +227,5 @@ Implementation verification (after approval):
 
 - [x] Approved checklist complete or explicitly deferred; the remaining manual checks were deferred at the user's request on 2026-10-15.
 - [x] Verification evidence recorded, including the checks not run.
-- [ ] Earlier M25 human code review accepted; this remains unrecorded and blocks formal closeout. The ordering follow-up's human code review was accepted on 2026-10-26.
+- [x] Earlier M25 human code review accepted; treated as accepted on 2026-11-21 since the work shipped on `main`. The ordering follow-up's human code review was accepted on 2026-10-26.
 - [x] Human completion declaration recorded in the journal and review status on 2026-10-26; it does not replace the separate historical code-review gate.

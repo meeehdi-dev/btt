@@ -1,4 +1,4 @@
-# ADR 0024: Effect-aware client fetch boundary
+# ADR 0024: Safe client read and write boundary
 
 - Status: Accepted
 - Date: 2026-09-27
@@ -7,32 +7,34 @@
 
 ## Context
 
-Client API reads need typed, safe failures without replacing Nuxt's SSR, hydration, reactive-query, dedupe, refresh, and cancellation lifecycle. Better Auth's session fetch must preserve request cookies during SSR. Imperative writes also need explicit failure handling, especially when a write succeeds but its follow-up read fails.
+Client API reads need typed, safe failures without replacing the framework's SSR, hydration, reactive-query, dedupe, refresh, and cancellation lifecycle. The session read must preserve request cookies during SSR. Writes need explicit failure handling, especially when a write succeeds but its follow-up read fails.
+
+## Goal
+
+Client reads and writes fail safely and visibly: a failed session read is never treated as "logged out", and a successful write is never invited to repeat because a refresh failed.
 
 ## Decision
 
-- Wrap Nuxt's `createUseFetch` `$fetch` seam with Effect and typed client failures. Keep Nuxt `useFetch` as the owner of async-data state and lifecycle; use `useRequestFetch()` on the server to forward request cookies and headers.
-- Run imperative client requests through a shared Effect boundary. Preserve expected 400/401/404/409 outcomes using safe public messages; project 5xx, network, defect, and unknown failures to generic user feedback without exposing raw causes.
-- Treat session-read errors as unavailable, not proof of unauthenticated state. Fail closed without redirecting to login.
-- Report write success plus refresh failure as partial success, and offer a read retry instead of inviting a duplicate write. Keep logout as the existing native POST form.
+- Client reads keep the framework as owner of async-data state and lifecycle; typed failure handling wraps the fetch seam, and server-side reads forward request cookies and headers.
+- Imperative client requests share one boundary. Expected 400/401/404/409 outcomes show safe public messages; 5xx, network, defect, and unknown failures show generic feedback without raw causes.
+- A session-read error means "unavailable", not "unauthenticated": fail closed without redirecting to login.
+- A write that succeeded but whose refresh failed is reported as partial success with a read retry, not a duplicate write.
+- Views distinguish failed reads from empty data and not-found. Logout stays a native POST form.
 
 ## Consequences
 
-- SSR payload reuse, reactive request options, pending/error state, refresh, and abort handling remain Nuxt-owned.
-- Better Auth continues using its `useSession(useFetch)` integration with SSR cookie forwarding.
-- Client views must explicitly distinguish failed reads from empty data/not-found and handle post-write refresh outcomes.
-- No Effect/Nuxt dependency, global retry/cache policy, server/API change, or logout behavior change is introduced.
+SSR payload reuse, reactive options, pending/error state, refresh, and abort stay framework-owned. No global retry or cache policy is introduced.
+
+## Implementation notes (non-binding)
+
+- `app/utils/client-effect.ts` and `app/composables/useApiFetch.ts` wrap Nuxt `createUseFetch` with Effect; Better Auth's `useSession(useFetch)` integration forwards SSR cookies via `useRequestFetch()`.
 
 ## Alternatives considered
 
-- Replace `useFetch` with a new Effect state/data layer: rejected because it would duplicate Nuxt SSR, hydration, request-key, and cancellation behavior.
-- Keep raw `$fetch` and page-local `try/catch`: rejected because failure mapping, cause privacy, and partial-success handling would remain inconsistent.
-- Redirect to login on any session error: rejected because a provider/network failure does not prove that the user is unauthenticated.
+- Replace `useFetch` with a custom state layer: rejected; duplicates SSR, hydration, key, and cancellation behavior.
+- Raw `$fetch` with page-local `try/catch`: rejected; failure mapping and partial-success handling would diverge.
+- Redirect to login on any session error: rejected; a provider or network failure does not prove the user is unauthenticated.
 
-## Links
+## Revisions
 
-- `docs/milestones/m11-client-effect-workflows.md`
-- `docs/decisions/0021-effect-for-fallible-operations.md`
-- `docs/decisions/0023-server-effect-http-boundary.md`
-- `app/utils/client-effect.ts`
-- `app/composables/useApiFetch.ts`
+- 2026-11-21: Rewritten to goal-level form; moved framework and file details to notes.

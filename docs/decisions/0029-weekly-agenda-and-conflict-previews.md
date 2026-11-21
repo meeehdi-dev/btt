@@ -1,36 +1,36 @@
-# ADR 0029: Weekly agenda and attempted-position conflict previews
+# ADR 0029: Weekly Agenda and attempted-position conflict previews
 
-- Status: Accepted via Plannotator code review on 2026-09-29
+- Status: Accepted
 - Date: 2026-09-28
-- Supersedes: ADR 0014's invalid-move snapback presentation only, if accepted
+- Supersedes: None
 - Superseded by: None
-- Partial supersession by ADR 0042: narrow-screen stacked presentation and touch-specific alternatives are retired; date semantics, per-day Add, correction forms, mouse interactions, and conflict behavior remain authoritative.
 
 ## Context
 
-M16 adds a weekly agenda while retaining date-only, non-overlapping time entries. A week needs an explicit first weekday and cross-date movement. The existing single-day drag policy snaps invalid moves back to the source, but the requested weekly interaction should make the attempted destination and conflict apparent.
+The Agenda shows a whole week while time entries stay date-only and non-overlapping. A week needs an explicit first weekday and movement across dates. The earlier policy snapped invalid moves back to the source; for a weekly view the attempted destination and its conflict should be visible.
+
+## Goal
+
+Let users see and rearrange a whole week of completed work, and understand exactly why an invalid move is refused.
 
 ## Decision
 
-- Persist each user's week start as Sunday `0` through Saturday `6`, defaulting to Monday (`1`). Display full weekday names and numeric month/day in browser-locale order.
-- Show separate daily progress using all work on each date, independent of filters and visible hours; do not calculate a weekly progress total.
-- A time entry remains on exactly one calendar date. Creation, movement, and resizing cannot cross midnight. Moving between dates preserves duration and remains subject to the existing owner-scoped server overlap checks.
-- During a move, render an invalid candidate at the attempted date/time in red with “Conflict” or equivalent wording. Keep the source authoritative and do not persist an invalid drop. Preserve the existing near-edge tolerance for valid placements and the accessible error on rejection.
-- Keep mouse dragging desktop-only. Use per-day Add actions and the existing correction form with a work-date picker on narrow screens; do not add touch dragging.
+- Each user has a week start setting, Sunday through Saturday, defaulting to Monday. Days show full weekday names and numeric month/day in the browser locale's order.
+- Each day shows its own workday progress from all work on that date, independent of filters and visible hours. There is no weekly total.
+- A time entry belongs to exactly one calendar date; create, move and resize cannot cross midnight. Moving between dates keeps the duration and is subject to the owner-scoped server overlap checks.
+- While dragging, an invalid candidate is drawn at the attempted date/time in a conflict state labelled "Conflict". The source entry stays authoritative, nothing invalid persists, and the near-edge tolerance and accessible error from ADR 0014 apply.
+- Dragging is mouse-only. Each day has an Add action, and the correction form includes a work-date picker (ADR 0016); there is no touch dragging.
 
 ## Consequences
 
-Users can see the entire configured week and move entries between dates without changing date-only storage rules. The settings table and API gain a constrained weekday value. Invalid previews no longer visually imply that an entry returned to its source, while server-side checks remain authoritative. Mobile remains usable without a drag-only workflow.
+Users can move work between dates without changing date-only storage. The settings table and API carry a constrained weekday value. Invalid previews no longer imply the entry returned to its source; server checks stay authoritative.
 
 ## Alternatives considered
 
-- Automatically shift a conflicting move to a nearby free slot: rejected because it can move work somewhere other than the attempted destination.
-- Add a weekly tracked-time total: rejected; progress is meaningful per configured workday and must remain independent per date.
-- Enable touch dragging: rejected in favor of explicit day Add and date-correction controls.
+- Auto-shift a conflicting move to a free slot: rejected; it can land work somewhere other than intended.
+- A weekly tracked-time total: rejected; progress is meaningful per workday.
+- Touch dragging: rejected in favor of day Add and date-correction controls.
 
-## Links
+## Revisions
 
-- `docs/milestones/m16-weekly-agenda.md`
-- `docs/decisions/0011-manual-time-entry-history-and-slots.md`
-- `docs/decisions/0012-today-agenda-settings-and-history.md`
-- `docs/decisions/0014-agenda-drag-interactions.md`
+- 2026-11-21: Rewritten to goal-level form; status normalized to Accepted; dropped the "supersedes 0014 snapback presentation" line (folded into 0014) and the retired narrow-screen clause (ADR 0042).

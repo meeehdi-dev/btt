@@ -5,6 +5,8 @@
 - Supersedes: The pnpm 10 version pin in ADR 0002 only
 - Superseded by: ADR 0060 (exact-version build-script allowlist only)
 
+> History, not a rule. See [ADR 0066](0066-latest-node-lts-with-mise.md) for current intent.
+
 ## Context
 
 The M0 bootstrap pinned pnpm 10.33.2 in `package.json` and CI. The user requested a focused milestone to upgrade the project package manager to pnpm v12. At implementation time, the npm registry lists pnpm 12.8.1 as the latest stable v12 release. CI currently uses Node 24, `pnpm/action-setup@v4`, and a frozen lockfile install.

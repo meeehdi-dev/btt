@@ -13,7 +13,7 @@ What has been completed, and what remains?
 - Original input report and finding IDs/dispositions, if applicable:
 - Requirements/non-goals and scope constraints:
 - Human plan approval authority:
-- Human code acceptance / milestone completion declaration (separate, actual decisions only):
+- Human code acceptance (actual decisions only):
 
 ## Important context
 

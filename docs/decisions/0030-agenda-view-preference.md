@@ -3,7 +3,9 @@
 - Status: Superseded
 - Date: 2026-09-29
 - Supersedes: M16's explicit exclusion of a persisted Day/Week view preference (implementation scope only)
-- Superseded by: ADR 0044
+- Superseded by: [ADR 0044](0044-week-only-agenda-and-status-selector.md)
+
+> History, not a rule. See [ADR 0044](0044-week-only-agenda-and-status-selector.md) for current intent.
 
 ## Context
 

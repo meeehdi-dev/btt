@@ -1,4 +1,4 @@
-# ADR 0012: Today agenda settings and historical work
+# ADR 0012: Agenda settings and historical work
 
 - Status: Accepted
 - Date: 2026-09-26
@@ -7,27 +7,30 @@
 
 ## Context
 
-M5 makes Today the primary surface for completed work across tickets. M4's records belong to local calendar days and survive archival; a limited visible-hours preference must not hide historical work or prevent valid entries. The M5 plan was approved via Plannotator.
+The agenda is the primary surface for completed work across tickets. Time entries belong to local calendar days and survive archiving, so a limited visible-hours preference must not hide history or block valid entries.
+
+## Goal
+
+The visible-hours window is a presentation preference only: it never hides or blocks historical work, and day progress always uses the complete tracked total.
 
 ## Decision
 
-- Persist one settings row per authenticated user (user ID primary key, cascade on account deletion). Default to an 08:00–20:00 visible window and eight-hour workday target when the row does not exist. Visible bounds use aligned 30-minute steps with `0 ≤ start < end ≤ 1440`; target uses 30-minute steps from 30 through 1440 minutes. API and database checks enforce these rules. Start-of-week is deferred until a weekly view needs it.
-- Treat the visible window as presentation only. Day reads include all owned entries, even when ticket or ancestors are archived; entries before/after the window remain accessible. Day progress and overtime use the complete unfiltered tracked total; filters only affect rendered rows.
-- Use entity/status/time icons alongside ticket metadata in the Today agenda, aligned with the ticket board's visual language. When other app views display the same metadata, follow this icon convention as they are touched; do not broadly redesign unrelated pages within M5.
-- Preserve the ticket-scoped history endpoint. Use an owner-scoped day read for agenda data, with archived-hierarchy labels and status. Active tickets only are eligible for new work (ADR 0011). Historical badge navigation uses explicit archived detail URLs; project/release detail reads may traverse archived ancestors only with that explicit flag, without granting write access or changing default lists.
+- Each user has one settings record: visible window, workday target, and week start. Defaults when absent: 08:00–20:00 window, eight-hour target, week starting Monday (week start is Sunday 0 to Saturday 6; see ADR 0029).
+- Visible bounds use 30-minute steps with 0 ≤ start < end ≤ 1440. The target uses 30-minute steps from 30 through 1440 minutes. API and database both enforce this.
+- Day reads include all of the user's entries, including those outside the window or under archived tickets and ancestors. Progress and overtime use the unfiltered total; filters only affect rendered rows.
+- A dedicated owner-scoped agenda read returns entries with archived-hierarchy labels and status. Only active tickets are eligible for new work (ADR 0011).
+- Navigating from a historical entry uses explicit archived-detail links. Project and release detail may traverse archived ancestors only with that explicit flag, which grants no write access and does not change default lists.
+- Agenda entries use the same entity, status, and time icons as the ticket board.
 
 ## Consequences
 
-Settings are a small per-user schema addition, and day queries must join the hierarchy for ownership as well as display. M6 can rely on the same window without changing the fixed entry grid. Archived details can be read explicitly while ordinary navigation remains scoped to active entities.
+Settings are a small per-user record and agenda queries must join the hierarchy for ownership and labels. Archived details can be read explicitly while ordinary navigation stays scoped to active entities.
 
 ## Alternatives considered
 
-- Hide entries outside visible hours: rejected because the window is a preference, not a data filter.
-- Reuse ticket-scoped history for day queries: rejected because it cannot show all tickets on a date without per-ticket requests.
-- Persist start-of-week now: deferred until a weekly view uses it.
+- Hide entries outside visible hours: rejected; the window is a preference, not a data filter.
+- Reuse the ticket-scoped history endpoint for day queries: rejected; it cannot show all tickets on a date without per-ticket requests.
 
-## Links
+## Revisions
 
-- `docs/milestones/m5-today-agenda.md`
-- `docs/decisions/0011-manual-time-entry-history-and-slots.md`
-- `PLAN.md`
+- 2026-11-21: Rewritten to goal-level form; folded in week start (ADR 0029); retitled from "Today agenda" since the route is now Agenda (ADR 0044); dropped milestone scoping chatter.

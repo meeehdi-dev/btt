@@ -1,9 +1,11 @@
 # ADR 0010: Full-card desktop board drag and compact ticket metadata
 
-- Status: Superseded (next-status-arrow requirement only; other decisions retained)
+- Status: Superseded
 - Date: 2026-09-25
 - Supersedes: 0009 (retains its desktop-only policy; replaces its M3.5 board-control requirement)
-- Superseded by: 0013-board-status-control-removal.md (next-status arrow only)
+- Superseded by: [ADR 0048](0048-agenda-and-board-status-icon-menus.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0048](0048-agenda-and-board-status-icon-menus.md).
 
 ## Context
 

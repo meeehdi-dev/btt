@@ -1,9 +1,11 @@
 # ADR 0005: M2 domain validation and hierarchy UI polish
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-21
 - Supersedes: None
-- Superseded by: None
+- Superseded by: [ADR 0004](0004-m2-core-data-model.md), [ADR 0023](0023-server-effect-http-boundary.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0004](0004-m2-core-data-model.md) (colors and selector states) and [ADR 0023](0023-server-effect-http-boundary.md) (boundary validation).
 
 ## Context
 

@@ -1,34 +1,40 @@
-# ADR 0017: Release ticket usage and ticket-detail navigation polish
+# ADR 0017: Release ticket usage and ticket-detail polish
 
 - Status: Accepted
 - Date: 2026-09-26
-- Supersedes: 0007 (ticket-detail next-status action only; ticket model and relations unchanged)
+- Supersedes: None
 - Superseded by: None
 
 ## Context
 
-In M7 code review the human requested release ticket cards show tracked time and estimate usage, ticket detail rows gain subtle contrast, hierarchy links use consistent navigation styling, the ticket-detail next-status action be removed, and the local Lucide icon collection be installed for reliable icons.
+Release ticket cards did not show tracked time against estimates, the ticket-detail status controls competed with each other, and ticket-detail rows lacked contrast.
+
+## Goal
+
+Show how much time a release's tickets have used without extra requests per card, and keep ticket detail uncluttered.
 
 ## Decision
 
-- Add a bounded aggregate read to the existing owner-scoped ticket list response: sum tracked minutes for the ticket IDs already returned, including their historical entries. A ticket with no entries returns 0. Release ticket cards display title, optional description/estimate, status, tracked time and estimate percentage, using the existing `usageColor` thresholds from the ticket detail. No new schema or archive/ownership rule.
-- Remove the ticket-detail next-status button and its dedicated action; retain the status selector in ticket edit and desktop board drag for status changes. Do not modify the underlying status enum or API.
-- Use subtle semantic elevated surfaces for ticket-detail time entries, links and related-ticket rows; render its client/project/release links with the same muted-to-primary hover treatment as board navigation. Compact Today/board filter bars keep icon-leading accessible inputs, an icon-only Clear control at the right on desktop, and a stacked mobile layout.
-- Add `@iconify-json/lucide` as a direct development dependency to bundle local Lucide icons used throughout the application.
+- The owner-scoped ticket list response includes tracked minutes per returned ticket, summed over all its time entries including historical ones; a ticket with none returns 0. This is one aggregate read, not a request per card.
+- Release ticket cards show title, optional description and estimate, status, and tracked time against the estimate, colored per ADR 0020.
+- Ticket detail has no next-status action. Status changes go through the edit form, status menus and Board drag (ADR 0048). The status enum and API are unchanged.
+- Ticket-detail time entries, links and related-ticket rows use subtle elevated semantic surfaces; its client/project/release links use the same muted-to-primary hover as Board navigation.
+- Filter bars keep icon-leading accessible inputs and an icon-only Clear control.
 
 ## Consequences
 
-The existing ticket list read now performs one additional grouped sum over tickets scoped by its owner/active-ancestor query; no per-card requests. Ticket detail has fewer competing status controls but keeps the edit form. Icon data adds development dependency/lockfile changes without changing runtime behavior. Existing colors remain semantic across light/dark themes.
+The ticket list read does one extra grouped sum scoped by the owner/active-ancestor query. Ticket detail has fewer competing status controls. Colors stay semantic across light and dark themes.
+
+## Implementation notes (non-binding)
+
+- Icons come from the locally bundled Lucide collection (`@iconify-json/lucide`), a dev dependency.
 
 ## Alternatives considered
 
-- One request per release ticket for tracked time: rejected due to N+1 reads.
-- Keep ticket detail quick status action: rejected by human; board drag and edit form remain.
-- Raw hard-coded palette colors for list contrast: rejected in favor of Nuxt UI semantic surfaces.
+- One request per release ticket for tracked time: rejected as N+1.
+- Keep the ticket-detail quick status action: rejected by the human.
+- Hard-coded palette colors: rejected for semantic surfaces.
 
-## Links
+## Revisions
 
-- `plans/m7-search-and-ui-polish.md`
-- `docs/milestones/m7-search-and-ui-polish.md`
-- `docs/decisions/0007-m3-ticket-model-and-relations.md`
-- `docs/decisions/0011-manual-time-entry-history-and-slots.md`
+- 2026-11-21: Rewritten to goal-level form; the ADR 0007 next-status clause now lives in ADR 0007 (dropped the supersession line); the compact-filter mobile layout was dropped (ADR 0042).

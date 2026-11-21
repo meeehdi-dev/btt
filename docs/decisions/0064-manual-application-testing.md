@@ -2,35 +2,36 @@
 
 - Status: Accepted
 - Date: 2026-10-27
-- Supersedes: [ADR 0041](0041-ci-e2e-failure-diagnostics.md), [ADR 0050](0050-e2e-verification-and-server-handoff.md), and browser-verification/verification-server clauses only of [ADR 0062](0062-pi-workflow-modes-and-artifact-locations.md).
+- Supersedes: [ADR 0041](0041-ci-e2e-failure-diagnostics.md), [ADR 0050](0050-e2e-verification-and-server-handoff.md)
 - Superseded by: None
 
 ## Context
 
-The human requested removal of all E2E tests and supporting tooling, choosing to test application behavior manually from now on. The cleanup and workflow/dependency/CI changes were explicitly approved in Plannotator `pn-471e98` through the linked plan. This accepts the testing-policy decision, not the implementation diff or milestone completion.
+The human chose to remove all E2E tests and supporting tooling and to test application behavior manually. The browser suite carried fixture and readiness maintenance cost and repeated CI instability.
+
+## Goal
+
+Agents run the retained automated checks; the human tests the running application manually. There is no E2E suite.
 
 ## Decision
 
-- Remove the entire E2E suite, Playwright configuration and direct dependencies, browser CI installation/execution/diagnostic steps, and obsolete E2E-only configuration. Do not introduce a replacement browser framework.
-- Preserve unit/component tests, shared Better Auth test utilities, database migrations and CI database support, format/lint, duplication/unused-code checks, both typechecks, build, and workflow checks. All approved retained automated checks must pass on the final worktree before review handoff.
-- The human owns manual application testing. Agents record only actual human-reported results and leave unperformed cases pending; automated checks and optional agent UI observations do not establish human manual acceptance.
-- No automated browser suite or agent-owned verification app server is required. Track and clean up agent-owned verification resources and verify released ports. Never manage a user-owned server without permission; optional UI continues using a separately user-managed running app.
-- Preserve approval gates, first-failure evidence, and all other workflow governance. Do not conceal failed retained checks through retries or timeout increases. Human code acceptance and explicit milestone completion remain separate decisions.
-- Earlier plans, milestone records, reports and ADR bodies retain their original requirements/results as history. This policy governs future work, including future changes to features documented in those records; it does not retroactively claim their browser gaps were verified.
+- No E2E suite, browser-test tooling, browser steps in CI, or replacement browser framework.
+- Keep unit/component tests (including database-backed auth tests), format/lint, duplication and unused-code checks, both typechecks, build, and workflow checks. All retained checks must pass on the final worktree before review handoff.
+- The human owns manual application testing. Agents record only human-reported results and leave unperformed cases pending; automated checks and optional agent UI observations are not manual acceptance.
+- No agent-owned verification app server is required. Any agent-owned resource is cleaned up and its port verified released; a user-owned server is never managed without permission. Optional UI uses a separately user-managed running app.
+- Approval gates and first-failure evidence stay. Failed retained checks are not hidden by retries or timeout increases.
+- Earlier plans, milestones, reports, and ADR bodies keep their original requirements as history; this policy governs future work and does not claim their browser gaps were verified.
 
 ## Consequences
 
-CI becomes smaller and faster, and browser fixtures/readiness maintenance disappears. Browser integration, authentication flow, routing, pointer gestures, accessibility, and visual regressions lose automated coverage and depend on human manual testing. Unit/component coverage remains, including database-backed authentication tests. No runtime safeguards or application behavior are removed merely because browser coverage is gone.
+CI is smaller and faster. Browser integration, auth flows, routing, pointer gestures, accessibility, and visual regressions lose automated coverage and rely on manual testing. Unit/component coverage remains. No runtime safeguard is removed.
 
 ## Alternatives considered
 
-- Keep or stabilize the browser suite: not selected; the human explicitly chose manual application testing.
-- Remove all automated tests: outside scope; unit/component tests and other quality gates remain.
-- Remove shared auth/database fixtures with the E2E helpers: rejected because retained unit tests still require them.
+- Keep or stabilize the browser suite: not selected by the human.
+- Remove all automated tests: out of scope; other gates remain.
+- Remove shared auth/database fixtures with the E2E helpers: rejected; retained unit tests need them.
 
-## Links
+## Revisions
 
-- [Approved cleanup plan](../../plans/remove-e2e-tests.md)
-- [M48 implementation and verification](../milestones/m48-remove-e2e-tests.md)
-- [Canonical workflow](../llm-workflow.md)
-- [Agent instructions](../../AGENTS.md)
+- 2026-11-21: Rewritten to goal-level form; removed the separate milestone-completion clause (completion = human code review accepted); plan and PR links dropped.

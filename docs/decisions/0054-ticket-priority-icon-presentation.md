@@ -1,9 +1,11 @@
 # ADR 0054: Ticket priority icon presentation
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-10-12
 - Supersedes: ADR 0053's icon/trigger presentation choice only; all other ADR 0053 decisions are reaffirmed unchanged
-- Superseded by: None
+- Superseded by: [ADR 0053](0053-ticket-priorities.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0053](0053-ticket-priorities.md).
 
 ## Context
 

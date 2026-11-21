@@ -1,4 +1,4 @@
-# ADR 0027: Release ticket status badge actions
+# ADR 0027: Release detail ticket status and release completion
 
 - Status: Accepted
 - Date: 2026-09-28
@@ -7,28 +7,28 @@
 
 ## Context
 
-Ticket status can already be changed through ticket editing, the Today agenda, and desktop board drag-and-drop. On `/releases/:id`, each ticket's status is shown as a static badge even though this view is a working surface for release tickets. M8's agenda-only status action described the scope at that time; adding release status selection extends the current interaction policy without changing the board policy in ADR 0013.
+Release detail is a working surface for a release's tickets, yet ticket status was a static badge. Separately, project detail release cards once offered a one-click "mark release as done"; the human directed that completion happen only from the release itself, where the confirmation and unfinished-ticket warning live.
+
+## Goal
+
+Release detail is where a release's tickets change status and where the release is completed.
 
 ## Decision
 
-- On active Release detail ticket cards, make the status badge a direct single-select control populated from the fixed shared `ticketStatuses` values. Show the current status as selected. Do not add an action menu, nested `Change` submenu, or status-filter action.
-- Persist selection through the existing owner-checked `PATCH /api/tickets/:id` contract. Keep pending, error, and refresh handling page-owned, following ADR 0024.
-- Keep the status control out of the ticket board; ADR 0013 remains unchanged.
+- On active Release detail ticket cards, the status badge is a direct single-select over the fixed ticket statuses with the current one selected. No action menu, nested "Change" submenu, or status-filter action.
+- The change uses the existing owner-checked ticket update. Pending, error, and refresh handling belong to the page (ADR 0024).
+- A release can be marked done only from its Release detail page, with its existing confirmation, unfinished-ticket warning, and archive semantics. Project detail release cards only open the release, show hierarchy context, and show completion progress.
 
 ## Consequences
 
-Users can change ticket status from a release without navigating to the ticket editor or Today. The release page remains responsible for refreshing its ticket data and safely reporting partial success. No API, schema, status-transition, ownership, archive, or dependency change is introduced. The completed M8 record remains historical; its agenda behavior is unchanged.
+Status changes from a release need no trip to the ticket editor or Agenda. Completing a release requires opening it first, giving one clear owner for that action. No API, schema, or ownership change.
 
 ## Alternatives considered
 
-- Keep the status as a static badge: rejected because the user requested a direct status change from Release detail.
-- Add a `Change` action with a nested submenu: rejected by Plannotator plan feedback in favor of a direct status selector.
-- Add `Filter by status`: rejected because Release detail has no status filter.
-- Add a status action to the board: out of scope and inconsistent with ADR 0013.
+- Keep the static badge: rejected; direct change was requested.
+- "Change" submenu or "Filter by status" action: rejected; no status filter exists on Release detail.
+- Keep a mark-done shortcut on project cards: rejected by the human.
 
-## Links
+## Revisions
 
-- `docs/milestones/m14-release-ticket-status-actions.md`
-- `docs/milestones/m8-polish-and-shared-ticket-work-items.md`
-- [ADR 0013 — remove next-status control from ticket board](0013-board-status-control-removal.md)
-- [ADR 0024 — Effect-aware client fetch boundary](0024-effect-aware-client-fetch-boundary.md)
+- 2026-11-21: Rewritten to goal-level form; absorbed ADR 0043 (release completion only from release detail).

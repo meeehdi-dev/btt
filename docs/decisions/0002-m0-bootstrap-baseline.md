@@ -3,7 +3,9 @@
 - Status: Superseded
 - Date: 2026-09-21
 - Supersedes: None
-- Superseded by: ADR 0034 (pnpm version pin only), ADR 0065 (Node version only)
+- Superseded by: [ADR 0003](0003-m1-authentication-and-database.md), [ADR 0052](0052-jscpd-knip-quality-gates.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0003](0003-m1-authentication-and-database.md) (fail-closed test auth) and [ADR 0052](0052-jscpd-knip-quality-gates.md) (quality gates).
 
 ## Context
 

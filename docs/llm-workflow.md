@@ -33,14 +33,23 @@ This document is the canonical workflow for human/LLM collaboration in this repo
 When sources conflict, resolve them in this order:
 
 1. Direct human instruction in the current conversation.
-2. Approved Plannotator plan for the current task.
+2. Approved plan for the current task.
 3. `AGENTS.md` and this workflow document.
-4. Current milestone file in `docs/milestones/`.
-5. ADRs in `docs/decisions/`, preferring the newest non-superseded record for the same topic.
+4. The goals of accepted ADRs in `docs/decisions/`.
+5. Code and config for implementation details (versions, libraries, file paths, config values, component names).
 6. Product roadmap in `PLAN.md`.
-7. Existing implementation and tests.
+
+Closed milestone files, `plans/`, and `reviews/` are history: they record what was decided and checked at the time and never constrain current work. The active milestone file only scopes its own task.
 
 If a conflict cannot be resolved safely, stop and ask the human before changing code or durable docs.
+
+### Decisions bind by intent
+
+- An ADR binds through its goal (what we want and why), not through the implementation details it mentions. Details in ADRs are examples of how the goal was met at the time.
+- Changing an implementation detail (upgrading a version, swapping a library, renaming a component, moving a file) needs no new ADR as long as the goal still holds. Update the ADR text in place so it stays accurate.
+- Block or question a change only when it contradicts an ADR's stated goal. When unsure, ask the human; never refuse because a doc names a different version or tool.
+- When an ADR and the code disagree on a detail, the code/config is the truth and the doc is stale; fix the doc.
+- Human approval for dependency, schema, auth/security, and deployment changes remains a safety gate. It is not an ADR question.
 
 ### Scope control
 
@@ -83,7 +92,7 @@ A task is done only when:
 
 Before an implementation is handed to a human for code review, run every automated check required by its approved plan against the final worktree. Retained gates include database migration on an isolated test database, format, lint, duplication and unused-code analysis, both typechecks, unit/component tests, build, workflow/documentation checks, and diff checks as applicable. Record exact commands, first failures, fixes, outcomes, and limitations in the active milestone; do not hide failures or use retries/timeouts to conceal them.
 
-Application behavior is tested manually by the human. There is no automated E2E/browser suite and no mandatory agent-owned verification app server. Agents must distinguish automated results from human-reported manual results, leave unperformed manual cases pending, and never infer acceptance or milestone completion. A pending human manual check is not a claim of verified application behavior.
+Application behavior is tested manually by the human. There is no automated E2E/browser suite and no mandatory agent-owned verification app server. Agents must distinguish automated results from human-reported manual results, leave unperformed manual cases pending, and never infer code-review acceptance. A pending human manual check is not a claim of verified application behavior.
 
 Use only agent-owned disposable resources for automated database verification. Track any agent-started processes, clean them up and verify released ports before handoff; never attach to or stop a user-owned server without explicit permission. Optional UI uses the separately user-managed app described below.
 
@@ -125,7 +134,7 @@ Required outputs:
 - Updated milestone log with deviations and verification evidence.
 - Any needed ADR updates.
 
-Handoff: after all approved final-worktree checks pass, reviewer/tester receives the approved plan, diff, milestone file, and verification notes. Build records evidence in the active milestone, not a duplicate Build report; human acceptance/completion entries belong to later closeout.
+Handoff: after all approved final-worktree checks pass, reviewer/tester receives the approved plan, diff, milestone file, and verification notes. Build records evidence in the active milestone, not a duplicate Build report; human code-review acceptance belongs to later closeout.
 
 ### Reviewer / tester
 
@@ -158,7 +167,7 @@ Required outputs:
 - Updated ADR indexes, milestone closeout, templates, and roadmap links.
 - Clear notes for future agents.
 
-Finalize maps to this bookkeeping role: record actual human decisions, instructed ADR/index/roadmap updates, and milestone closeout. Selecting Finalize or suggesting a commit does not accept code or declare a milestone complete. Leave Git writes to the human.
+Finalize maps to this bookkeeping role: record actual human decisions, instructed ADR/index/roadmap updates, and milestone closeout. Selecting Finalize or suggesting a commit does not accept code; once human code review is accepted, Finalize marks the milestone complete. Leave Git writes to the human.
 
 ### Human approval gates
 
@@ -179,7 +188,7 @@ Pi is an optional execution adapter, not a project requirement. The installed pe
 | Build    | Implementer; approved plan                                                   | Implement and verify; append milestone evidence; hand the same plan path to fresh Review.                                                |
 | Review   | Independent reviewer; approved plan or explicit review report/task           | Establish actual Git scope, save findings in `reviews/`; ask about corrective Plan or proceed, or open human diff review on no findings. |
 | UI       | Optional visual/interaction review; plan/report plus already-running app URL | Use a separately user-managed server; save feedback in `reviews/`. Do not start/stop servers or alter application code.                  |
-| Finalize | Documentation keeper; plan/report and actual human decisions                 | Perform instructed bookkeeping; leave acceptance/completion pending when not explicitly supplied.                                        |
+| Finalize | Documentation keeper; plan/report and actual human decisions                 | Perform instructed bookkeeping; mark complete after accepted human code review, otherwise leave it pending.                              |
 
 Each mode starts a fresh session. Read the complete selected reference and applicable instructions; follow relevant code/docs, and ask for missing consequential inputs before dependent changes. Saved handoffs must stand alone: original plan/report, current state, findings/deferrals, exact evidence/limitations, next mode, and absolute input path. Resolve repository paths to absolute paths at handoff time; do not rely on the preceding transcript or stale temporary resources.
 
@@ -211,7 +220,7 @@ Every product milestone follows the lifecycle in `docs/milestones/README.md`:
 6. Review.
 7. Close.
 
-A milestone is **completed** only when its approved implementation checklist is complete or explicitly deferred, verification evidence is recorded, required ADRs/docs are updated, human code review is accepted, and a human completion declaration is recorded in the milestone file. The human may declare completion directly in chat (for example, “I hereby declare M1 complete”); the agent must transcribe that decision, update review/closeout status, and preserve any follow-ups. The declaration is an acceptance gate, not a replacement for tests or review evidence.
+A milestone is **complete** when its approved implementation checklist is complete or explicitly deferred, verification evidence is recorded, required ADRs/docs are updated, and human code review is accepted. Finalize then marks it `Complete` and preserves any follow-ups; no separate completion declaration is needed.
 
 The milestone file is the running log for that work. It must be human-readable enough for a reviewer to understand what changed without reconstructing the entire agent session.
 
@@ -221,7 +230,7 @@ Use ADRs for durable decisions and milestone journals for execution history.
 
 - ADR rules live in `docs/decisions/README.md`.
 - New durable decisions use `docs/templates/adr-template.md`.
-- Do not rewrite accepted ADRs to change meaning. Supersede them with a newer ADR.
+- ADRs are living documents: edit them in place when facts or details change and add a dated line to their `Revisions` section explaining what changed and why. Supersede an ADR with a new one only when its goal is replaced.
 - Use milestone journals for discoveries, deviations, verification evidence, and reviewer feedback that matters within a milestone but does not become durable policy.
 - If a journal entry reveals a durable choice, promote it to an ADR and link both directions.
 

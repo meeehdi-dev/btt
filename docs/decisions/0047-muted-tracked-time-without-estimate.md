@@ -1,9 +1,11 @@
 # ADR 0047: Muted tracked time without an estimate
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-10-08
 - Supersedes: The no-estimate tracked-time emphasis guidance from ADR 0019
-- Superseded by: None
+- Superseded by: [ADR 0020](0020-m8-polish-decisions.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0020](0020-m8-polish-decisions.md).
 
 ## Context
 

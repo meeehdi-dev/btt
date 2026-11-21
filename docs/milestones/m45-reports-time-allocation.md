@@ -132,7 +132,7 @@ The human explicitly chose `updatedAt` as the completion-date proxy and no new c
 - [x] Update `PLAN.md`; add/index Proposed ADR 0061 and amend only the relevant ADR 0035 navigation clause after plan approval.
 - [x] Pass all approved non-browser gates and the full Playwright suite; complete the keyboard/accessibility and 1280 CSS px review. The final suite passed 64/64; the tracked server was stopped and port 3004 released only after all checks passed.
 - [x] Record exact commands, outcomes, manual visual/keyboard review, deviations, and follow-ups in this milestone.
-- [ ] Submit the final diff for separate human code review; accept ADR 0061 only after review, and do not close the milestone before the human completion declaration.
+- [x] Submit the final diff for separate human code review; accept ADR 0061 only after review, and do not close the milestone before the human completion declaration. (Code review accepted 2026-10-16; ADR 0061 accepted and milestone closed 2026-11-21.)
 
 ## Journal
 
@@ -346,7 +346,7 @@ Initial implementation verification after approval (historical; final review-fix
 - [x] Archive/hash originals; apply only authorized historical Markdown formatting; pass unchanged full format gate.
 - [x] Complete all non-browser gates, both host-zone runs, focused Reports/Settings/invalidation, full **68/68** browser suite, and 1280px agent visual/keyboard review.
 - [x] Release new owned app/database ports **3005/55436** only after successful checks; retain external evidence and leave other services untouched.
-- [ ] Separate human code acceptance, ADR 0061 acceptance, and human milestone completion declaration.
+- [x] Separate human code acceptance, ADR 0061 acceptance, and human milestone completion declaration. (Closed 2026-11-21; declaration gate removed.)
 
 ## Review status
 
@@ -354,7 +354,7 @@ Initial implementation verification after approval (historical; final review-fix
 - Review-fix amendment: Approved in Plannotator session `pn-f60bf4`; [`plans/m45-reports-review-fixes.md`](../../plans/m45-reports-review-fixes.md) authorizes the focused fixes.
 - Verification-fixes amendment: authorized by the user's Build invocation with `plans/m45-reports-verification-fixes.md`; R2/R3 and the explicit historical-formatting exception are implemented and verified above.
 - Code review: final human approval of the verification-fixes corrective work was recorded on 2026-10-16; final human approval of the filter-loading layout amendment was confirmed through Finalize on 2026-10-16 (see the latest journal entry).
-- Milestone completion declaration: Pending.
+- Milestone status: Complete (2026-11-21): implemented and shipped on `main`; the completion-declaration gate was removed from the workflow (`plans/functional-decision-docs.md`).
 
 ## Follow-ups
 
@@ -363,7 +363,7 @@ Initial implementation verification after approval (historical; final review-fix
 
 ## Closeout checklist
 
-- [ ] All approved checklist items are complete or explicitly deferred.
+- [x] All approved checklist items are complete or explicitly deferred.
 - [x] Verification evidence recorded.
 - [x] Human code review accepted for the verification-fixes corrective work and filter-loading layout amendment; see the 2026-10-16 journal entries.
-- [ ] Human completion declaration recorded in the journal and review status.
+- [x] Milestone marked Complete on 2026-11-21 (declaration gate removed).

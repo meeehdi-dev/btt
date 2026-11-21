@@ -1,9 +1,11 @@
 # ADR 0038: Ordered status badge flow in Today agenda entries
 
-- Status: Superseded by ADR 0039
+- Status: Superseded
 - Date: 2026-10-01
 - Supersedes: None
-- Superseded by: [ADR 0039 — Keep Today agenda context controls in one flow](0039-today-agenda-context-control-flow.md)
+- Superseded by: [ADR 0039](0039-today-agenda-context-control-flow.md)
+
+> History, not a rule. See [ADR 0039](0039-today-agenda-context-control-flow.md) for current intent.
 
 ## Context
 

@@ -7,34 +7,40 @@
 
 ## Context
 
-Completed tickets can accumulate in the Ticket Board even after work on their release has ended. Automatically archiving or deleting them would change user data and make ticket visibility depend on a side effect. The default ticket-list API also serves Agenda, Release detail, ticket detail, and other workflows that need historical tickets.
+Completed tickets accumulate on the Ticket Board after their work has ended. Archiving or deleting them automatically would change user data and make visibility depend on a side effect. Other views (Agenda, Release detail, ticket detail, search) need historical tickets.
+
+## Goal
+
+Keep the active Board focused on current work by hiding long-quiet Done tickets, as a view filter only, never by changing data.
 
 ## Decision
 
-On the active Ticket Board only, hide an unarchived ticket when all of these conditions hold:
+On the active Ticket Board only, hide an unarchived ticket when all of these hold:
 
-- Its status is `Done`.
+- Its status is Done.
 - Its release has no target date.
-- The later of `ticket.updatedAt` and the latest linked `time_entry.updatedAt` is at least seven elapsed days before server time.
+- The later of the ticket's last update and its latest linked time entry's last update is at least seven elapsed days before server time.
 
-Use a fixed seven-day threshold for every user. The Board may request the filtered list explicitly; the default `/api/tickets` response and all non-Board consumers retain their existing visibility. Explicitly archived tickets remain available through the Board's existing archived view. Hiding is presentation-only: do not archive, delete, alter status, or mutate timestamps.
+The seven-day threshold is fixed for every user. Hiding never archives, deletes, or alters status or timestamps. Explicitly archived tickets stay in the Board's archived view. All non-Board consumers, including the default ticket list, keep their existing visibility.
 
 ## Consequences
 
-- Qualifying quiet Done tickets no longer occupy lanes on the active Ticket Board.
-- A later ticket edit or tracked-time update makes a ticket visible again until it is quiet for another week; a non-Done status or any release target date also keeps it visible.
-- Release detail, search, direct ticket detail, and Agenda history continue to expose eligible tickets.
-- No user setting, schema change, or migration is needed. The Board-only request path must stay distinct from the default ticket list.
+- Quiet Done tickets stop occupying Board lanes.
+- A later ticket edit or time-entry update makes the ticket visible again until it is quiet for another week; a non-Done status or any release target date also keeps it visible.
+- Release detail, search, direct ticket detail, and Agenda history still show these tickets.
+- No setting, schema change, or migration. The Board request path must stay distinct from the default ticket list.
+
+## Implementation notes (non-binding)
+
+- Board filtering: `server/api/tickets/index.get.ts`; eligibility rule: `server/domain/ticket-visibility.ts`.
 
 ## Alternatives considered
 
-- Archive or delete tickets after inactivity: rejected because visibility must not mutate or remove user data.
-- Apply the rule to every ticket-list consumer: rejected because Agenda history, Release detail, search, and direct ticket access must remain unchanged.
-- Add a per-user threshold setting: rejected in favor of the approved fixed policy and no settings/schema changes.
-- Measure only ticket updates or only tracked-time updates: rejected because both ticket changes and edits to recorded work are activity.
+- Archive or delete after inactivity: rejected; visibility must not mutate user data.
+- Apply the rule to every ticket list: rejected; history views must stay complete.
+- Per-user threshold setting: rejected; fixed policy, no settings or schema.
+- Measure only ticket updates or only time-entry updates: rejected; both are activity.
 
-## Links
+## Revisions
 
-- Approved plan and implementation evidence: [M32](../milestones/m32-ticket-board-status-icons-cards-and-done-visibility.md)
-- Board-only filtering: `server/api/tickets/index.get.ts`
-- Eligibility rule: `server/domain/ticket-visibility.ts`
+- 2026-11-21: Rewritten to goal-level form; file paths moved to implementation notes.

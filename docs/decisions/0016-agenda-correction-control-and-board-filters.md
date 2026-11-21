@@ -1,33 +1,35 @@
-# ADR 0016: Agenda correction control and compact hierarchy filters
+# ADR 0016: Agenda entry correction and Board hierarchy filters
 
 - Status: Accepted
 - Date: 2026-09-26
-- Supersedes: 0014 (only the agenda's direct keyboard/mobile same-day Edit button requirement; all drag and server rules remain)
-- Superseded by: ADR 0044 (Today status-filter clause only)
+- Supersedes: None
+- Superseded by: None
 
 ## Context
 
-In M7 code review, the human asked to remove the visible agenda entry Edit button and repetitive instructions, and to add hierarchy filters to the ticket board while compacting both filter bars. ADR 0014 had required a keyboard/mobile-accessible same-day Edit control on Today.
+In code review the human asked to remove the visible per-entry Edit button and repetitive instructions from the Agenda, and to add hierarchy filters to the Ticket Board while compacting both filter bars.
+
+## Goal
+
+Keep the Agenda and Board compact while still letting users correct an entry and narrow the visible work by hierarchy.
 
 ## Decision
 
-- Remove only the per-entry Edit button from Today. Keep double-click correction on an entry and the existing same-day correction modal; retain ticket-detail editing for non-drag correction and date changes. The lack of a discoverable/mobile/keyboard same-day correction action on Today is acknowledged, not silently considered solved. Revisit mobile editing in a separate approved follow-up. Drag create/move/resize and overlap rules in ADR 0014 are unchanged.
-- Keep Today filters client/project/release/ticket/status; add local cascading client/project/release/ticket filters to the board, **without** a status filter (lanes convey status). Display filter icons inside the inputs with accessible names and tooltips instead of separate label rows. Filtered-out board cards are not treated as locate targets; navigating a relation to one opens its ticket detail. Search and stored data rules are unchanged.
-- Omit redundant filter headings, match-count prose and Today drag instructions; keep meaningful empty and error messages.
+- An Agenda entry is corrected by double-clicking it, which opens the correction form. There is no per-entry Edit button. Ticket detail remains available for correction and date changes. The lack of a discoverable keyboard/mobile same-day correction action on the Agenda is acknowledged, not solved; revisit in a separate approved follow-up.
+- Agenda and Board both offer local, cascading client/project/release/ticket filters. Neither has a status filter: Board lanes already convey status, and the Agenda status control is a selector, not a filter (ADR 0044).
+- Filter inputs show their icon inside the input with an accessible name and tooltip instead of label rows. Redundant filter headings, match-count prose and drag instructions are omitted; meaningful empty and error messages stay.
+- Filtered-out Board cards are not locate targets: following a relation to one opens its ticket detail. Search and stored data rules are unchanged.
 
 ## Consequences
 
-The agenda is more compact but direct same-day mobile/keyboard correction on Today is temporarily less accessible. Filtering the board is local to the current owned, active-ancestor board read and does not change board drag/status persistence. Both filter sets remain discoverable through icon tooltips and accessible input names.
+Both pages are denser. Board filtering is local to the current owned, active-ancestor read and does not affect drag or status persistence.
 
 ## Alternatives considered
 
-- Retain the edit icon: rejected in code review for density.
-- Add a new mobile correction control immediately: explicitly deferred by the human.
-- Add status as a board filter: explicitly declined; lane headings already group tickets by status.
+- Keep the edit icon: rejected in review for density.
+- Add a new mobile correction control now: deferred by the human.
+- Add status as a Board filter: declined; lanes already group by status.
 
-## Links
+## Revisions
 
-- `plans/m7-search-and-ui-polish.md`
-- `docs/milestones/m7-search-and-ui-polish.md`
-- `docs/decisions/0014-agenda-drag-interactions.md`
-- `docs/decisions/0015-compact-navigation-and-mobile-columns.md`
+- 2026-11-21: Rewritten to goal-level form; folded in ADR 0044's removal of the Agenda status filter, dropped the claim of superseding ADR 0014 (0014 now owns drag rules and refers here), and replaced Today wording with Agenda.

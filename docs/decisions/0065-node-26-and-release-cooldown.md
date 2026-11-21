@@ -1,9 +1,11 @@
 # ADR 0065: Node 26 baseline and 7-day release cooldown
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-04
 - Supersedes: The Node 24 clause in ADR 0002 only
-- Superseded by: None
+- Superseded by: [ADR 0066](0066-latest-node-lts-with-mise.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0066](0066-latest-node-lts-with-mise.md).
 
 ## Context
 

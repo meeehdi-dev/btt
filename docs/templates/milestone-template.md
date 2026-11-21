@@ -72,7 +72,7 @@ Append entries during implementation.
 - Plan review: Pending
 - Independent review report / exact comparison scope: Pending
 - Human code review: Pending
-- Milestone completion declaration: Pending
+- Milestone status: In progress (Finalize sets `Complete` after accepted human code review)
 
 ## Fresh-session handoff
 
@@ -80,7 +80,7 @@ Append entries during implementation.
 - Absolute saved plan/report input:
 - Concise scope, evidence/limitations, unresolved finding dispositions, and pending human decisions:
 
-Finalize records only actual human acceptance/completion decisions and instructed bookkeeping; selecting it does not close the milestone. Git writes remain human-owned.
+Finalize records actual human code-review decisions and instructed bookkeeping, and marks the milestone complete once code review is accepted. Git writes remain human-owned.
 
 ## Follow-ups
 
@@ -91,4 +91,4 @@ Finalize records only actual human acceptance/completion decisions and instructe
 - [ ] Approved checklist complete or explicitly deferred.
 - [ ] Verification evidence recorded.
 - [ ] Human code review accepted.
-- [ ] Human completion declaration recorded in the journal and review status.
+- [ ] Review status updated to `Complete`.

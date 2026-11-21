@@ -1,41 +1,36 @@
-# ADR 0044: Week-only Agenda route and direct status selector
+# ADR 0044: Week-only Agenda and direct status selector
 
 - Status: Accepted
 - Date: 2026-10-07
-- Supersedes: ADR 0003 (authenticated landing route clause only); ADR 0030 (Day/Week view-preference policy); ADR 0033 (canonical-root landing target clause only); ADR 0016 (agenda status-filter clause only); ADR 0039 (status-menu structure clause only)
+- Supersedes: None
 - Superseded by: None
 
 ## Context
 
-The Agenda page currently combines duplicate Day and Week UIs, persists the view choice in browser storage, and is labeled Today despite allowing arbitrary week navigation. Its entry status control also offers a status filter and a nested status-change submenu, while the page has a separate status filter. The approved M29 plan simplifies this presentation without changing the weekly data, time-entry operations, API contracts, or fixed time-grid geometry.
+The Agenda combined duplicate Day and Week UIs, persisted the view choice in browser storage, and was labeled Today although it allowed arbitrary week navigation. Its status control offered a filter and a nested change submenu, and the page had a separate status filter.
+
+## Goal
+
+One stable, simply named weekly Agenda with no view-mode state and a direct way to change a ticket's status.
 
 ## Decision
 
-- Make `/agenda` the canonical, Week-only Agenda route. Use “Agenda” in page and shell navigation, route internal destinations there, and use `g` then `a` for navigation. Retire `/today` with a 404 and no compatibility redirect.
-- Remove the Day/Week preference and its localStorage reads/writes. Ignore any existing `nxmr:agenda-view` value and leave that key untouched. Keep the selected-date query as the anchor for week navigation and retain the configured week start.
-- Keep client, project, release, and ticket hierarchy filters; remove status from the Agenda filter set. A time-entry status trigger opens the fixed status choices directly in one flat selector, with the current status marked and archived/busy options disabled.
-- Keep the existing weekly API, entry and ticket APIs, data ownership, archive behavior, status values, overlap rules, gestures, correction flows, and accessibility semantics. This is a UI/route policy, not a data or API change.
-- Preserve earlier ADRs as historical records. Only the clauses named in the header are superseded; unrelated policies remain authoritative. ADR 0003's authenticated landing route and ADR 0033's former `/` landing target now point to `/agenda`; ADR 0033's no-compatibility decision for the removed `/projects` collection remains accepted.
+- `/agenda` is the Agenda route and is Week-only. It is named "Agenda" in page and navigation, and is the authenticated landing page. `/today` is retired and returns 404 with no redirect.
+- There is no Day/Week preference. A stored legacy `nxmr:agenda-view` browser value is ignored and left untouched. The selected-date query anchors the week; the configured week start applies (ADR 0029).
+- The Agenda has client/project/release/ticket filters and no status filter (ADR 0016). Status is changed through one flat selector of the fixed statuses, with the current status marked and archived/busy options disabled; there is no nested "Filter by" / "Change" submenu. The selector is opened from the status icon beside the title (ADR 0048).
+- Weekly data, time-entry operations, APIs, ownership and archive rules, overlap rules, gestures, correction flows, accessibility semantics and the time-grid geometry are unchanged. This is a UI/route policy.
 
 ## Consequences
 
-The Agenda has one stable weekly presentation and no browser-local view preference. Deep links with a valid `date` continue to anchor the selected week. Links or bookmarks to `/today` intentionally stop working and return 404. Status can still be changed from an entry, but there is no status filter and no intermediate “Change” submenu.
-
-No schema, stored data, API, auth, dependency, or time-grid geometry changes are introduced.
+One weekly presentation and no browser-local view state. Deep links with a valid `date` still anchor the week. Old `/today` links and bookmarks stop working by design. No schema, data, API, auth or dependency changes.
 
 ## Alternatives considered
 
-- Keep Day/Week and default to Week: rejected; the Day UI and preference are duplicate presentation state.
-- Redirect `/today` to `/agenda`: rejected by the human; legacy `/today` must return 404 with no compatibility route.
-- Keep status filtering or the nested “Filter by …” / “Change” menu: rejected for the compact Agenda; hierarchy filtering remains, and the status trigger opens its choices directly.
-- Delete the legacy localStorage key: rejected; old values are ignored but not cleared.
+- Keep Day/Week defaulting to Week: rejected; Day UI and its preference are duplicate state.
+- Redirect `/today` to `/agenda`: rejected by the human; 404, no compatibility route.
+- Keep status filtering or the nested menu: rejected for compactness.
+- Delete the legacy localStorage key: rejected; ignore it instead.
 
-## Links
+## Revisions
 
-- `docs/milestones/m29-today-week-only-ui-polish.md`
-- [ADR 0003 — M1 authentication and database baseline](0003-m1-authentication-and-database.md)
-- [ADR 0016 — agenda correction control and compact hierarchy filters](0016-agenda-correction-control-and-board-filters.md)
-- [ADR 0029 — weekly agenda and attempted-position conflict previews](0029-weekly-agenda-and-conflict-previews.md)
-- [ADR 0030 — browser-local agenda view preference](0030-agenda-view-preference.md)
-- [ADR 0033 — no compatibility route for the Projects collection](0033-no-compatibility-route-for-project-collection.md)
-- [ADR 0039 — Today agenda context-control flow](0039-today-agenda-context-control-flow.md)
+- 2026-11-21: Rewritten to goal-level form; removed the list of partial supersessions. Effects were pushed into their owners: ADR 0016 (no status filter), ADR 0039 (strip flow), ADR 0003/0033 (landing route), ADR 0030 (history). Selector trigger updated per ADR 0048.

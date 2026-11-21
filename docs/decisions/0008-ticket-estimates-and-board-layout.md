@@ -1,37 +1,39 @@
-# ADR 0008: Human-readable ticket estimates and responsive board
+# ADR 0008: Human-readable ticket estimates and Board lanes
 
 - Status: Accepted
 - Date: 2026-09-25
 - Supersedes: None
 - Superseded by: None
-- Partial supersession by ADR 0042: the stacked mobile lanes and responsive gutters are retired; the seven-lane desktop board, local horizontal scrolling, estimate behavior, and ticket-extra mutation rules remain authoritative.
 
 ## Context
 
-M3 tickets persist positive integer estimate minutes, but asking users to enter raw minutes makes common hour estimates awkward. Seven statuses also need a scannable layout on desktop without making mobile columns too narrow.
+Tickets persist positive integer estimate minutes, but asking users to type raw minutes makes common hour estimates awkward. The workflow statuses also need a scannable layout.
+
+## Goal
+
+Let people enter and read estimates in natural units, and see every workflow status at a glance on the Ticket Board, while keeping storage and API simple.
 
 ## Decision
 
-- Keep API and database estimates as nullable positive integer minutes. At the ticket create/edit UI boundary, parse human durations with `parse-duration-ms` 0.1.0 (MIT, no runtime dependencies) plus a small adapter for bare numbers as minutes and for enforcing whole positive minutes within PostgreSQL's integer range. Format stored minutes as compact hours/minutes and show a clock icon when an estimate exists. No time-tracking domain change.
-- Display seven status lanes on one horizontally scrollable desktop/tablet row, including empty lanes. On mobile, stack seven accessible status sections, collapsed by default, with counts visible in their triggers.
-- Let authenticated pages use available width with responsive gutters; keep the unauthenticated login card centered.
-- Allow ticket creation with optional links and related tickets in one atomic API mutation, preserving existing separate endpoints for later editing. Validate owned, visible relation targets and safe URLs before persistence; do not partially save a ticket when extras are invalid.
+- API and database estimates stay nullable positive integer minutes. The ticket form accepts human durations (`1hr`, `1 hr`, `45m`, `1h 30m`, `1.5h`) and bare numbers as minutes. Values resolving to fractional minutes, zero, or beyond the database integer range are rejected.
+- Stored minutes display as compact hours/minutes with a clock icon when an estimate exists.
+- The Board shows one lane per status, in status order, including empty lanes, in a single row that scrolls horizontally inside the Board rather than the page (desktop-only UI, ADR 0042).
+- A ticket can be created together with optional links and related tickets in one atomic API mutation. Owned, visible relation targets and safe URLs are validated first; an invalid extra saves nothing. Separate endpoints remain for later edits.
 
 ## Consequences
 
-The UI accepts `1hr`, `1 hr`, `45m`, `1h 30m`, `1.5h` and bare `90`, while the API continues to accept integer minutes. Values resolving to fractional minutes, zero, or overflow are rejected. The dependency adds a small runtime parser but no new tables, migrations, or Jira integration. The board scrolls locally on narrower desktop screens rather than expanding the entire page.
+Users type natural durations while the API keeps integer minutes. The parser is one small runtime dependency; no new tables or time-tracking changes.
+
+## Implementation notes (non-binding)
+
+- Parsing uses `parse-duration-ms` plus a small adapter in `app/utils/ticket-estimate.ts`.
 
 ## Alternatives considered
 
-- `ms`: does not support compound input and interprets bare numbers as milliseconds.
-- `parse-duration`: accepts noisy strings, less appropriate for strict form validation.
-- Handwritten duration grammar: rejected to avoid maintaining a bespoke parser for whitespace, decimals and compound expressions.
-- Seven fixed columns on mobile: rejected in favor of collapsed one-column sections.
+- `ms`: no compound input; bare numbers mean milliseconds.
+- `parse-duration`: accepts noisy strings, too lax for form validation.
+- Handwritten grammar: not worth maintaining.
 
-## Links
+## Revisions
 
-- `plans/m3-ticket-creation-and-board-polish.md`
-- `docs/milestones/m3-tickets-mvp.md`
-- `docs/decisions/0007-m3-ticket-model-and-relations.md`
-- <https://github.com/sindresorhus/parse-duration-ms>
-- <https://ui.nuxt.com/docs/components/collapsible>
+- 2026-11-21: Rewritten to goal-level form; dropped the retired mobile stacked-lane and responsive-gutter clauses (ADR 0042), updated lanes for On hold, moved the library to notes.

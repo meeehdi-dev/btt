@@ -5,6 +5,8 @@
 - Supersedes: None
 - Superseded by: [ADR 0064](0064-manual-application-testing.md)
 
+> History, not a rule. See [ADR 0064](0064-manual-application-testing.md) for current intent.
+
 ## Context
 
 M34 and M35 were completed with full browser verification explicitly deferred. Subsequent GitHub Actions runs exposed test/fixture mismatches and two tests reaching Playwright's 30-second per-test limit. The human now requires full local checks to pass before an agent stops its app server and hands the work back for review. ADR 0041's strict CI policy remains important: no automatic retries and no timeout increases that mask a failure.

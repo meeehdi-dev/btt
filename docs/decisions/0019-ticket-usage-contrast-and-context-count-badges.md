@@ -1,9 +1,11 @@
 # ADR 0019: Ticket usage contrast and context count badges
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-26
 - Supersedes: None
-- Superseded by: None
+- Superseded by: [ADR 0020](0020-m8-polish-decisions.md)
+
+> History, not a rule. Its still-valid intent now lives in [ADR 0020](0020-m8-polish-decisions.md).
 
 ## Context
 

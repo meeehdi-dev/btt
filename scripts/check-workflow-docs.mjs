@@ -32,7 +32,13 @@ const requiredHeadings = {
     '## Verification',
     '## Review status',
   ],
-  'docs/templates/adr-template.md': ['## Context', '## Decision', '## Consequences'],
+  'docs/templates/adr-template.md': [
+    '## Context',
+    '## Goal',
+    '## Decision',
+    '## Consequences',
+    '## Revisions',
+  ],
   'reviews/README.md': ['## Artifact convention', '## Evidence and handoff'],
 }
 

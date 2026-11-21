@@ -1,4 +1,4 @@
-# ADR 0036: Coolify source-build deployment
+# ADR 0036: Source-build deployment
 
 - Status: Accepted
 - Date: 2026-09-30
@@ -7,32 +7,35 @@
 
 ## Context
 
-M0 deferred release and deployment automation to a separately approved follow-up. The roadmap initially pointed toward the `tt` release-please → GHCR image publish → Coolify API deployment workflow. For the first production deployment, that adds a registry, image-tag coordination, API credentials, and a release gate that are not needed for one app deployed by Coolify.
+A release-please → image registry → deploy-API pipeline adds a registry, tag coordination, API credentials, and a release gate that one app on one host does not need.
+
+## Goal
+
+Deploy simply and safely: the host builds from source, secrets stay out of images and the repo, and CI is the quality gate.
 
 ## Decision
 
-- Connect Coolify directly to the Git repository through its GitHub App and select the repository's Dockerfile build method.
-- Build the app image on the Coolify host from the selected source commit. Do not require GHCR, another image registry, release-please, or a GitHub Actions image-publish/Coolify-API workflow.
-- Keep GitHub Actions as the quality-check workflow. Use protected `main` with required checks before enabling Coolify auto-deploy; otherwise deploy manually in Coolify after checks pass.
-- Keep runtime secrets in Coolify's environment configuration, not Docker build arguments or committed files.
-- Run committed Drizzle migrations before Nuxt starts serving from the new container. Keep migrations compatible with the previous app during container replacement; plan explicit backup/maintenance/recovery for destructive schema changes.
-- Use a non-sensitive HTTP health endpoint to report process readiness. The initial deployment is one app instance; database location and production data preservation are operational prerequisites to confirm before provisioning/migration.
+- The deployment host builds the app image from the selected Git commit using the repository's Dockerfile. No image registry, release automation, or CI-driven deploy API is required.
+- CI remains the quality-check workflow. Auto-deploy from `main` is enabled only when branch protection requires those checks; otherwise deploy manually after checks pass.
+- Runtime secrets live in the host's environment configuration, not in build arguments or committed files.
+- Committed database migrations run before the new container serves traffic and must stay compatible with the previous app version during replacement. Destructive schema changes need explicit backup, maintenance, and recovery planning.
+- A non-sensitive health endpoint reports process readiness. Production runs one app instance; database location and data preservation are operational prerequisites to confirm before provisioning.
 
 ## Consequences
 
-Coolify owns source checkout, image build, runtime configuration, and container replacement. There is no registry image promotion or reusable immutable image artifact. Builds use host resources and the Dockerfile/base image require maintenance. Main-branch auto-deploy depends on repository branch protection; without it, the safe approved fallback is manual deployment after quality checks. Database recovery depends on verified backups, preferably copied off the Coolify host.
+The host owns checkout, build, configuration, and container replacement. There is no immutable promoted artifact; builds use host resources and the Dockerfile needs maintenance. Recovery depends on verified, preferably off-host, backups.
+
+## Implementation notes (non-binding)
+
+The host is Coolify, connected through its GitHub App with the Dockerfile build method.
 
 ## Alternatives considered
 
-- Release-please → GHCR → Coolify API: rejected for the initial deployment because it introduces publishing/tag/API credential steps without a current need for image promotion or release-based deployment.
-- Coolify Nixpacks/buildpack: valid and simpler for a conventional Node app, but not selected because the project benefits from explicit Node/pnpm setup, Nuxt/Nitro startup, health check, and migration ordering in a version-controlled Dockerfile.
-- Publish an image from CI and let Coolify pull it: rejected for the same registry/auth/tagging overhead; revisit if multiple environments need promotion of the exact same immutable artifact.
-- Add a GitHub Actions Coolify webhook: deferred; use only if green-CI-gated automatic deployment becomes necessary beyond protected merges or manual deployment.
+- Release pipeline with registry images and deploy API: rejected; overhead without a need for promotion.
+- Buildpack builds: simpler, but an explicit Dockerfile keeps runtime setup, health check, and migration order under version control.
+- CI-published image pulled by the host: rejected for the same overhead; revisit for multi-environment promotion.
+- CI webhook deploy: deferred until green-CI-gated deploys are needed beyond branch protection.
 
-## Links
+## Revisions
 
-- `docs/milestones/m24-first-release-deployment.md`
-- `PLAN.md`
-- [Coolify deployment methods](https://coolify.io/docs/applications/choose-deployment-method)
-- [Coolify Dockerfile builds](https://coolify.io/docs/applications/builds/dockerfile)
-- [Coolify GitHub auto-deploy](https://coolify.io/docs/applications/sources/github/auto-deploy)
+- 2026-11-21: Rewritten to goal-level form; host product moved to notes.

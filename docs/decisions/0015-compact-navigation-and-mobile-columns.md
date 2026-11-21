@@ -5,6 +5,8 @@
 - Supersedes: None
 - Superseded by: ADR 0035 — three-block header navigation
 
+> History, not a rule. See [ADR 0035](0035-three-block-header-navigation.md) for current intent.
+
 ## Context
 
 M7 adds universal search and removes redundant page introductions. The human requested a desktop sidebar, a full-screen mobile menu, and clarified in plan review that spaced horizontal control rows should become columns on mobile rather than wrapping unevenly.

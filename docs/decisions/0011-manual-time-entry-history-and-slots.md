@@ -7,27 +7,35 @@
 
 ## Context
 
-M4 adds ticket-linked completed-work history before the Today agenda. Time is a record of actual work, not a scheduled draft; archiving must not erase it. The human approved fixed 30-minute slots, overlap prevention and protection against deleting history in chat and the M4 Plannotator plan.
+Time entries record actual work, not a scheduled draft, so archiving a ticket must not erase them. The human chose a fixed 30-minute grid and overlap prevention.
+
+## Goal
+
+Logged time is historical truth: it survives archiving, can be corrected, and never overlaps within a user's day.
 
 ## Decision
 
-- Store date-only local calendar date and whole start/duration minutes on a required ticket, with UUIDv7 IDs and restrictive FK. For M4 require starts on 30-minute boundaries, durations in 30-minute increments and at least 30 minutes, and end ≤ midnight (24:00). Do not cross dates; allow adjacent intervals.
-- Reject overlapping half-open intervals across all owned tickets on the date, including archived history. Serialize saves per owner in PostgreSQL by locking the owner user row before checking the date's entries and writing in one transaction; keep database slot checks as backstop. No new PostgreSQL extension or dependency.
-- Archive hides tickets from normal new-work views but does not remove their entries or usage. Explicit archived ticket detail stays navigable even if a parent is archived. Allow corrections/deletion of owned historical entries, but disallow new entries or reassignment to an archived ticket/ancestor. Block permanent ticket deletion while entries exist; a restrictive FK protects against an accidental bypass.
-- Always show tracked total on ticket detail; show estimate usage only when an estimate exists, with normal <80%, warning ≥80% and red ≥100%. A configurable slot increment, day agenda and drag/drop remain future milestones.
+- An entry belongs to a required ticket and stores a local calendar date (not a timestamp) plus whole start and duration minutes.
+- Starts are on 30-minute boundaries, durations are multiples of 30 and at least 30, and an entry ends no later than midnight (24:00). Entries never cross dates; adjacent entries are allowed.
+- Overlapping half-open intervals are rejected across all of a user's tickets on that date, including archived tickets. Concurrent saves by one user are serialized, with database checks as a backstop.
+- Archiving hides tickets from new-work views but keeps their entries and usage. Archived ticket detail stays reachable by explicit link even under an archived parent.
+- Owned historical entries may be corrected or deleted. New entries, or reassignment, to an archived ticket or ancestor are disallowed. Permanent ticket deletion is blocked while entries exist.
+- Ticket detail always shows tracked total. Estimate usage shows only when an estimate exists: normal below 80%, warning from 80%, red from 100%.
 
 ## Consequences
 
-Day/time interpretation does not depend on server timezone. Cross-ticket conflict checks include all owned historical rows, and concurrent writes for the same user are serialized; this is intentionally conservative for a solo-user app. Existing child-first cleanup must account for the new restrictive FK in fixtures and future deletion workflows. Archived ticket details require an explicit archived flag; normal lists remain unchanged.
+Day interpretation does not depend on server timezone. Conflict checks read all owned historical rows and serialize per user, which is conservative but fine for a solo-user app. Cleanup fixtures and deletion flows must account for the restrictive foreign key.
+
+## Implementation notes (non-binding)
+
+- Serialization locks the owner's user row inside one transaction; restrictive FK from entries to tickets; grid checks also exist as database constraints.
 
 ## Alternatives considered
 
-- Permit overlaps until drag/drop: rejected by the human for M4.
-- Cascade-delete time with archived tickets: rejected because logged time remains historical reality.
-- Configurable 15/30-minute slots and cross-midnight entries immediately: deferred by the human in favor of a fixed 30-minute rule and midnight limit.
+- Permit overlaps until drag/drop existed: rejected.
+- Cascade-delete time with archived tickets: rejected; logged time is historical reality.
+- Configurable slot size and cross-midnight entries: deferred in favor of the fixed 30-minute rule.
 
-## Links
+## Revisions
 
-- `docs/milestones/m4-manual-time-entries.md`
-- `docs/decisions/0004-m2-core-data-model.md`
-- `docs/decisions/0007-m3-ticket-model-and-relations.md`
+- 2026-11-21: Rewritten to goal-level form; dropped milestone references and dependency/extension chatter; moved locking to notes.

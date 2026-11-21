@@ -5,6 +5,8 @@
 - Supersedes: None
 - Superseded by: [ADR 0064](0064-manual-application-testing.md)
 
+> History, not a rule. See [ADR 0064](0064-manual-application-testing.md) for current intent.
+
 ## Context
 
 GitHub Actions has repeatedly failed on an intermittent Playwright drag-resize test. The current configuration uses `trace: 'on-first-retry'` without configuring retries, and the failed run had no uploaded artifacts. Raising timeouts would not address the observed unchanged persisted value. The human directed that tests should be stable and that any Playwright-only instability should be handled with a manual rerun, not an automatic retry.

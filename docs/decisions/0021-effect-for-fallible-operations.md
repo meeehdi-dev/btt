@@ -1,34 +1,40 @@
-# ADR 0021: Effect for meaningful fallible operations
+# ADR 0021: Typed errors for meaningful fallible operations
 
 - Status: Accepted
 - Date: 2026-09-27
-- Supersedes: The Effect-use guidance in ADR 0002 only; other M0 baseline decisions remain unchanged
+- Supersedes: None
 - Superseded by: None
 
 ## Context
 
-ADR 0002 says to use Effect deliberately for domain/server logic, “not sprinkled everywhere.” That wording can be read too narrowly. The human clarified that meaningful code which can fail should use Effect so expected errors are typed and handled, while trivial/infallible uses add no value. This pass also needs one consistent principle for server operations and client workflows.
+Meaningful code that can fail should surface expected errors as typed values handled at explicit boundaries, while trivial or infallible code gains nothing from the ceremony. One consistent principle is needed for server operations and client workflows.
+
+## Goal
+
+Meaningful fallible work has typed outcomes and explicit recovery or reporting paths, on server and client alike. Pure, total code stays plain.
 
 ## Decision
 
-- Use Effect v4 for meaningful fallible application work where integration permits it, including validation, domain operations, persistence/auth/network boundaries, and UI-triggered requests or mutations.
-- Model expected failures in the typed error channel and handle them at an explicit boundary appropriate to the layer (HTTP response or accessible UI state).
-- Keep unexpected runtime/infrastructure failures distinct from expected domain failures. Preserve causes for server diagnostics, return safe external errors, and do not swallow or disguise failures as successful empty data.
-- Keep pure, total calculations and static values as ordinary values; do not wrap them in `Effect.succeed` solely for uniform syntax.
-- Preserve framework lifecycle and runtime requirements. If a fallible integration cannot use Effect without losing required behavior, document the evidence and obtain approval for an exception in the relevant milestone plan.
+- Validation, domain operations, persistence/auth/network boundaries, and UI-triggered requests model expected failures in a typed error channel.
+- Expected failures are handled at an explicit boundary for the layer: an HTTP response or an accessible UI state.
+- Unexpected runtime or infrastructure failures stay distinct from expected domain failures. Causes are kept for server diagnostics, external errors are safe, and failures are never disguised as successful empty data.
+- Pure, total calculations and static values stay ordinary values; they are not wrapped for uniform syntax.
+- Framework lifecycle and runtime requirements are preserved. If a fallible integration cannot adopt the typed approach without losing required behavior, document the evidence and get approval for the exception.
 
 ## Consequences
 
-Fallible workflows should have typed outcomes and explicit recovery or reporting paths across server and client code. Shared adapters/composables may be added where they clarify framework integration. The migration should be phased and tested because broad conversion can affect error mapping, SSR/hydration, cancellation, loading state, and user-visible behavior. Effect does not prevent defects, outages, or programming errors; the policy is to model and handle them predictably, not claim they cannot happen.
+Fallible workflows get predictable outcomes. Broad conversion can affect error mapping, SSR/hydration, cancellation, and loading state, so it should be phased and tested. Typed errors do not prevent defects or outages; they make them handled predictably.
+
+## Implementation notes (non-binding)
+
+- Effect (v4) is the current tool. Server boundary: ADR 0023. Client boundary: ADR 0024.
 
 ## Alternatives considered
 
-- Restrict Effect to selected server domain modules: rejected as the default because meaningful client-side and infrastructure failures also need typed, consistent handling.
-- Wrap all functions and constants in Effect: rejected because pure/infallible work gains no useful typed failure path.
-- Replace framework lifecycle APIs wholesale without preserving their behavior: rejected; Effect integration must retain the framework's required SSR, hydration, session, and UI semantics.
+- Limit typed errors to server domain modules: rejected; client and infrastructure failures need consistent handling too.
+- Wrap every function and constant: rejected; pure work gains no useful failure path.
+- Replace framework lifecycle APIs wholesale: rejected; SSR, hydration, and session semantics must survive.
 
-## Links
+## Revisions
 
-- `docs/decisions/0002-m0-bootstrap-baseline.md`
-- `docs/decisions/0005-m2-domain-validation-and-ui-polish.md`
-- `plans/wide-app-composability-effect-pass.md`
+- 2026-11-21: Rewritten to goal-level form; made the principle tool-neutral (Effect moved to notes); dropped the clause superseding ADR 0002 (ADR 0002 is now history).

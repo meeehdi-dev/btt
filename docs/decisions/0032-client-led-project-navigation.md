@@ -5,6 +5,8 @@
 - Supersedes: None
 - Superseded by: ADR 0033 — no compatibility route for the removed Projects collection
 
+> History, not a rule. See [ADR 0033](0033-no-compatibility-route-for-project-collection.md) for current intent.
+
 ## Context
 
 The product hierarchy is Client → Project → Release → Ticket, but the application exposed both Clients and Projects as top-level collections. Client detail already lists its projects and provides the contextual project-creation action. Keeping a separate all-projects page duplicates the collection entry point.
