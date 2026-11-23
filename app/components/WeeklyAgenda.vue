@@ -11,7 +11,7 @@ import {
   type MovePreview,
 } from '~/utils/agenda-drag'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
-import { formatAgendaDate } from '~/utils/agenda-week'
+import { formatAgendaDate, formatHours, minutesByDate } from '~/utils/agenda-week'
 
 type Row = AgendaTicketFields & {
   entry: {
@@ -43,7 +43,6 @@ const props = defineProps<{
   currentMinute: number | null
   rows: Row[]
   occupied: Row[]
-  trackedMinutesByDate: Record<string, number>
   start: number
   end: number
   workDayDurationMinutes: number
@@ -97,19 +96,20 @@ function column(date: string) {
 }
 const clock = (minute: number) =>
   `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`
+const trackedMinutesByDate = computed(() => minutesByDate(props.rows))
 function progressValue(date: string) {
-  return Math.min(props.trackedMinutesByDate[date] ?? 0, props.workDayDurationMinutes)
+  return Math.min(trackedMinutesByDate.value[date] ?? 0, props.workDayDurationMinutes)
 }
 function overtime(date: string) {
-  return Math.max(0, (props.trackedMinutesByDate[date] ?? 0) - props.workDayDurationMinutes)
+  return Math.max(0, (trackedMinutesByDate.value[date] ?? 0) - props.workDayDurationMinutes)
 }
 function progressText(date: string) {
-  const tracked = props.trackedMinutesByDate[date] ?? 0
+  const tracked = trackedMinutesByDate.value[date] ?? 0
   const extra = overtime(date)
   return `Worked ${formatTicketEstimate(tracked)} of ${formatTicketEstimate(props.workDayDurationMinutes)} target${extra ? `; ${formatTicketEstimate(extra)} overtime` : ''}`
 }
 function progressSegments(date: string) {
-  const tracked = props.trackedMinutesByDate[date] ?? 0
+  const tracked = trackedMinutesByDate.value[date] ?? 0
   if (tracked <= props.workDayDurationMinutes) return [{ value: tracked, color: 'info' as const }]
   const extra = Math.min(tracked - props.workDayDurationMinutes, props.workDayDurationMinutes)
   return [
@@ -412,6 +412,9 @@ function hiddenRows(date: string) {
               />
             </div>
           </UTooltip>
+          <span aria-hidden="true" class="shrink-0 text-xs text-muted tabular-nums">{{
+            formatHours(trackedMinutesByDate[date] ?? 0)
+          }}</span>
         </div>
       </section>
       <div class="relative" :style="{ height: `${(end - start) * pixelsPerMinute}px` }">

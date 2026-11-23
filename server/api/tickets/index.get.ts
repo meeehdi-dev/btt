@@ -1,15 +1,7 @@
 import { Effect } from 'effect'
-import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '../../db'
-import {
-  client,
-  project,
-  release,
-  ticket,
-  ticketLink,
-  ticketRelation,
-  timeEntry,
-} from '../../db/schema'
+import { client, project, release, ticket, ticketLink, timeEntry } from '../../db/schema'
 import { includeArchived, queryOf, requireUserId, validation } from '../../utils/domain'
 import { promiseEffect } from '../../utils/effect'
 import { defineEffectHandler } from '../../utils/effect-handler'
@@ -52,11 +44,7 @@ export default defineEffectHandler((event) =>
             validReleaseId ? eq(release.id, validReleaseId) : undefined,
           ),
         )
-        .orderBy(
-          desc(sql`case when ${ticket.estimateMinutes} is null then 0 else 1 end`),
-          desc(ticket.createdAt),
-          desc(ticket.id),
-        ),
+        .orderBy(desc(ticket.createdAt), desc(ticket.id)),
     )
     const quietCandidates = boardView
       ? tickets.filter(
@@ -106,17 +94,6 @@ export default defineEffectHandler((event) =>
     const ids = visibleTickets.map(({ ticket: record }) => record.id)
     if (!ids.length) return { tickets: [] }
 
-    const relations = yield* promiseEffect('load ticket relations', () =>
-      db
-        .select({
-          fromTicketId: ticketRelation.fromTicketId,
-          toTicketId: ticketRelation.toTicketId,
-        })
-        .from(ticketRelation)
-        .where(
-          or(inArray(ticketRelation.fromTicketId, ids), inArray(ticketRelation.toTicketId, ids)),
-        ),
-    )
     const [usage, links] = yield* promiseEffect('load ticket usage and links', () =>
       Promise.all([
         db
@@ -140,52 +117,13 @@ export default defineEffectHandler((event) =>
       ]),
     )
     const minutesByTicket = new Map(usage.map((row) => [row.ticketId, row.minutes]))
-    const relatedIds = [
-      ...new Set(relations.flatMap(({ fromTicketId, toTicketId }) => [fromTicketId, toTicketId])),
-    ]
-    const validTargets = relatedIds.length
-      ? yield* promiseEffect('load visible related tickets', () =>
-          db
-            .select({ id: ticket.id, title: ticket.title })
-            .from(ticket)
-            .innerJoin(release, eq(ticket.releaseId, release.id))
-            .innerJoin(project, eq(release.projectId, project.id))
-            .innerJoin(client, eq(project.clientId, client.id))
-            .where(
-              and(
-                inArray(ticket.id, relatedIds),
-                eq(client.userId, userId),
-                isNull(ticket.archivedAt),
-                isNull(release.archivedAt),
-                isNull(project.archivedAt),
-                isNull(client.archivedAt),
-              ),
-            ),
-        )
-      : []
-    const targetById = new Map(validTargets.map((target) => [target.id, target]))
-    const boardIds = new Set(ids)
-    const relatedById = new Map<string, { id: string; title: string }[]>()
     const linksById = new Map<string, { id: string; label: string | null; url: string }[]>()
     for (const { id, ticketId, label, url } of links)
       linksById.set(ticketId, [...(linksById.get(ticketId) ?? []), { id, label, url }])
-    for (const { fromTicketId, toTicketId } of relations) {
-      for (const [source, targetId] of [
-        [fromTicketId, toTicketId],
-        [toTicketId, fromTicketId],
-      ] as const) {
-        if (!boardIds.has(source)) continue
-        const target = targetById.get(targetId)
-        if (target) relatedById.set(source, [...(relatedById.get(source) ?? []), target])
-      }
-    }
     return {
       tickets: visibleTickets.map(({ releaseTargetDate: _releaseTargetDate, ...item }) => ({
         ...item,
         trackedMinutes: minutesByTicket.get(item.ticket.id) ?? 0,
-        relatedTickets: (relatedById.get(item.ticket.id) ?? []).toSorted(
-          (a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id),
-        ),
         externalLinks: linksById.get(item.ticket.id) ?? [],
       })),
     }

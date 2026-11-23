@@ -7,7 +7,6 @@ import {
   ticketPriorityOptions,
   type TicketPriorityOptionValue,
 } from '#shared/ticket-priority'
-import { parseTicketEstimate } from '~/utils/ticket-estimate'
 import { ticketLinkLabel } from '~/utils/ticket-link-label'
 import {
   modalFormShortcutContent,
@@ -39,19 +38,8 @@ const {
   resources: ['releases', 'hierarchy', 'search'],
 })
 const releases = computed(() => releaseData.value?.releases ?? [])
-const {
-  data: ticketData,
-  error: ticketsError,
-  refresh: refreshTickets,
-} = await trackAppApiFetch(useApiFetch('/api/tickets', { key: 'app-api:tickets:list:active' }), {
-  key: 'app-api:tickets:list:active',
-  resources: ['tickets', 'hierarchy', 'time-entries', 'search'],
-})
-const tickets = computed(() => ticketData.value?.tickets ?? [])
 const releaseSearchInput = useSelectSearchInput('Search releases…')
 const releasePickerOpen = ref(false)
-const relatedTicketSearchInput = useSelectSearchInput('Search tickets…')
-const relatedTicketPickerOpen = ref(false)
 const releaseId = ref(props.initialReleaseId)
 watch(
   [releases, () => props.initialReleaseId],
@@ -66,33 +54,19 @@ watch(
 )
 const title = ref('')
 const description = ref('')
-const estimate = ref('')
 const priorityOption = ref<TicketPriorityOptionValue>('none')
 const selectedPriority = computed(() => ticketPriorityFromOption(priorityOption.value) ?? null)
 const links = ref<{ label: string; url: string }[]>([])
-const relatedTicketIds = ref<string[]>([])
-const selectedRelation = ref('')
 const linkModalOpen = ref(false)
-const relationModalOpen = ref(false)
 const linkDraftLabel = ref('')
 const linkDraftUrl = ref('')
 const linkError = ref('')
-const relationError = ref('')
 const pending = ref(false)
 const errorMessage = ref('')
 watch(pending, (value) => emit('pendingChange', value))
-watch(
-  () => relationModalOpen.value && !ticketsError.value,
-  (ready) => {
-    relatedTicketPickerOpen.value = ready
-  },
-)
 
 const selectedRelease = computed(() =>
   releases.value.find((item) => item.release.id === releaseId.value),
-)
-const availableRelations = computed(() =>
-  tickets.value.filter((item) => !relatedTicketIds.value.includes(item.ticket.id)),
 )
 const canSubmit = computed(
   () =>
@@ -103,10 +77,6 @@ const canSubmit = computed(
 function selectRelease(id: string) {
   releaseId.value = id
   releasePickerOpen.value = false
-}
-function selectRelatedTicket(id: string) {
-  selectedRelation.value = id
-  relatedTicketPickerOpen.value = false
 }
 function openLinkModal() {
   linkDraftLabel.value = ''
@@ -124,32 +94,12 @@ function saveDraftLink() {
     linkError.value = 'Enter a valid http or https URL.'
   }
 }
-function openRelationModal() {
-  relationError.value = ''
-  relationModalOpen.value = true
-}
-function addRelation() {
-  if (
-    selectedRelation.value &&
-    availableRelations.value.some((item) => item.ticket.id === selectedRelation.value)
-  )
-    relatedTicketIds.value.push(selectedRelation.value)
-  selectedRelation.value = ''
-  relationModalOpen.value = false
-}
 
 async function submit() {
   if (!canSubmit.value) return
   pending.value = true
   errorMessage.value = ''
   try {
-    let estimateMinutes: number | null
-    try {
-      estimateMinutes = parseTicketEstimate(estimate.value)
-    } catch (cause) {
-      errorMessage.value = cause instanceof Error ? cause.message : 'Enter a valid estimate.'
-      return
-    }
     const result = await runClientRequest((signal) =>
       $fetch<{ id: string }>('/api/tickets', {
         method: 'POST',
@@ -157,10 +107,8 @@ async function submit() {
           releaseId: releaseId.value,
           title: title.value.trim(),
           description: description.value,
-          estimateMinutes,
           priority: selectedPriority.value,
           links: links.value.map(({ label, url }) => ({ ...(label ? { label } : {}), url })),
-          relatedTicketIds: relatedTicketIds.value,
         },
         signal,
       }),
@@ -248,15 +196,6 @@ async function submit() {
       <UFormField label="Description" hint="Optional">
         <UTextarea v-model="description" class="w-full" :disabled="pending" />
       </UFormField>
-      <UFormField label="Estimate" hint="Optional · try 1hr 30m or 90 (minutes)">
-        <UInput
-          v-model="estimate"
-          type="text"
-          class="w-full"
-          placeholder="1hr 30m"
-          :disabled="pending"
-        />
-      </UFormField>
       <UFormField label="Priority" hint="Optional">
         <USelect
           v-model="priorityOption"
@@ -310,57 +249,6 @@ async function submit() {
           </li>
         </ul>
         <p v-else class="text-sm text-muted">No external links added.</p>
-      </div>
-
-      <div class="space-y-2 border-t border-muted pt-3">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="font-medium text-highlighted">Related tickets</h2>
-          <UButton
-            type="button"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            icon="lucide:plus"
-            label="Link ticket"
-            :disabled="pending || !!ticketsError || !availableRelations.length"
-            @click="openRelationModal"
-          />
-        </div>
-        <div v-if="ticketsError" class="space-y-2">
-          <UAlert
-            role="alert"
-            color="error"
-            title="Could not load related tickets"
-            :description="`${clientFailureMessage(ticketsError)} You can still create this ticket without a relation.`"
-          />
-          <UButton
-            color="neutral"
-            variant="outline"
-            icon="lucide:refresh-cw"
-            label="Retry loading related tickets"
-            @click="refreshTickets()"
-          />
-        </div>
-        <ul v-if="relatedTicketIds.length" class="space-y-2">
-          <li
-            v-for="relatedId in relatedTicketIds"
-            :key="relatedId"
-            class="flex items-center justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-2 py-1"
-          >
-            <span class="truncate text-sm">{{
-              tickets.find((item) => item.ticket.id === relatedId)?.ticket.title
-            }}</span>
-            <UButton
-              type="button"
-              color="error"
-              variant="ghost"
-              icon="lucide:x"
-              :aria-label="`Remove ${tickets.find((item) => item.ticket.id === relatedId)?.ticket.title}`"
-              @click="relatedTicketIds = relatedTicketIds.filter((id) => id !== relatedId)"
-            />
-          </li>
-        </ul>
-        <p v-else-if="!ticketsError" class="text-sm text-muted">No related tickets added.</p>
       </div>
 
       <UAlert v-if="errorMessage" role="alert" color="error" title="Could not create ticket">
@@ -437,67 +325,6 @@ async function submit() {
             icon="lucide:plus"
             label="Add link"
             :disabled="pending"
-            aria-keyshortcuts="Meta+Enter Control+Enter"
-          />
-        </div>
-      </form>
-    </template>
-  </UModal>
-
-  <UModal
-    v-model:open="relationModalOpen"
-    title="Link a related ticket"
-    description="Choose another ticket to include when this ticket is created."
-    :content="modalFormShortcutContent()"
-    :dismissible="!pending"
-  >
-    <template #body>
-      <form
-        class="space-y-3"
-        @keydown.capture="submitModalFormOnShortcut"
-        @submit.prevent="addRelation"
-      >
-        <UAlert
-          v-if="relationError"
-          role="alert"
-          color="error"
-          title="Could not add related ticket"
-          :description="relationError"
-        />
-        <UFormField label="Ticket" required>
-          <USelectMenu
-            :model-value="selectedRelation"
-            v-model:open="relatedTicketPickerOpen"
-            value-key="value"
-            :items="
-              availableRelations.map((item) => ({
-                label: `${item.ticket.title} · ${item.releaseName}`,
-                value: item.ticket.id,
-              }))
-            "
-            :search-input="relatedTicketSearchInput"
-            aria-label="Choose related ticket"
-            class="w-full"
-            placeholder="Choose ticket"
-            :disabled="pending || !!ticketsError"
-            @update:model-value="selectRelatedTicket"
-          />
-        </UFormField>
-        <div class="flex justify-end gap-2">
-          <UButton
-            type="button"
-            color="neutral"
-            variant="ghost"
-            icon="lucide:x"
-            label="Cancel"
-            :disabled="pending"
-            @click="relationModalOpen = false"
-          />
-          <UButton
-            type="submit"
-            icon="lucide:link-2"
-            label="Add related ticket"
-            :disabled="pending || !selectedRelation || !!ticketsError"
             aria-keyshortcuts="Meta+Enter Control+Enter"
           />
         </div>

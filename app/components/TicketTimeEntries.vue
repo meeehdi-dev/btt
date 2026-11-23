@@ -3,11 +3,9 @@ import { trackAppApiFetch, useAppDataInvalidation } from '~/composables/useAppDa
 import { useAppToast } from '~/composables/useAppToast'
 import { CalendarDate, getLocalTimeZone, parseDate, Time, today } from '@internationalized/date'
 import { formatTicketEstimate } from '~/utils/ticket-estimate'
-import { usageColor } from '#shared/time-entry'
 
 const props = defineProps<{
   ticketId: string
-  estimateMinutes: number | null
   canCreate: boolean
 }>()
 const timeEntriesKey = computed(() => `app-api:time-entries:${props.ticketId}`)
@@ -34,20 +32,6 @@ const actionError = ref('')
 const actionNeedsRefresh = ref(false)
 const actionErrorTitle = ref('Could not save time entry')
 const minutes = computed(() => data.value?.trackedMinutes ?? 0)
-const percentage = computed(() =>
-  props.estimateMinutes ? Math.floor((minutes.value / props.estimateMinutes) * 100) : null,
-)
-const textClasses = {
-  info: 'text-info',
-  success: 'text-success',
-  warning: 'text-warning',
-  error: 'text-error',
-} as const
-const trackedTextClass = computed(() =>
-  props.estimateMinutes
-    ? textClasses[usageColor(minutes.value, props.estimateMinutes)]
-    : 'text-muted',
-)
 const durations = Array.from({ length: 48 }, (_, i) => ({
   label: formatTicketEstimate((i + 1) * 30),
   value: (i + 1) * 30,
@@ -164,22 +148,9 @@ async function remove(id: string) {
     >
       <h2 class="font-medium text-highlighted">Tracked time</h2>
       <div class="flex flex-wrap items-center gap-2 text-sm">
-        <span
-          :aria-label="`Tracked: ${formatTicketEstimate(minutes)}${estimateMinutes ? ` of ${formatTicketEstimate(estimateMinutes)}` : ''}`"
-          class="inline-flex items-center gap-1"
-          ><span :class="trackedTextClass" class="font-medium">{{
-            formatTicketEstimate(minutes)
-          }}</span
-          ><span v-if="estimateMinutes" class="text-muted"
-            >/ {{ formatTicketEstimate(estimateMinutes) }}</span
-          ></span
-        >
-        <UBadge
-          v-if="percentage !== null"
-          :color="usageColor(minutes, estimateMinutes!)"
-          :aria-label="`Estimate usage: ${percentage}%`"
-          >{{ percentage }}%</UBadge
-        >
+        <span :aria-label="`Tracked: ${formatTicketEstimate(minutes)}`" class="text-muted">{{
+          formatTicketEstimate(minutes)
+        }}</span>
       </div>
     </div>
     <UAlert

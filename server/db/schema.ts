@@ -9,7 +9,6 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 import { ticketPriorities } from '../../shared/ticket-priority'
@@ -127,18 +126,11 @@ export const ticket = pgTable(
     description: text('description').notNull().default(''),
     status: ticketStatus('status').notNull().default('Idea'),
     priority: ticketPriority('priority'),
-    estimateMinutes: integer('estimate_minutes'),
     archivedAt: timestamp('archived_at'),
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
   },
-  (table) => [
-    index('ticket_release_id_idx').on(table.releaseId),
-    check(
-      'ticket_estimate_positive_check',
-      sql`${table.estimateMinutes} is null or ${table.estimateMinutes} > 0`,
-    ),
-  ],
+  (table) => [index('ticket_release_id_idx').on(table.releaseId)],
 )
 
 export const ticketLink = pgTable(
@@ -152,24 +144,6 @@ export const ticketLink = pgTable(
     url: text('url').notNull(),
   },
   (table) => [index('ticket_link_ticket_id_idx').on(table.ticketId)],
-)
-
-export const ticketRelation = pgTable(
-  'ticket_relation',
-  {
-    id: uuid('id').primaryKey(),
-    fromTicketId: uuid('from_ticket_id')
-      .notNull()
-      .references(() => ticket.id, { onDelete: 'restrict' }),
-    toTicketId: uuid('to_ticket_id')
-      .notNull()
-      .references(() => ticket.id, { onDelete: 'restrict' }),
-  },
-  (table) => [
-    uniqueIndex('ticket_relation_pair_idx').on(table.fromTicketId, table.toTicketId),
-    index('ticket_relation_to_idx').on(table.toTicketId),
-    check('ticket_relation_order_check', sql`${table.fromTicketId} < ${table.toTicketId}`),
-  ],
 )
 
 export const userSettings = pgTable(
@@ -234,7 +208,6 @@ export const appSchema = {
   release,
   ticket,
   ticketLink,
-  ticketRelation,
   timeEntry,
   userSettings,
 }

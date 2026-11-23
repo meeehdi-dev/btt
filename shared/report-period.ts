@@ -1,4 +1,3 @@
-import { parseDate as parseZonedDate } from '@internationalized/date'
 import {
   addCalendarDays as addDays,
   formatCalendarDate as formatDate,
@@ -16,32 +15,12 @@ export type ReportPeriodRange = {
   previousEndDate: string
 }
 
-export type ReportCompletionBounds = {
-  startInstant: string
-  endInstant: string
-}
-
 export function resolveReportTimeZone(timeZone: string): string | null {
   try {
     return new Intl.DateTimeFormat('en', { timeZone }).resolvedOptions().timeZone
   } catch {
     return null
   }
-}
-
-export function getReportCompletionBounds(
-  range: Pick<ReportPeriodRange, 'startDate' | 'endDate'>,
-  timeZone: string,
-): ReportCompletionBounds | null {
-  const zone = resolveReportTimeZone(timeZone)
-  const nextDate = addDays(range.endDate, 1)
-  if (!zone || !validDate(range.startDate) || !nextDate || range.startDate > range.endDate)
-    return null
-  const start = parseZonedDate(range.startDate).toDate(zone)
-  const end = parseZonedDate(nextDate).toDate(zone)
-  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end)
-    return null
-  return { startInstant: start.toISOString(), endInstant: end.toISOString() }
 }
 
 function startOfMonth(value: string): string | null {

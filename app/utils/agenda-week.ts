@@ -31,3 +31,16 @@ export function localizedWeekdays(locale?: string): { label: string; value: numb
     value,
   }))
 }
+
+export function formatHours(minutes: number): string {
+  return `${Number((minutes / 60).toFixed(1))}h`
+}
+
+export function minutesByDate(
+  rows: { entry: { date: string; durationMinutes: number } }[],
+): Record<string, number> {
+  const totals: Record<string, number> = {}
+  for (const { entry } of rows)
+    totals[entry.date] = (totals[entry.date] ?? 0) + entry.durationMinutes
+  return totals
+}

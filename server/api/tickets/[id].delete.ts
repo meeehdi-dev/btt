@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
-import { eq, or } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db } from '../../db'
-import { ticket, ticketLink, ticketRelation, timeEntry } from '../../db/schema'
+import { ticket, ticketLink, timeEntry } from '../../db/schema'
 import { ownedTicket, ticketId } from '../../domain/tickets'
 import { conflict } from '../../utils/domain'
 import { promiseEffect } from '../../utils/effect'
@@ -21,9 +21,6 @@ export default defineEffectHandler((event) =>
     yield* promiseEffect('delete ticket and related records', () =>
       db.transaction(async (tx) => {
         await tx.delete(ticketLink).where(eq(ticketLink.ticketId, id))
-        await tx
-          .delete(ticketRelation)
-          .where(or(eq(ticketRelation.fromTicketId, id), eq(ticketRelation.toTicketId, id)))
         await tx.delete(ticket).where(eq(ticket.id, id))
       }),
     )

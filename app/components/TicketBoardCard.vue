@@ -5,7 +5,7 @@ import type { Ticket } from '../../server/db/schema'
 
 type BoardTicket = Pick<
   Ticket,
-  'id' | 'title' | 'description' | 'status' | 'priority' | 'estimateMinutes' | 'releaseId'
+  'id' | 'title' | 'description' | 'status' | 'priority' | 'releaseId'
 > & {
   archivedAt: string | null
 }
@@ -19,13 +19,11 @@ const props = defineProps<{
     projectId: string
     projectName: string
     releaseName: string
-    relatedTickets: { id: string; title: string }[]
     externalLinks: { id: string; label: string | null; url: string }[]
   }
   changing: boolean
   busy: boolean
   priorityBusy: boolean
-  highlighted: boolean
 }>()
 const hierarchyItems = computed(() => [
   {
@@ -50,8 +48,6 @@ const hierarchyItems = computed(() => [
 const emit = defineEmits<{
   'drag-start': [event: DragEvent]
   'drag-end': []
-  'related-hover': [id: string | null]
-  'related-click': [event: MouseEvent, id: string]
   'change-status': [id: string, status: TicketStatus]
   'change-priority': [id: string, priority: TicketPriorityValue]
   filter: [kind: 'client' | 'project' | 'release', id: string]
@@ -86,7 +82,6 @@ function dragEnd() {
     content-interactive
     :class="[
       'text-xs',
-      highlighted ? 'border-primary/50' : '',
       !item.ticket.archivedAt && !busy ? 'cursor-grab active:cursor-grabbing' : '',
     ]"
     @pointerdown="pointerDown"
@@ -103,8 +98,6 @@ function dragEnd() {
         :status="item.ticket.status"
         :title-hint="item.ticket.title"
         :tracked-minutes="item.trackedMinutes"
-        :estimate-minutes="item.ticket.estimateMinutes"
-        :show-percentage="false"
         usage-text-size="xs"
         usage-placement="header"
         header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
@@ -151,14 +144,7 @@ function dragEnd() {
           @filter="(kind, id) => emit('filter', kind, id)"
         >
           <template #trailing>
-            <TicketContextPopovers
-              class="shrink-0"
-              :related-tickets="item.relatedTickets"
-              :external-links="item.externalLinks"
-              compact
-              @related-hover="emit('related-hover', $event)"
-              @related-click="(event, id) => emit('related-click', event, id)"
-            />
+            <TicketContextPopovers class="shrink-0" :external-links="item.externalLinks" compact />
           </template>
         </TicketHierarchyBadges>
       </div>

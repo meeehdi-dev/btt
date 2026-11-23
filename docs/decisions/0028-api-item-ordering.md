@@ -17,16 +17,16 @@ Ordinary edits never reorder collections, so users can find items where they lef
 
 - Clients and projects: `createdAt` DESC, then ID DESC.
 - Releases (one shared rule everywhere): undated first; then target date ASC; then name ASC; then `createdAt` DESC; then ID ASC only when creation times tie.
-- Tickets: estimated before unestimated, then `createdAt` DESC and ID DESC within each group. Not by estimate amount.
+- Tickets: `createdAt` DESC, then ID DESC.
 - Global search ranks by `updatedAt` DESC with an ID tie-break.
 - Agenda entries are chronological by start minute and ID. Ticket time history is date DESC, start minute DESC, ID DESC.
-- Ticket-detail external links by label ASC/ID ASC; related tickets by title ASC/ID ASC.
+- Ticket-detail external links by label ASC/ID ASC.
 - `updatedAt` keeps updating on edits but is not used for ordering except search.
 - Release detail partitions its tickets into unfinished first (including On hold), then a full-width separator labeled Done and a Done section below, keeping API order within each section. Empty sections and the separator are omitted; with no tickets, the single empty state shows. A status change across the Done boundary moves the card after refresh. Done tickets stay visible and fully interactive; there is no filter or collapse. Completion counts use the full list.
 
 ## Consequences
 
-Edits do not reorder lists; a status change still moves a ticket to the right Board lane or release section, and changing estimate presence moves it between estimate groups. Release API and project detail agree. Completed work stays visible without burying unfinished work. No schema or stored order field.
+Edits do not reorder lists; a status change still moves a ticket to the right Board lane or release section. Release API and project detail agree. Completed work stays visible without burying unfinished work. No schema or stored order field.
 
 ## Implementation notes (non-binding)
 
@@ -43,3 +43,4 @@ Release ordering is the shared `compareReleases`. The Done partition lives in th
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; folded ADR 0063's Done-section ordering clause.
+- 2026-11-23: Estimate grouping and related-ticket ordering removed (ADR 0067); tickets sort by `createdAt` DESC, ID DESC.

@@ -515,10 +515,8 @@ async function markDone() {
                       :status="item.ticket.status"
                       :title-hint="item.ticket.title"
                       :tracked-minutes="item.trackedMinutes"
-                      :estimate-minutes="item.ticket.estimateMinutes"
                       heading-tag="h2"
                       usage-placement="header"
-                      :show-percentage="false"
                       header-class="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap"
                       title-class="inline-flex min-w-0 items-center gap-1 font-medium text-highlighted"
                       title-text-class="truncate"
@@ -588,11 +586,7 @@ async function markDone() {
                         />
                       </template>
                     </USelect>
-                    <TicketContextPopovers
-                      class="shrink-0"
-                      :related-tickets="item.relatedTickets"
-                      :external-links="item.externalLinks"
-                    />
+                    <TicketContextPopovers class="shrink-0" :external-links="item.externalLinks" />
                   </div>
                 </template>
               </EntityCard>

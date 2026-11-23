@@ -4,7 +4,6 @@ import {
   TicketCreate,
   TicketLinkCreate,
   TicketLinkUpdate,
-  TicketRelationCreate,
   TicketUpdate,
 } from '../../server/domain/schemas'
 import { nextStatus, ticketStatuses, ticketStatusIcons } from '../../shared/ticket-status'
@@ -43,7 +42,7 @@ describe('ticket workflow', () => {
       Done: 'lucide:circle-check',
     })
   })
-  it('validates create/update estimates, status, and priority', async () => {
+  it('validates create/update status, and priority', async () => {
     expect(ticketPriority.enumValues).toEqual(ticketPriorities)
     for (const priority of ticketPriorities) {
       await expect(
@@ -63,30 +62,16 @@ describe('ticket workflow', () => {
       decode(TicketCreate, { releaseId: 'r', title: 'Work', priority: 'on-hold' }),
     ).rejects.toThrow()
     await expect(
-      decode(TicketCreate, { releaseId: 'r', title: 'Work', estimateMinutes: 30 }),
-    ).resolves.toBeTruthy()
-    await expect(
-      decode(TicketCreate, { releaseId: 'r', title: 'Work', estimateMinutes: 0 }),
-    ).rejects.toThrow()
-    await expect(
-      decode(TicketCreate, { releaseId: 'r', title: 'Work', estimateMinutes: 1.5 }),
-    ).rejects.toThrow()
-    await expect(
       decode(TicketCreate, { releaseId: 'r', title: 'Work', status: 'Blocked' }),
     ).rejects.toThrow()
-    await expect(decode(TicketUpdate, { status: 'Done', estimateMinutes: null })).resolves.toEqual({
-      status: 'Done',
-      estimateMinutes: null,
-    })
     await expect(decode(TicketCreate, { releaseId: 'r', title: ' ' })).rejects.toThrow()
     await expect(
       decode(TicketCreate, {
         releaseId: 'r',
         title: 'Linked work',
         links: [{ label: 'PR', url: 'https://example.com' }],
-        relatedTicketIds: ['other'],
       }),
-    ).resolves.toMatchObject({ links: [{ label: 'PR' }], relatedTicketIds: ['other'] })
+    ).resolves.toMatchObject({ links: [{ label: 'PR' }] })
     await expect(
       decode(TicketCreate, {
         releaseId: 'r',
@@ -122,7 +107,6 @@ describe('ticket workflow', () => {
     await expect(decode(TicketLinkUpdate, { url: 'https://example.com' })).resolves.toMatchObject({
       url: 'https://example.com',
     })
-    await expect(decode(TicketRelationCreate, { ticketId: 't' })).resolves.toBeTruthy()
     expect(externalUrl('https://example.com/path')).toBe('https://example.com/path')
     expect(ticketLinkLabel('Pull request', 'https://example.com/pr')).toBe('Pull request')
     expect(ticketLinkLabel(null, 'https://jira.atlassian.com/browse/NXMR-1')).toBe(

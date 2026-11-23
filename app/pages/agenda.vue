@@ -654,6 +654,8 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
           />
         </UTooltip>
       </div>
+      <USeparator orientation="vertical" decorative class="h-6 shrink-0" />
+      <TicketCreateModal :initial-release-id="filters.release" />
     </div>
     <p v-if="!filterSources.length && !ticketsError" class="text-sm text-muted">
       No entries or active tickets available for filtering.
@@ -931,7 +933,6 @@ const target = computed(() => settings.value?.workDayDurationMinutes ?? 480)
           :current-minute="currentMinute"
           :rows="filtered"
           :occupied="weekAgenda?.entries ?? []"
-          :tracked-minutes-by-date="weekAgenda?.trackedMinutesByDate ?? {}"
           :start="settings?.visibleStartMinute ?? 480"
           :end="settings?.visibleEndMinute ?? 1200"
           :work-day-duration-minutes="target"

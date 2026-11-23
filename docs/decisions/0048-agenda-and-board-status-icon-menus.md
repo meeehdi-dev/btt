@@ -19,7 +19,7 @@ A ticket's status can be changed directly and similarly from Agenda entries and 
 - The menu marks the current status and disables options for archived or busy tickets. Each surface keeps its existing status write, refresh, error, retry and accessibility behavior; no API, schema or transition rules change.
 - Board drag-and-drop is desktop-only (no touch drag) and remains: an active card can be grabbed from any non-interactive surface; the drag image follows the pointer; the target lane is highlighted with usable top/bottom drop space in populated lanes; every status is a valid destination; lanes scroll at edges and moves save to the server. The menu supplements drag.
 - There is no next-status arrow and no per-card arbitrary-status selector on the Board.
-- Missing estimates are not shown as placeholder text on cards, detail or release views; actual estimates show with their clock icon. Adjacent empty separators/footers are suppressed.
+- Adjacent empty separators/footers on cards, detail or release views are suppressed.
 
 ## Consequences
 
@@ -40,3 +40,4 @@ Agenda entries have one status action near the ticket identity. Board cards gain
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; absorbed ADR 0010 (full-card Board drag, no per-card selector, hidden missing estimates) and ADR 0013 (no next-status arrow); the earlier deferred non-drag gap is closed by the icon menu.
+- 2026-11-23: Estimate display removed (ADR 0067); the missing-estimate placeholder rule is dropped; only empty separator/footer suppression remains.

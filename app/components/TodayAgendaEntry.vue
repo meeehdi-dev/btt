@@ -172,11 +172,7 @@ const hierarchyItems = computed(() => [
         @filter="(kind, id) => emit('filter', kind, id)"
       >
         <template #trailing>
-          <TicketContextPopovers
-            :related-tickets="row.relatedTickets"
-            :external-links="row.externalLinks"
-            :compact="compactTimeline"
-          />
+          <TicketContextPopovers :external-links="row.externalLinks" :compact="compactTimeline" />
         </template>
       </TicketHierarchyBadges>
     </div>

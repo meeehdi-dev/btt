@@ -16,7 +16,6 @@ export type AgendaTicketFields = {
   clientArchivedAt: string | null
   status: TicketStatus
   priority: TicketPriorityValue
-  relatedTickets: { id: string; title: string; archived: boolean }[]
   externalLinks: { id: string; label: string | null; url: string }[]
 }
 

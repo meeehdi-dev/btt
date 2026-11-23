@@ -249,26 +249,6 @@ function findVisibleBoardCard(id: string) {
   )
 }
 
-const hoveredTargetId = ref<string | null>(null)
-const pinnedTargetId = ref<string | null>(null)
-const highlightedId = computed(() => hoveredTargetId.value ?? pinnedTargetId.value)
-async function locateRelated(event: MouseEvent, id: string) {
-  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-  event.preventDefault()
-  const target = visibleTickets.value.find((item) => item.ticket.id === id)
-  if (!target) {
-    await navigateTo(`/tickets/${id}`) // A release- or filter-hidden target is outside this board.
-    return
-  }
-  pinnedTargetId.value = id
-  await waitForBoardLayout()
-  findVisibleBoardCard(id)?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'center',
-    inline: 'center',
-  })
-}
-
 function findActiveTicket(id: string) {
   const source = tickets.value.find(({ ticket }) => ticket.id === id)
   return source && !source.ticket.archivedAt ? source : null
@@ -519,13 +499,10 @@ async function changePriority(id: string, destination: TicketPriorityValue, rest
               :changing="changing === item.ticket.id"
               :busy="!!changing || !!priorityChangingId"
               :priority-busy="!!changing || priorityChangingId === item.ticket.id"
-              :highlighted="highlightedId === item.ticket.id"
               @drag-start="startDrag($event, item.ticket.id)"
               @drag-end="clearDrag"
               @change-status="moveStatus"
               @change-priority="changePriority"
-              @related-hover="hoveredTargetId = $event"
-              @related-click="locateRelated"
               @filter="applyFilter"
             />
             <p

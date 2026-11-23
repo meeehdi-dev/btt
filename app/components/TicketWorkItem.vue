@@ -3,28 +3,23 @@ import { ticketStatusIcon, type TicketStatus } from '#shared/ticket-status'
 
 type Mode = 'entry' | 'ticket-summary'
 
-withDefaults(
-  defineProps<{
-    mode: Mode
-    title: string
-    status: TicketStatus
-    to?: string
-    timeLabel?: string
-    trackedMinutes?: number
-    estimateMinutes?: number | null
-    showPercentage?: boolean
-    usageTextSize?: 'xs' | 'sm'
-    headingTag?: 'span' | 'h2'
-    headerClass?: string
-    titleClass?: string
-    titleTextClass?: string
-    titleHint?: string
-    usageClass?: string
-    usagePlacement?: 'header' | 'below'
-    headerUsageClass?: string
-  }>(),
-  { showPercentage: true },
-)
+defineProps<{
+  mode: Mode
+  title: string
+  status: TicketStatus
+  to?: string
+  timeLabel?: string
+  trackedMinutes?: number
+  usageTextSize?: 'xs' | 'sm'
+  headingTag?: 'span' | 'h2'
+  headerClass?: string
+  titleClass?: string
+  titleTextClass?: string
+  titleHint?: string
+  usageClass?: string
+  usagePlacement?: 'header' | 'below'
+  headerUsageClass?: string
+}>()
 </script>
 
 <template>
@@ -132,12 +127,7 @@ withDefaults(
         :class="headerUsageClass ?? 'shrink-0'"
         aria-label="Ticket usage"
       >
-        <TicketTrackedUsage
-          :minutes="trackedMinutes ?? 0"
-          :estimate-minutes="estimateMinutes ?? null"
-          :show-percentage="showPercentage"
-          :text-size="usageTextSize"
-        />
+        <TicketTrackedUsage :minutes="trackedMinutes ?? 0" :text-size="usageTextSize" />
       </div>
       <slot name="title-trailing" />
     </div>
@@ -147,12 +137,7 @@ withDefaults(
       :class="usageClass ?? 'mt-1 flex min-w-0 items-center'"
       aria-label="Ticket usage"
     >
-      <TicketTrackedUsage
-        :minutes="trackedMinutes ?? 0"
-        :estimate-minutes="estimateMinutes ?? null"
-        :show-percentage="showPercentage"
-        :text-size="usageTextSize"
-      />
+      <TicketTrackedUsage :minutes="trackedMinutes ?? 0" :text-size="usageTextSize" />
     </div>
   </div>
 </template>

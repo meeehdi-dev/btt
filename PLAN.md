@@ -1,6 +1,6 @@
 # btt — Product Plan
 
-`btt` is a work-only, single-user app: time tracking inspired by `../tt` plus a lightweight Linear-style ticket system, so tracked time is always tied to tickets and visible against estimates.
+`btt` is a work-only, single-user app: time tracking inspired by `../tt` plus a lightweight Linear-style ticket system, so tracked time is always tied to tickets.
 
 This file holds product scope and direction. Current product rules live in the accepted ADRs (`docs/decisions/`), which bind by their goal. Current implementation details (versions, libraries, config) live in code and config. Milestone files are history.
 
@@ -8,8 +8,8 @@ This file holds product scope and direction. Current product rules live in the a
 
 - **Agenda first.** A week-only Agenda is the primary surface for recording and correcting completed work, with configurable visible hours, week start, and workday target. No active timer and no planned-work state.
 - **Hierarchy.** Client → Project → Release → Ticket. Projects are reached from Clients. Releases have an optional target date. Archiving is reversible; deleting requires archiving first.
-- **Tickets.** A ticket belongs to exactly one release and has a fixed ordered status set (On hold, Idea, Estimate, Develop, Review, Test, Deploy, Done). Each ticket can have an optional estimate, an optional priority, external links (URL plus optional label), and undirected related tickets. There are no parent-child tickets.
-- **Time.** Every time entry belongs to a ticket. Entries never overlap within a day. Tracked time is shown against the estimate, with usage-ratio colors.
+- **Tickets.** A ticket belongs to exactly one release and has a fixed ordered status set (On hold, Idea, Estimate, Develop, Review, Test, Deploy, Done). Each ticket can have an optional priority and external links (URL plus optional label). There are no parent-child tickets.
+- **Time.** Every time entry belongs to a ticket. Entries never overlap within a day. The Agenda shows each day's worked hours (for the filtered entries) beside its progress bar.
 - **Surfaces.** Agenda, Ticket Board (status lanes, drag to change status), Clients, Project and Release detail, Ticket detail (the normal place to edit a ticket), Reports (time allocation per week, month, or year), global search, and a Settings modal.
 - **Platform.** Desktop only. GitHub sign-in. Self-hosted deployment built from source.
 
@@ -98,3 +98,4 @@ Work proceeds through milestones (see `docs/milestones/README.md`). Each file re
 - M48 — [Remove E2E tests (maintenance)](docs/milestones/m48-remove-e2e-tests.md)
 - M49 — [Modal primary-field autofocus](docs/milestones/m49-modal-primary-field-autofocus.md)
 - M50 — [Dependency upgrade (November 2026)](docs/milestones/m50-dependency-upgrade.md)
+- M51 — [Remove estimates and related tickets; Agenda ticket creation and filtered day hours](docs/milestones/m51-remove-estimates-relations-and-agenda-hours.md)

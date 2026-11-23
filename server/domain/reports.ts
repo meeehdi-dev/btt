@@ -1,16 +1,12 @@
 import { Effect } from 'effect'
-import { and, asc, eq, gte, isNotNull, lte, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, lte, sql } from 'drizzle-orm'
 import {
   reportGroupings,
   type ReportGrouping,
   type ReportSelectedFilters,
   type ReportsResponse,
 } from '../../shared/reports'
-import type {
-  ReportCompletionBounds,
-  ReportPeriod,
-  ReportPeriodRange,
-} from '../../shared/report-period'
+import type { ReportPeriod, ReportPeriodRange } from '../../shared/report-period'
 import { client, project, release, ticket, timeEntry } from '../db/schema'
 import { db } from '../db'
 import { promiseEffect } from '../utils/effect'
@@ -26,7 +22,6 @@ export type ReportRequest = ReportFilters & {
   grouping: ReportGrouping
   range: ReportPeriodRange
   timeZone: string
-  completionBounds: ReportCompletionBounds
 }
 
 type ReportGroupBase = {
@@ -60,7 +55,6 @@ function emptyReportRow(row: ReportGroupBase): ReportsResponse['rows'][number] {
     archived: Boolean(row.clientArchivedAt || row.projectArchivedAt || row.releaseArchivedAt),
     currentMinutes: 0,
     previousMinutes: 0,
-    estimate: null,
   }
 }
 
@@ -104,8 +98,7 @@ function orderedPathMap(
 }
 
 export function loadReports(userId: string, request: ReportRequest) {
-  const { period, grouping, range, timeZone, completionBounds, clientId, projectId, releaseId } =
-    request
+  const { period, grouping, range, timeZone, clientId, projectId, releaseId } = request
   const hierarchy = db.$with('report_hierarchy').as(
     db
       .select({
@@ -119,9 +112,6 @@ export function loadReports(userId: string, request: ReportRequest) {
         releaseName: sql<string | null>`${release.name}`.as('release_name'),
         releaseArchivedAt: sql<Date | null>`${release.archivedAt}`.as('release_archived_at'),
         ticketId: sql<string | null>`${ticket.id}`.as('report_ticket_id'),
-        ticketStatus: sql<string | null>`${ticket.status}`.as('ticket_status'),
-        estimateMinutes: sql<number | null>`${ticket.estimateMinutes}`.as('estimate_minutes'),
-        updatedAt: sql<Date | null>`${ticket.updatedAt}`.as('ticket_updated_at'),
       })
       .from(client)
       .leftJoin(project, eq(project.clientId, client.id))
@@ -195,12 +185,6 @@ export function loadReports(userId: string, request: ReportRequest) {
     hierarchy.releaseName,
     hierarchy.releaseArchivedAt,
   ]
-  // Stored timestamps are UTC-valued without a SQL time zone. Normalize the
-  // explicit boundary instants to that representation, not the session's zone.
-  const selectedCohort = sql`
-    ${hierarchy.updatedAt} >= (${completionBounds.startInstant}::timestamptz at time zone 'UTC')
-    and ${hierarchy.updatedAt} < (${completionBounds.endInstant}::timestamptz at time zone 'UTC')
-  `
   const selectedFields = {
     client: {
       id: hierarchy.clientId,
@@ -218,19 +202,8 @@ export function loadReports(userId: string, request: ReportRequest) {
       archived: sql<boolean>`${hierarchy.clientArchivedAt} is not null or ${hierarchy.projectArchivedAt} is not null or ${hierarchy.releaseArchivedAt} is not null`,
     },
   }
-  const usageByTicket = db
-    .select({
-      ticketId: timeEntry.ticketId,
-      trackedMinutes: sql<number>`coalesce(sum(${timeEntry.durationMinutes}), 0)::integer`.as(
-        'tracked_minutes',
-      ),
-    })
-    .from(timeEntry)
-    .groupBy(timeEntry.ticketId)
-    .as('report_ticket_usage')
-
   return Effect.gen(function* () {
-    const [periodRows, estimateRows, pathRows, selectedRows] = yield* promiseEffect(
+    const [periodRows, pathRows, selectedRows] = yield* promiseEffect(
       'load report aggregates',
       () =>
         Promise.all([
@@ -248,45 +221,11 @@ export function loadReports(userId: string, request: ReportRequest) {
             .orderBy(asc(group.name), asc(group.id)),
           db
             .with(hierarchy)
-            .select({
-              ...group,
-              estimatedMinutes: sql<number>`coalesce(sum(${hierarchy.estimateMinutes}), 0)::integer`,
-              trackedMinutes: sql<number>`coalesce(sum(${usageByTicket.trackedMinutes}), 0)::integer`,
-              ticketCount: sql<number>`count(*)::integer`,
-            })
-            .from(hierarchy)
-            .leftJoin(usageByTicket, eq(usageByTicket.ticketId, hierarchy.ticketId))
-            .where(
-              and(
-                ...filterConditions,
-                eq(hierarchy.ticketStatus, 'Done'),
-                isNotNull(hierarchy.estimateMinutes),
-                selectedCohort,
-              ),
-            )
-            .groupBy(...groupBy)
-            .orderBy(asc(group.name), asc(group.id)),
-          db
-            .with(hierarchy)
             .select(pathSelection)
             .from(timeEntry)
             .innerJoin(hierarchy, eq(timeEntry.ticketId, hierarchy.ticketId))
             .where(and(...queryRange))
-            .groupBy(...pathGroupBy)
-            .union(
-              db
-                .with(hierarchy)
-                .select(pathSelection)
-                .from(hierarchy)
-                .where(
-                  and(
-                    eq(hierarchy.ticketStatus, 'Done'),
-                    isNotNull(hierarchy.estimateMinutes),
-                    selectedCohort,
-                  ),
-                )
-                .groupBy(...pathGroupBy),
-            ),
+            .groupBy(...pathGroupBy),
           Promise.all(
             reportGroupings.map(async (kind) => {
               const id = request[`${kind}Id`]
@@ -316,16 +255,6 @@ export function loadReports(userId: string, request: ReportRequest) {
       reportRow.previousMinutes = row.previousMinutes
       groups.set(row.id, reportRow)
     }
-    for (const row of estimateRows) {
-      const reportRow = groups.get(row.id) ?? emptyReportRow(row)
-      reportRow.estimate = {
-        estimatedMinutes: row.estimatedMinutes,
-        trackedMinutes: row.trackedMinutes,
-        ticketCount: row.ticketCount,
-      }
-      groups.set(row.id, reportRow)
-    }
-
     const rows = [...groups.values()].toSorted(
       (left, right) =>
         right.currentMinutes - left.currentMinutes ||

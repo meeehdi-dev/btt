@@ -7,7 +7,7 @@
 
 ## Context
 
-Release ticket cards did not show tracked time against estimates, the ticket-detail status controls competed with each other, and ticket-detail rows lacked contrast.
+Release ticket cards did not show tracked time, the ticket-detail status controls competed with each other, and ticket-detail rows lacked contrast.
 
 ## Goal
 
@@ -16,9 +16,9 @@ Show how much time a release's tickets have used without extra requests per card
 ## Decision
 
 - The owner-scoped ticket list response includes tracked minutes per returned ticket, summed over all its time entries including historical ones; a ticket with none returns 0. This is one aggregate read, not a request per card.
-- Release ticket cards show title, optional description and estimate, status, and tracked time against the estimate, colored per ADR 0020.
+- Release ticket cards show title, optional description, status, and tracked time.
 - Ticket detail has no next-status action. Status changes go through the edit form, status menus and Board drag (ADR 0048). The status enum and API are unchanged.
-- Ticket-detail time entries, links and related-ticket rows use subtle elevated semantic surfaces; its client/project/release links use the same muted-to-primary hover as Board navigation.
+- Ticket-detail time entries and link rows use subtle elevated semantic surfaces; its client/project/release links use the same muted-to-primary hover as Board navigation.
 - Filter bars keep icon-leading accessible inputs and an icon-only Clear control.
 
 ## Consequences
@@ -38,3 +38,4 @@ The ticket list read does one extra grouped sum scoped by the owner/active-ances
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; the ADR 0007 next-status clause now lives in ADR 0007 (dropped the supersession line); the compact-filter mobile layout was dropped (ADR 0042).
+- 2026-11-23: Estimate usage and related-ticket rows removed (ADR 0067); release cards show tracked time only.

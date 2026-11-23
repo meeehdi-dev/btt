@@ -35,13 +35,3 @@ export function overlaps(
     b.startMinute < a.startMinute + a.durationMinutes
   )
 }
-
-export function usageColor(
-  tracked: number,
-  estimate: number,
-): 'info' | 'success' | 'warning' | 'error' {
-  if (tracked * 100 < estimate * 80) return 'info'
-  if (tracked < estimate) return 'success'
-  if (tracked <= estimate * 1.2) return 'warning'
-  return 'error'
-}

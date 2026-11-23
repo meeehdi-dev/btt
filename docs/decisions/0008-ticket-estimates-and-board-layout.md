@@ -1,4 +1,4 @@
-# ADR 0008: Human-readable ticket estimates and Board lanes
+# ADR 0008: Board lanes and atomic ticket creation
 
 - Status: Accepted
 - Date: 2026-09-25
@@ -7,33 +7,26 @@
 
 ## Context
 
-Tickets persist positive integer estimate minutes, but asking users to type raw minutes makes common hour estimates awkward. The workflow statuses also need a scannable layout.
+The workflow statuses need a scannable layout, and tickets can be created with optional links in one step.
 
 ## Goal
 
-Let people enter and read estimates in natural units, and see every workflow status at a glance on the Ticket Board, while keeping storage and API simple.
+See every workflow status at a glance on the Ticket Board.
 
 ## Decision
 
-- API and database estimates stay nullable positive integer minutes. The ticket form accepts human durations (`1hr`, `1 hr`, `45m`, `1h 30m`, `1.5h`) and bare numbers as minutes. Values resolving to fractional minutes, zero, or beyond the database integer range are rejected.
-- Stored minutes display as compact hours/minutes with a clock icon when an estimate exists.
 - The Board shows one lane per status, in status order, including empty lanes, in a single row that scrolls horizontally inside the Board rather than the page (desktop-only UI, ADR 0042).
-- A ticket can be created together with optional links and related tickets in one atomic API mutation. Owned, visible relation targets and safe URLs are validated first; an invalid extra saves nothing. Separate endpoints remain for later edits.
+- A ticket can be created together with optional links in one atomic API mutation. Safe URLs are validated first; an invalid extra saves nothing. Separate endpoints remain for later edits.
 
 ## Consequences
 
-Users type natural durations while the API keeps integer minutes. The parser is one small runtime dependency; no new tables or time-tracking changes.
+Every status has a visible lane.
 
 ## Implementation notes (non-binding)
 
-- Parsing uses `parse-duration-ms` plus a small adapter in `app/utils/ticket-estimate.ts`.
-
-## Alternatives considered
-
-- `ms`: no compound input; bare numbers mean milliseconds.
-- `parse-duration`: accepts noisy strings, too lax for form validation.
-- Handwritten grammar: not worth maintaining.
+- `app/utils/ticket-estimate.ts` now only formats durations.
 
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; dropped the retired mobile stacked-lane and responsive-gutter clauses (ADR 0042), updated lanes for On hold, moved the library to notes.
+- 2026-11-23: Retitled to its surviving goal; estimate input and its parser removed with ticket estimates (ADR 0067), related-ticket creation extras removed; Board lanes unchanged.

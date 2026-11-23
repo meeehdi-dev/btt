@@ -4,6 +4,8 @@ import {
   formatAgendaDate,
   formatAgendaWeekRange,
   formatAgendaWeekRangeShort,
+  formatHours,
+  minutesByDate,
 } from '../../app/utils/agenda-week'
 
 describe('agenda week dates', () => {
@@ -79,5 +81,23 @@ describe('agenda week dates', () => {
         new Date(2024, 8, 22, 12),
       ),
     )
+  })
+})
+
+describe('formatHours', () => {
+  it('shows hours with at most one decimal', () => {
+    expect([0, 270, 420, 570].map(formatHours)).toEqual(['0h', '4.5h', '7h', '9.5h'])
+  })
+})
+
+describe('minutesByDate', () => {
+  it('sums minutes per date and leaves missing dates undefined', () => {
+    const totals = minutesByDate([
+      { entry: { date: '2024-01-01', durationMinutes: 30 } },
+      { entry: { date: '2024-01-02', durationMinutes: 60 } },
+      { entry: { date: '2024-01-01', durationMinutes: 45 } },
+    ])
+    expect(totals).toEqual({ '2024-01-01': 75, '2024-01-02': 60 })
+    expect(totals['2024-01-03'] ?? 0).toBe(0)
   })
 })

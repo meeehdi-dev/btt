@@ -11,13 +11,13 @@ The agenda is the primary surface for completed work across tickets. Time entrie
 
 ## Goal
 
-The visible-hours window is a presentation preference only: it never hides or blocks historical work, and day progress always uses the complete tracked total.
+The visible-hours window is a presentation preference only: it never hides or blocks historical work, and day progress follows the entries the active filters leave visible.
 
 ## Decision
 
 - Each user has one settings record: visible window, workday target, and week start. Defaults when absent: 08:00–20:00 window, eight-hour target, week starting Monday (week start is Sunday 0 to Saturday 6; see ADR 0029).
 - Visible bounds use 30-minute steps with 0 ≤ start < end ≤ 1440. The target uses 30-minute steps from 30 through 1440 minutes. API and database both enforce this.
-- Day reads include all of the user's entries, including those outside the window or under archived tickets and ancestors. Progress and overtime use the unfiltered total; filters only affect rendered rows.
+- Day reads include all of the user's entries, including those outside the window or under archived tickets and ancestors. Progress, overtime and day hours use the filtered entries; the visible-hours window still never hides work, and overlap checks still see all entries.
 - A dedicated owner-scoped agenda read returns entries with archived-hierarchy labels and status. Only active tickets are eligible for new work (ADR 0011).
 - Navigating from a historical entry uses explicit archived-detail links. Project and release detail may traverse archived ancestors only with that explicit flag, which grants no write access and does not change default lists.
 - Agenda entries use the same entity, status, and time icons as the ticket board.
@@ -34,3 +34,4 @@ Settings are a small per-user record and agenda queries must join the hierarchy 
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; folded in week start (ADR 0029); retitled from "Today agenda" since the route is now Agenda (ADR 0044); dropped milestone scoping chatter.
+- 2026-11-23: Day progress and hours use the filtered entries instead of the complete total (ADR 0067); the visible-hours window still never hides work.

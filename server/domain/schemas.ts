@@ -35,7 +35,6 @@ export const ReleaseUpdate = Schema.Struct({
 const TicketTitle = Schema.String.check(Schema.isTrimmed(), Schema.isPattern(/^\S(?:.{0,198}\S)?$/))
 const TicketStatus = Schema.Literals(ticketStatuses)
 const TicketPriority = Schema.Literals(ticketPriorities)
-const Estimate = Schema.NullOr(Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)))
 const Description = Schema.String.check(Schema.isMaxLength(10000))
 const LinkLabel = Schema.String.check(Schema.isTrimmed(), Schema.isPattern(/^\S(?:.{0,198}\S)?$/))
 
@@ -47,7 +46,6 @@ export const TicketLinkUpdate = Schema.Struct({
   label: Schema.optional(Schema.NullOr(LinkLabel)),
   url: Schema.optional(Schema.String),
 })
-export const TicketRelationCreate = Schema.Struct({ ticketId: Id })
 
 export const TicketCreate = Schema.Struct({
   releaseId: Id,
@@ -55,9 +53,7 @@ export const TicketCreate = Schema.Struct({
   description: Schema.optional(Description),
   status: Schema.optional(TicketStatus),
   priority: Schema.optional(Schema.NullOr(TicketPriority)),
-  estimateMinutes: Schema.optional(Estimate),
   links: Schema.optional(Schema.Array(TicketLinkCreate)),
-  relatedTicketIds: Schema.optional(Schema.Array(Id)),
 })
 export const TicketUpdate = Schema.Struct({
   releaseId: Schema.optional(Id),
@@ -65,7 +61,6 @@ export const TicketUpdate = Schema.Struct({
   description: Schema.optional(Description),
   status: Schema.optional(TicketStatus),
   priority: Schema.optional(Schema.NullOr(TicketPriority)),
-  estimateMinutes: Schema.optional(Estimate),
   archived: Schema.optional(Schema.Boolean),
 })
 const EntryMinute = Schema.Number.check(Schema.isInt())

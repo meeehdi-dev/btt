@@ -6,7 +6,6 @@ export const entityIcons = {
   tickets: 'lucide:ticket',
   reports: 'lucide:chart-pie',
   settings: 'lucide:settings-2',
-  related: 'lucide:link-2',
 } as const
 
 export type EntityKind = keyof typeof entityIcons

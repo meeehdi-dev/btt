@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Effect, Schema } from 'effect'
-import { overlaps, usageColor, validDate, validSlot } from '../../shared/time-entry'
+import { overlaps, validDate, validSlot } from '../../shared/time-entry'
 import { TimeEntryCreate } from '../../server/domain/schemas'
 
 describe('time entry rules', () => {
@@ -24,14 +24,6 @@ describe('time entry rules', () => {
     expect(overlaps(a, { startMinute: 120, durationMinutes: 30 })).toBe(false)
     expect(overlaps(a, { startMinute: 90, durationMinutes: 30 })).toBe(true)
     expect(overlaps({ startMinute: 90, durationMinutes: 30 }, a)).toBe(true)
-  })
-  it('colors estimate usage across the requested percentage bands', () => {
-    expect(usageColor(79, 100)).toBe('info')
-    expect(usageColor(80, 100)).toBe('success')
-    expect(usageColor(99, 100)).toBe('success')
-    expect(usageColor(100, 100)).toBe('warning')
-    expect(usageColor(120, 100)).toBe('warning')
-    expect(usageColor(121, 100)).toBe('error')
   })
   it('decodes owned request fields through Effect schema', async () => {
     await expect(

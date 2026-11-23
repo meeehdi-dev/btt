@@ -5,7 +5,6 @@ import { reportGroupings } from '../../../shared/reports'
 import {
   reportPeriods,
   getReportPeriodRange,
-  getReportCompletionBounds,
   resolveReportTimeZone,
 } from '../../../shared/report-period'
 import { validDate } from '../../../shared/time-entry'
@@ -53,11 +52,9 @@ export default defineEffectHandler((event) =>
       request.date,
       settings?.startOfWeekDay ?? defaultAgendaSettings.startOfWeekDay,
     )
-    const completionBounds = range ? getReportCompletionBounds(range, timeZone) : null
-    if (!range || !completionBounds)
-      return yield* validation('The selected report period is out of range')
+    if (!range) return yield* validation('The selected report period is out of range')
 
-    return yield* loadReports(userId, { ...request, timeZone, range, completionBounds })
+    return yield* loadReports(userId, { ...request, timeZone, range })
   }),
 )
 

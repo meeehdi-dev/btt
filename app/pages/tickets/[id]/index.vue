@@ -13,7 +13,6 @@ import {
 } from '#shared/ticket-priority'
 import { ticketStatusIcon, ticketStatuses } from '#shared/ticket-status'
 import { ticketLinkLabel } from '~/utils/ticket-link-label'
-import { formatTicketEstimate, parseTicketEstimate } from '~/utils/ticket-estimate'
 import {
   modalFormShortcutContent,
   submitModalFormOnShortcut,
@@ -56,14 +55,6 @@ if (!data.value && !error.value)
 const record = computed(() => data.value?.ticket)
 const hierarchy = computed(() => data.value?.hierarchy)
 const {
-  data: choices,
-  error: choicesError,
-  refresh: refreshChoices,
-} = await trackAppApiFetch(useApiFetch('/api/tickets', { key: 'app-api:tickets:list:active' }), {
-  key: 'app-api:tickets:list:active',
-  resources: ['tickets', 'hierarchy', 'time-entries', 'search'],
-})
-const {
   data: releaseChoices,
   error: releasesError,
   refresh: refreshReleases,
@@ -79,10 +70,6 @@ const priorityDraft = ref<TicketPriorityOptionValue>(
 const descriptionDraft = ref(record.value?.description ?? '')
 const descriptionFocused = ref(false)
 const descriptionError = ref('')
-const estimateDraft = ref(
-  record.value?.estimateMinutes ? formatTicketEstimate(record.value.estimateMinutes) : '',
-)
-const estimateError = ref('')
 const releaseDraft = ref(record.value?.releaseId ?? '')
 const releasePickerOpen = ref(false)
 const releaseSearchInput = useSelectSearchInput('Search releases…')
@@ -103,13 +90,6 @@ watch(
   () => record.value?.description,
   (value) => {
     if (!descriptionFocused.value) descriptionDraft.value = value ?? ''
-  },
-)
-watch(
-  () => record.value?.estimateMinutes,
-  (value) => {
-    estimateDraft.value = value ? formatTicketEstimate(value) : ''
-    estimateError.value = ''
   },
 )
 watch(
@@ -149,28 +129,12 @@ const releaseItems = computed<ReleaseItem[]>(() => {
   }
   return items
 })
-const relatedTicketItems = computed(() =>
-  (choices.value?.tickets ?? [])
-    .filter(
-      (item) =>
-        item.ticket.id !== id && !data.value?.related.some((other) => other.id === item.ticket.id),
-    )
-    .map((item) => ({
-      label: `${item.ticket.title} · ${item.releaseName}`,
-      value: item.ticket.id,
-    })),
-)
 
 const titleModalOpen = ref(false)
 const titleDraft = ref('')
 const titleError = ref('')
 const linkModalOpen = ref(false)
 const linkError = ref('')
-const relationModalOpen = ref(false)
-const relationError = ref('')
-const relatedId = ref('')
-const relatedTicketSearchInput = useSelectSearchInput('Search tickets…')
-const relatedTicketPickerOpen = ref(false)
 const label = ref('')
 const url = ref('')
 
@@ -197,7 +161,6 @@ function applyTicketPatch(patch: {
   description?: string
   status?: TicketStatus
   priority?: TicketPriorityValue
-  estimateMinutes?: number | null
   releaseId?: string
 }) {
   if (data.value) Object.assign(data.value.ticket, patch)
@@ -351,37 +314,6 @@ async function changePriority(value: unknown) {
     priorityDraft.value = ticketPriorityOptionValue(record.value?.priority ?? null)
 }
 
-async function changeEstimate() {
-  if (controlsDisabled.value) return
-  let estimateMinutes: number | null
-  try {
-    estimateMinutes = parseTicketEstimate(estimateDraft.value)
-  } catch (cause) {
-    estimateError.value = cause instanceof Error ? cause.message : 'Enter a valid estimate.'
-    return
-  }
-  if (estimateMinutes === (record.value?.estimateMinutes ?? null)) {
-    estimateDraft.value = estimateMinutes === null ? '' : formatTicketEstimate(estimateMinutes)
-    estimateError.value = ''
-    return
-  }
-  estimateError.value = ''
-  const outcome = await mutateTicket(
-    (signal) =>
-      $fetch<unknown>(endpoint, {
-        method: 'PATCH',
-        body: { estimateMinutes },
-        signal,
-      }),
-    {
-      errorTitle: 'Could not save estimate',
-      successMessage: 'Estimate saved.',
-      onWriteSuccess: () => applyTicketPatch({ estimateMinutes }),
-    },
-  )
-  if (outcome === 'failed') estimateError.value = actionError.value
-}
-
 async function changeRelease(value: unknown) {
   if (typeof value !== 'string' || value === record.value?.releaseId) return
   if (controlsDisabled.value) {
@@ -444,7 +376,7 @@ async function permanentlyDelete() {
   if (!record.value?.archivedAt || controlsDisabled.value) return
   if (
     !confirm(
-      'Permanently delete this archived ticket and its links/relations? Tickets with tracked time cannot be deleted.',
+      'Permanently delete this archived ticket and its links? Tickets with tracked time cannot be deleted.',
     )
   )
     return
@@ -489,59 +421,10 @@ async function addLink() {
   }
 }
 
-watch(
-  () => relationModalOpen.value && !choicesError.value,
-  (ready) => {
-    relatedTicketPickerOpen.value = ready
-  },
-)
-
-function openRelationModal() {
-  relatedId.value = ''
-  relationError.value = ''
-  actionError.value = ''
-  relationModalOpen.value = true
-}
-
-function selectRelatedTicket(ticketId: string) {
-  relatedId.value = ticketId
-  relatedTicketPickerOpen.value = false
-}
-
-async function addRelation() {
-  if (!relatedId.value) return
-  const ticketId = relatedId.value
-  const outcome = await mutateTicket(
-    (signal) =>
-      $fetch<unknown>(endpoint + '/relations', {
-        method: 'POST',
-        body: { ticketId },
-        signal,
-      }),
-    {
-      errorTitle: 'Could not link ticket',
-      successMessage: 'Related ticket added.',
-    },
-  )
-  if (outcome === 'failed') relationError.value = actionError.value
-  if (outcome === 'saved' || outcome === 'partial') {
-    relatedId.value = ''
-    relationModalOpen.value = false
-  }
-}
-
 async function removeLink(linkId: string) {
   await mutateTicket(
     (signal) => $fetch<unknown>(endpoint + '/links/' + linkId, { method: 'DELETE', signal }),
     { errorTitle: 'Could not remove external link', successMessage: 'External link removed.' },
-  )
-}
-
-async function removeRelation(relationId: string) {
-  await mutateTicket(
-    (signal) =>
-      $fetch<unknown>(endpoint + '/relations/' + relationId, { method: 'DELETE', signal }),
-    { errorTitle: 'Could not unlink ticket', successMessage: 'Related ticket removed.' },
   )
 }
 </script>
@@ -665,24 +548,6 @@ async function removeRelation(relationId: string) {
             </template>
           </USelect>
         </UFormField>
-        <UFormField
-          label="Estimate"
-          hint="Optional"
-          class="min-w-0"
-          :error="estimateError || undefined"
-        >
-          <UInput
-            v-model="estimateDraft"
-            class="w-full"
-            placeholder="e.g. 1hr 30m"
-            :disabled="controlsDisabled"
-            :aria-label="`Estimate for ${data.ticket.title}`"
-            :aria-busy="(pending && actionErrorTitle === 'Could not save estimate') || undefined"
-            @update:model-value="estimateError = ''"
-            @blur="changeEstimate"
-            @keydown.enter.prevent="changeEstimate"
-          />
-        </UFormField>
         <UFormField label="Release" class="min-w-0">
           <USelectMenu
             :model-value="releaseDraft"
@@ -734,10 +599,7 @@ async function removeRelation(relationId: string) {
         @click="retryTicket"
       />
     </div>
-    <div
-      v-if="actionError && !titleModalOpen && !linkModalOpen && !relationModalOpen"
-      class="space-y-2"
-    >
+    <div v-if="actionError && !titleModalOpen && !linkModalOpen" class="space-y-2">
       <UAlert role="alert" color="error" :title="actionErrorTitle" :description="actionError" />
       <UButton
         v-if="actionNeedsRefresh"
@@ -815,75 +677,9 @@ async function removeRelation(relationId: string) {
         </ul>
         <p v-else class="mt-2 text-sm text-muted">No external links yet.</p>
       </UCard>
-
-      <UCard :ui="{ body: 'p-2' }">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="font-medium text-highlighted">Related tickets</h2>
-          <UButton
-            color="neutral"
-            variant="outline"
-            size="sm"
-            icon="lucide:plus"
-            label="Link ticket"
-            :disabled="controlsDisabled"
-            @click="openRelationModal"
-          />
-        </div>
-        <UAlert
-          v-if="choicesError && !relationModalOpen"
-          class="mt-2"
-          role="alert"
-          color="error"
-          title="Could not load ticket choices"
-          :description="clientFailureMessage(choicesError)"
-        />
-        <UButton
-          v-if="choicesError && !relationModalOpen"
-          class="mt-2"
-          color="neutral"
-          variant="outline"
-          size="sm"
-          icon="lucide:refresh-cw"
-          label="Retry loading ticket choices"
-          @click="refreshChoices()"
-        />
-        <ul v-if="data.related.length" class="mt-2 space-y-2">
-          <li
-            v-for="other in data.related"
-            :key="other.id"
-            class="flex min-w-0 items-center justify-between gap-2 rounded-md border border-muted bg-elevated/50 px-2 py-2"
-          >
-            <NuxtLink
-              :to="`/tickets/${other.id}${other.archivedAt ? '?archived=true' : ''}`"
-              class="inline-flex min-w-0 items-center gap-1 truncate text-primary underline"
-              ><UIcon
-                :name="ticketStatusIcon(other.status)"
-                class="inline-block size-4 shrink-0"
-                :data-ticket-status-icon="other.status"
-                aria-hidden="true"
-              /><span class="truncate">{{ other.title }}</span></NuxtLink
-            >
-            <UTooltip :text="`Unlink ${other.title}`">
-              <UButton
-                :disabled="controlsDisabled"
-                color="error"
-                variant="ghost"
-                icon="lucide:x"
-                :aria-label="`Unlink ${other.title}`"
-                @click="removeRelation(other.relationId)"
-              />
-            </UTooltip>
-          </li>
-        </ul>
-        <p v-else-if="!choicesError" class="mt-2 text-sm text-muted">No related tickets yet.</p>
-      </UCard>
     </div>
 
-    <TicketTimeEntries
-      :ticket-id="id"
-      :estimate-minutes="data.ticket.estimateMinutes"
-      :can-create="false"
-    />
+    <TicketTimeEntries :ticket-id="id" :can-create="false" />
 
     <UModal
       v-model:open="titleModalOpen"
@@ -976,79 +772,6 @@ async function removeRelation(relationId: string) {
               label="Add link"
               :loading="pending && actionErrorTitle === 'Could not add external link'"
               :disabled="controlsDisabled || !url.trim()"
-              aria-keyshortcuts="Meta+Enter Control+Enter"
-            />
-          </div>
-        </form>
-      </template>
-    </UModal>
-
-    <UModal
-      v-model:open="relationModalOpen"
-      title="Link a related ticket"
-      description="Choose another ticket to relate to this one."
-      :content="modalFormShortcutContent()"
-      :dismissible="!pending"
-    >
-      <template #body>
-        <form
-          class="space-y-3"
-          @keydown.capture="submitModalFormOnShortcut"
-          @submit.prevent="addRelation"
-        >
-          <UAlert
-            v-if="choicesError"
-            role="alert"
-            color="error"
-            title="Could not load ticket choices"
-            :description="clientFailureMessage(choicesError)"
-          />
-          <UButton
-            v-if="choicesError"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            icon="lucide:refresh-cw"
-            label="Retry loading ticket choices"
-            @click="refreshChoices()"
-          />
-          <UAlert
-            v-if="relationError"
-            role="alert"
-            color="error"
-            title="Could not link ticket"
-            :description="relationError"
-          />
-          <UFormField label="Ticket" required>
-            <USelectMenu
-              :model-value="relatedId"
-              v-model:open="relatedTicketPickerOpen"
-              value-key="value"
-              :items="relatedTicketItems"
-              :search-input="relatedTicketSearchInput"
-              :disabled="controlsDisabled || !!choicesError"
-              class="w-full"
-              placeholder="Choose ticket"
-              aria-label="Related ticket"
-              @update:model-value="selectRelatedTicket"
-            />
-          </UFormField>
-          <div class="flex justify-end gap-2">
-            <UButton
-              type="button"
-              color="neutral"
-              variant="outline"
-              icon="lucide:x"
-              label="Cancel"
-              :disabled="pending"
-              @click="relationModalOpen = false"
-            />
-            <UButton
-              type="submit"
-              icon="lucide:link-2"
-              label="Link ticket"
-              :loading="pending && actionErrorTitle === 'Could not link ticket'"
-              :disabled="controlsDisabled || !relatedId || !!choicesError"
               aria-keyshortcuts="Meta+Enter Control+Enter"
             />
           </div>

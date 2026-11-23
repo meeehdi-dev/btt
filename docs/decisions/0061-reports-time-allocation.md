@@ -7,7 +7,7 @@
 
 ## Context
 
-Time entries are ticket-linked and date-only, with estimates in minutes, under an owned Client → Project → Release hierarchy. No existing read compared arbitrary periods across that hierarchy. The human asked for a Reports page showing where time went, including archived history and estimate context for Done tickets.
+Time entries are ticket-linked and date-only, under an owned Client → Project → Release hierarchy. No existing read compared arbitrary periods across that hierarchy. The human asked for a Reports page showing where time went, including archived history.
 
 ## Goal
 
@@ -21,26 +21,25 @@ Reports shows where time went in a chosen week, month, or year compared with the
 - Breakdown by Clients, Projects, or Releases; client/project/release filters narrow the same scope. Choosing a row applies the matching filter (with parents) and stays on Reports. Selected filters stay valid across empty periods, and unknown or foreign ids disclose nothing.
 - Historical entries for archived tickets and hierarchy are included. A row is marked archived when its entity or an ancestor is archived; archiving never lowers totals.
 - Show the selected-period total and its change from the previous period. Rank rows by selected-period minutes descending with deterministic name/ID tie-breaks. Each row shows exact duration, share of the filtered selected-period total, and change against the same entity's previous period. An entity active only in the previous period stays visible; a zero previous total shows no infinity or NaN.
-- Estimate context covers estimated tickets that are currently Done and whose `updatedAt` falls inside the selected period in the requested time zone (DST-correct). Their all-time tracked minutes are compared with their summed estimates, kept separate from the period total and share. `updatedAt` is only a proxy for completion, so a later edit or archive/restore can move a ticket's inferred period; no completion timestamp is added.
 - Report values are shown only after a successful read; loading and error states show neutral status, hide values, and offer retry for the report read only.
 - Reports appears in the header navigation (ADR 0035). Report reads stay fresh after writes to time entries, tickets, hierarchy, and settings (ADR 0051).
 
 ## Consequences
 
-Users can answer allocation questions without exposing raw history or changing entry semantics. Estimate comparison is a lifetime metric for a best-effort Done cohort, not a period budget; the `updatedAt` caveat is shown in the UI. Ticket-level grouping, drill-down, arbitrary ranges, trend charts, billing, and exports are out of scope. No schema change.
+Users can answer allocation questions without exposing raw history or changing entry semantics. Ticket-level grouping, drill-down, arbitrary ranges, trend charts, billing, and exports are out of scope. No schema change.
 
 ## Implementation notes (non-binding)
 
-Proportional bars are plain accessible elements, no chart dependency. The period range and completion bounds are computed in `shared/report-period`; the endpoint is `server/api/reports`. Page state mechanics (keeping grouping controls mounted, neutral labels while pending) live in the Reports page.
+Proportional bars are plain accessible elements, no chart dependency. The period range is computed in `shared/report-period`; the endpoint is `server/api/reports`. Page state mechanics (keeping grouping controls mounted, neutral labels while pending) live in the Reports page.
 
 ## Alternatives considered
 
 - Exclude archived work or add an include-archived toggle: rejected; archiving must not rewrite history.
 - One expandable hierarchy instead of tabs plus filters: rejected; tabs choose the comparison level and filters narrow data.
-- Explicit completion timestamp: rejected for now; `updatedAt` accepted under the assumption Done tickets are not touched afterward.
 - Chart dependency or separate time-series chart: rejected; ranked bars suffice.
 - Aggregate in the browser from raw entries: rejected; server aggregate.
 
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; status changed Proposed → Accepted (implemented; code review accepted 2026-10-16 per M45); UI state mechanics moved to notes or dropped; navigation entry folded into ADR 0035.
+- 2026-11-23: Done-estimate cohort and completion bounds removed with ticket estimates (ADR 0067); period totals, shares and comparisons unchanged.

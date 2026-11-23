@@ -18,12 +18,6 @@ export type ReportHierarchyPath = {
   releaseArchived: boolean
 }
 
-type ReportEstimateSummary = {
-  estimatedMinutes: number
-  trackedMinutes: number
-  ticketCount: number
-}
-
 type ReportBreakdownRow = {
   id: string
   name: string
@@ -36,7 +30,6 @@ type ReportBreakdownRow = {
   archived: boolean
   currentMinutes: number
   previousMinutes: number
-  estimate: ReportEstimateSummary | null
 }
 
 export type ReportsResponse = {

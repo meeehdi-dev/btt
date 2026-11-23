@@ -18,7 +18,7 @@ Let users optionally mark tickets Low, Mid, or High, edit it from every ticket s
 - Priority is optional: none, low, mid, or high. Existing and new tickets start with none; the API accepts an explicit null to clear it. Priority is a current ticket property, not a time-entry snapshot. There is no "On hold" priority (that is a status, ADR 0055).
 - Priority is editable from ticket creation, ticket detail, Board cards, and Agenda entries.
 - Board cards and Agenda entries show only the current priority icon. Menus and form selectors show label plus matching icon. Icons are neutral: no per-value colors.
-- Within each Board status lane, order High, Mid, Low, None. Ties keep the existing ticket order: estimated first, then newest created, then highest id. Other ticket lists (ADR 0028) and Agenda chronological order are unchanged.
+- Within each Board status lane, order High, Mid, Low, None. Ties keep the existing ticket order: newest created, then highest id. Other ticket lists (ADR 0028) and Agenda chronological order are unchanged.
 
 ## Consequences
 
@@ -43,3 +43,4 @@ Let users optionally mark tickets Low, Mid, or High, edit it from every ticket s
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; absorbs ADR 0054 (neutral icon-only presentation, no per-value colors); status back to Accepted.
+- 2026-11-23: Tie-break order no longer puts estimated tickets first; ticket estimates were removed (ADR 0067).

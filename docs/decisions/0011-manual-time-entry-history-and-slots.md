@@ -20,7 +20,7 @@ Logged time is historical truth: it survives archiving, can be corrected, and ne
 - Overlapping half-open intervals are rejected across all of a user's tickets on that date, including archived tickets. Concurrent saves by one user are serialized, with database checks as a backstop.
 - Archiving hides tickets from new-work views but keeps their entries and usage. Archived ticket detail stays reachable by explicit link even under an archived parent.
 - Owned historical entries may be corrected or deleted. New entries, or reassignment, to an archived ticket or ancestor are disallowed. Permanent ticket deletion is blocked while entries exist.
-- Ticket detail always shows tracked total. Estimate usage shows only when an estimate exists: normal below 80%, warning from 80%, red from 100%.
+- Ticket detail always shows the tracked total.
 
 ## Consequences
 
@@ -39,3 +39,4 @@ Day interpretation does not depend on server timezone. Conflict checks read all 
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; dropped milestone references and dependency/extension chatter; moved locking to notes.
+- 2026-11-23: Removed the estimate usage clause; ticket estimates were removed (ADR 0067).

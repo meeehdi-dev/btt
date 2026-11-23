@@ -13,7 +13,6 @@ import {
   type HierarchyFilterState,
 } from '~/composables/useHierarchyFilters'
 import { trackAppApiFetch } from '~/composables/useAppDataInvalidation'
-import { formatTicketEstimate } from '~/utils/ticket-estimate'
 import {
   formatReportChange,
   formatReportDuration,
@@ -205,7 +204,6 @@ watch(
   { immediate: true },
 )
 const rows = computed(() => displayedReport.value?.rows ?? [])
-const hasEstimateCohort = computed(() => rows.value.some((row) => row.estimate !== null))
 const pageError = computed(() => reportFetchError.value)
 const reportErrorMessage = computed(() =>
   pageError.value ? clientFailureMessage(pageError.value) : '',
@@ -448,18 +446,13 @@ async function retryReport() {
         <p v-if="hasHierarchyFilters" class="text-sm text-muted">
           Showing work matching the selected hierarchy filters.
         </p>
-        <p v-if="hasEstimateCohort" class="text-sm text-muted">
-          Estimate comparison uses all-time tracked time for currently Done estimated tickets
-          updated during this period in {{ displayedReport.timeZone }}. Later ticket edits or
-          archive changes can move the inferred period.
-        </p>
 
         <UCard v-if="!rows.length && !pending">
           <p class="font-medium text-highlighted">
             {{
               hasHierarchyFilters
                 ? 'No work matches these filters.'
-                : 'No tracked time or completed estimates in this period.'
+                : 'No tracked time in this period.'
             }}
           </p>
           <p class="mt-1 text-sm text-muted">
@@ -485,11 +478,6 @@ async function retryReport() {
                 </span>
                 <span v-if="rowContext(row)" class="mt-0.5 block truncate text-xs text-muted">
                   {{ rowContext(row) }}
-                </span>
-                <span v-if="row.estimate" class="mt-1 block text-xs text-muted">
-                  Done estimates: {{ row.estimate.ticketCount }} · all-time tracked
-                  {{ formatTicketEstimate(row.estimate.trackedMinutes) }} / estimated
-                  {{ formatTicketEstimate(row.estimate.estimatedMinutes) }}
                 </span>
               </span>
               <span

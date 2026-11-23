@@ -18,7 +18,7 @@ Creating and editing entities keeps users in their current workflow, with clear 
 - Clients, projects, releases, and tickets are created in modals owned by the originating page. Standalone create routes are removed (404, ADR 0033). After creation the user stays put, and the success toast offers an **Open** action.
 - Client name/color, project name/color, and release name/target date are edited inline on their detail pages. Ticket detail is editable per ADR 0040.
 - Archive/restore and archived-only permanent delete stay separate detail-page actions with confirmation, archived-ancestor context, and existing destinations.
-- Success and partial success of explicit server-backed actions show a toast. Failures stay inline, never as toasts. A write that succeeded but whose refresh failed keeps its retry UI and does not invite repeating the write. Draft-only ticket links/relations have no toast; direct Agenda drag/resize writes stay quiet.
+- Success and partial success of explicit server-backed actions show a toast. Failures stay inline, never as toasts. A write that succeeded but whose refresh failed keeps its retry UI and does not invite repeating the write. Draft-only ticket links have no toast; direct Agenda drag/resize writes stay quiet.
 - APIs, validation, ownership, and invalidation are unchanged.
 
 ## Consequences
@@ -38,3 +38,4 @@ Toasts use the app-level Nuxt UI toaster.
 ## Revisions
 
 - 2026-11-21: Rewritten to goal-level form; library name moved to notes.
+- 2026-11-23: Removed the draft relation reference; related tickets were removed (ADR 0067).
